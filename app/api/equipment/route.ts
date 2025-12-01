@@ -1,0 +1,42 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search');
+
+    const whereClause: Prisma.EquipmentWhereInput = { spaceId: null };
+
+    if (search) {
+      whereClause.OR = [
+        { name: { contains: search } },
+        { description: { contains: search } },
+        { serialNumber: { contains: search } },
+        { fixedAssetId: { contains: search } },
+        { displayId: { not: null, contains: search } },
+      ];
+    }
+
+    const equipment = await prisma.equipment.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        displayId: true,
+        images: true,
+        reservationLeadTime: true, // NEW: Include reservationLeadTime
+        isFixedToSpace: true, // NEW: Include isFixedToSpace
+      },
+    });
+
+    return NextResponse.json(equipment);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
+  }
+}

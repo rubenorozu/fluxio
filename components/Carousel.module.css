@@ -1,0 +1,42 @@
+.carouselContainer {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* for smooth scrolling on iOS */
+  scroll-snap-type: x mandatory; /* Snap to items on the x-axis */
+}
+
+.carouselItemContainer {
+  flex: 0 0 auto;
+  width: 300px; /* Adjust as needed */
+  margin-right: 1rem;
+  scroll-snap-align: start; /* Snap to the start of the item */
+}
+
+.carouselControlPrev,
+.carouselControlNext {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.carouselControlPrev {
+  left: -1rem;
+}
+
+.carouselControlNext {
+  right: -1rem;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .carouselItemContainer {
+    width: 80%; /* Make cards a bit smaller on mobile */
+  }
+
+  .carouselControlPrev,
+  .carouselControlNext {
+    display: none;
+  }
+}

@@ -25,7 +25,24 @@ export default async function SuperAdminLayout({
 
     if (!session || session.user.role !== Role.SUPERUSER || !isValidSuperAdminTenant) {
         console.log('Redirecting to / ...');
-        redirect('/');
+        // DEBUG MODE: Show why it failed instead of redirecting
+        return (
+            <div className="container mt-5">
+                <div className="alert alert-danger">
+                    <h4>Acceso Denegado (Debug Mode)</h4>
+                    <p>No tienes permisos para acceder a esta sección.</p>
+                    <hr />
+                    <h5>Detalles de Sesión:</h5>
+                    <ul>
+                        <li><strong>User ID:</strong> {session?.user?.id}</li>
+                        <li><strong>Role:</strong> {session?.user?.role} (Expected: {Role.SUPERUSER})</li>
+                        <li><strong>Tenant ID:</strong> {session?.user?.tenantId}</li>
+                        <li><strong>Is Valid Tenant?:</strong> {isValidSuperAdminTenant ? 'Yes' : 'No'}</li>
+                    </ul>
+                    <Link href="/" className="btn btn-primary mt-3">Volver al Inicio</Link>
+                </div>
+            </div>
+        );
     }
 
     return (

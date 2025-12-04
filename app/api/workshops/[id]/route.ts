@@ -47,7 +47,7 @@ export async function GET(req: Request, { params }: Params) {
       inscriptionsOpen: workshop.inscriptionsOpen,
       inscriptionsStartDate: workshop.inscriptionsStartDate,
       capacity: workshop.capacity,
-      inscriptionsCount: workshop._count?.inscriptions || 0,
+      inscriptionsCount: (workshop as any)._count?.inscriptions || 0,
     };
 
     return NextResponse.json(workshopWithDetails, { status: 200 });

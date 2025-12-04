@@ -12,7 +12,7 @@ export function getTenantPrisma(tenantId: string) {
             create: (args: Prisma.SpaceCreateArgs) =>
                 prisma.space.create({
                     ...args,
-                    data: { ...args.data, tenantId },
+                    data: { ...args.data, tenantId } as any,
                 }),
             count: (args?: Prisma.SpaceCountArgs) =>
                 prisma.space.count({

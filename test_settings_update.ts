@@ -1,6 +1,6 @@
 
-import { getTenantPrisma } from './lib/tenant/prisma.ts';
-import { prisma } from './lib/prisma.ts';
+import { getTenantPrisma } from './lib/tenant/prisma';
+import { prisma } from './lib/prisma';
 
 async function main() {
     console.log('Testing Settings Update...');

@@ -40,7 +40,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     // If ADMIN_RESERVATION, check if they are responsible for the resource
     if (session.user.role === Role.ADMIN_RESERVATION) {
-      const responsibleUserId = existingReservation.space?.responsibleUserId || existingReservation.equipment?.responsibleUserId;
+      const responsibleUserId = (existingReservation as any).space?.responsibleUserId || (existingReservation as any).equipment?.responsibleUserId;
       if (!responsibleUserId || responsibleUserId !== session.user.id) {
         return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este recurso.' }, { status: 403 });
       }
@@ -58,7 +58,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       }
     });
 
-    const resourceName = updatedReservation.space?.name || updatedReservation.equipment?.name || 'recurso';
+    const resourceName = (updatedReservation as any).space?.name || (updatedReservation as any).equipment?.name || 'recurso';
 
     // Create notification for the user
     await prisma.notification.create({

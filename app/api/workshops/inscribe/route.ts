@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       }
       // Si el estado es APPROVED, está activo solo si la fecha de fin del taller está en el futuro o es nula.
       if (inscription.status === InscriptionStatus.APPROVED) {
-        return !inscription.workshop.endDate || new Date(inscription.workshop.endDate) > now;
+        return !(inscription as any).workshop.endDate || new Date((inscription as any).workshop.endDate) > now;
       }
       return false; // No debería ocurrir
     }).length;

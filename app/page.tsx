@@ -49,8 +49,8 @@ export default async function Home() {
     return <PlatformLandingPage />;
   }
 
-  // If default tenant, also show landing
-  if (tenant.slug === 'default') {
+  // If default or platform tenant, also show landing
+  if (tenant.slug === 'default' || tenant.slug === 'platform') {
     return <PlatformLandingPage />;
   }
 

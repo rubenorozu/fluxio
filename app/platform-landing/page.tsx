@@ -13,7 +13,7 @@ export default function PlatformLandingPage() {
             {/* Header con Logo */}
             <header className={styles.landingHeader}>
                 <Container>
-                    <div className="d-flex justify-content-start align-items-center py-2">
+                    <div className="d-flex justify-content-between align-items-center py-2">
                         <Image
                             src="/assets/Fluxio RSV_bco.svg"
                             alt="Fluxio RSV"
@@ -21,6 +21,14 @@ export default function PlatformLandingPage() {
                             height={90}
                             style={{ width: 'auto', height: '75px' }}
                         />
+                        <Button
+                            href="/login"
+                            variant="outline-light"
+                            className="rounded-pill px-4"
+                            as="a"
+                        >
+                            Iniciar Sesión
+                        </Button>
                     </div>
                 </Container>
             </header>
@@ -327,7 +335,7 @@ export default function PlatformLandingPage() {
                 <Container>
                     <Row>
                         <Col className="text-center">
-                            <p className="mb-0">&copy; 2024 Fluxio RSV. Todos los derechos reservados.</p>
+                            <p className="mb-0">&copy; 2026 Fluxio RSV. Todos los derechos reservados.</p>
                         </Col>
                     </Row>
                 </Container>

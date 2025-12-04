@@ -16,33 +16,12 @@ export default async function SuperAdminLayout({
     console.log('User ID:', session?.user?.id);
     console.log('Role:', session?.user?.role);
     console.log('TenantID:', session?.user?.tenantId);
-    console.log('Is Default?', session?.user?.tenantId === 'default');
-    console.log('Condition:', (!session || session.user.role !== Role.SUPERUSER || (session.user.tenantId && session.user.tenantId !== 'default')));
-
-    // Only allow SUPERUSER who is NOT bound to a specific tenant (or is bound to 'default' or 'platform')
-    // Assuming global superusers have tenantId as null, 'default', or 'platform'
-    const isValidSuperAdminTenant = !session.user.tenantId || session.user.tenantId === 'default' || session.user.tenantId === 'platform';
-
-    if (!session || session.user.role !== Role.SUPERUSER || !isValidSuperAdminTenant) {
+    // Only allow SUPERUSER
+    // We removed the tenantId restriction because Superusers might belong to 'default', 'platform', or have no tenant.
+    // The Role.SUPERUSER check is sufficient security.
+    if (!session || session.user.role !== Role.SUPERUSER) {
         console.log('Redirecting to / ...');
-        // DEBUG MODE: Show why it failed instead of redirecting
-        return (
-            <div className="container mt-5">
-                <div className="alert alert-danger">
-                    <h4>Acceso Denegado (Debug Mode)</h4>
-                    <p>No tienes permisos para acceder a esta sección.</p>
-                    <hr />
-                    <h5>Detalles de Sesión:</h5>
-                    <ul>
-                        <li><strong>User ID:</strong> {session?.user?.id}</li>
-                        <li><strong>Role:</strong> {session?.user?.role} (Expected: {Role.SUPERUSER})</li>
-                        <li><strong>Tenant ID:</strong> {session?.user?.tenantId}</li>
-                        <li><strong>Is Valid Tenant?:</strong> {isValidSuperAdminTenant ? 'Yes' : 'No'}</li>
-                    </ul>
-                    <Link href="/" className="btn btn-primary mt-3">Volver al Inicio</Link>
-                </div>
-            </div>
-        );
+        redirect('/');
     }
 
     return (

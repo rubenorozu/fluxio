@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     // Verificar capacidad
-    if (workshop.capacity > 0 && workshop._count.inscriptions >= workshop.capacity) {
+    if (workshop.capacity > 0 && (workshop as any)._count.inscriptions >= workshop.capacity) {
       return NextResponse.json({ error: 'El taller ya ha alcanzado su capacidad máxima.' }, { status: 409 });
     }
 

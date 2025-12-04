@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        for (const session of workshop.sessions) {
+        for (const session of (workshop as any).sessions) {
           if (session.dayOfWeek === dayOfWeek) {
             const [startHour, startMinute] = session.timeStart.split(':').map(Number);
             const [endHour, endMinute] = session.timeEnd.split(':').map(Number);

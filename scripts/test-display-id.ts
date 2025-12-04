@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { generateDisplayId } from '../lib/displayId.ts';
+import { generateDisplayId } from '../lib/displayId';
 
 const prisma = new PrismaClient();
 

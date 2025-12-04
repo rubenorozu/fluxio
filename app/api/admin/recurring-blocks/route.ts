@@ -136,9 +136,10 @@ export async function POST(request: Request) {
       data: {
         title,
         description,
+        tenantId: session.user.tenantId,
         startDate: parsedStartDate,
         endDate: parsedEndDate,
-        dayOfWeek: dayOfWeek,
+        dayOfWeek: JSON.stringify(dayOfWeek),
         startTime,
         endTime,
         space: spaceId ? { connect: { id: spaceId } } : undefined,

@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     }
 
     // Create session using the centralized function with tenantId
-    await createSession(user.id, user.role, user.tenantId!);
+    await createSession(user.id, user.role as any, user.tenantId!);
 
     // Remove password from the user object before sending it back
     const { password: _, ...userWithoutPassword } = user;

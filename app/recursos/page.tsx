@@ -81,12 +81,12 @@ export default async function ResourcesPage() {
       ...s,
       images: (s as any).images as Image[],
       type: 'space' as const,
-      _count: { equipments: s.equipments.length },
+      _count: { equipments: (s as any).equipments.length },
       equipments: undefined,
     })),
     ...equipment.map((e) => ({
       ...e,
-      images: e.images as Image[],
+      images: (e as any).images as Image[],
       type: 'equipment' as const
     })),
   ];

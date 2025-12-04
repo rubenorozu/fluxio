@@ -275,7 +275,7 @@ export default function PlatformLandingPage() {
                                         />
                                         {!loading && (
                                             <Button
-                                                href={user ? "/admin" : "/login"}
+                                                href={user ? "/home" : "/login"}
                                                 variant="outline-light"
                                                 className="rounded-pill px-4"
                                                 as="a"

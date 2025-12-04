@@ -70,8 +70,8 @@ export async function GET(request: Request) {
     if (search) {
       const normalizedSearch = normalizeText(search);
       filteredSpaces = spaces.filter(space => {
-        const responsibleName = space.responsibleUser
-          ? `${space.responsibleUser.firstName} ${space.responsibleUser.lastName}`
+        const responsibleName = (space as any).responsibleUser
+          ? `${(space as any).responsibleUser.firstName} ${(space as any).responsibleUser.lastName}`
           : '';
         const searchableText = [
           space.name || '',

@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma'; // We use global prisma for transaction, but manually handle tenantId
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import { detectTenant } from '@/lib/tenant/detection';
+import { generateDisplayId } from '@/lib/displayId';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +15,11 @@ interface UserPayload {
 }
 
 export async function GET(req: Request) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ message: 'Unauthorized Tenant' }, { status: 401 });
+  }
+
   const cookieStore = cookies();
   const tokenCookie = cookieStore.get('session');
 
@@ -33,7 +40,10 @@ export async function GET(req: Request) {
   const start = searchParams.get('start');
   const end = searchParams.get('end');
 
-  const where: any = { userId };
+  const where: any = {
+    userId,
+    tenantId: tenant.id // Ensure we only fetch for this tenant
+  };
 
   if (start && end) {
     where.startTime = { gte: new Date(start) };
@@ -61,9 +71,12 @@ export async function GET(req: Request) {
   }
 }
 
-import { generateDisplayId } from '@/lib/displayId';
-
 export async function POST(request: Request) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ message: 'Unauthorized Tenant' }, { status: 401 });
+  }
+
   const cookieStore = cookies();
   const tokenCookie = cookieStore.get('session');
 
@@ -89,8 +102,9 @@ export async function POST(request: Request) {
     }
 
     const createdReservations = await prisma.$transaction(async (tx) => {
-      const displayId = await generateDisplayId(tx, userId);
-      const cartSubmissionId = crypto.randomUUID(); // Generate this on the server
+      // Pass tenantId to generateDisplayId
+      const displayId = await generateDisplayId(tx, userId, tenant.id);
+      const cartSubmissionId = crypto.randomUUID();
 
       const reservationPromises = items.map((item: { id: string, type: string }) => {
         const data: any = {
@@ -104,6 +118,7 @@ export async function POST(request: Request) {
           teacher,
           status: 'PENDING',
           userId: userId,
+          tenantId: tenant.id, // Explicitly set tenantId
         };
 
         if (item.type === 'space') {
@@ -111,7 +126,7 @@ export async function POST(request: Request) {
         } else {
           data.equipmentId = item.id;
         }
-        
+
         return tx.reservation.create({ data });
       });
 

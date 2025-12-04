@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { useSession } from '@/context/SessionContext';
+import { useTenant } from '@/context/TenantContext';
 import styles from './ResourceCard.module.css';
 
 interface Inscription {
@@ -48,6 +49,7 @@ const ResourceCard = ({ resource, type, displayMode = 'full', onInscriptionSucce
 
   const { addToCart } = useCart();
   const { user } = useSession();
+  const tenant = useTenant();
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [inscriptionStatus, setInscriptionStatus] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(false);
@@ -173,7 +175,6 @@ const ResourceCard = ({ resource, type, displayMode = 'full', onInscriptionSucce
               <Link
                 href={resourceUrl}
                 className="btn btn-primary w-100"
-                style={{ backgroundColor: '#0076A8', borderColor: '#0076A8' }}
               >
                 Ver Detalles
               </Link>
@@ -188,7 +189,7 @@ const ResourceCard = ({ resource, type, displayMode = 'full', onInscriptionSucce
                 </Link>
                 {type === 'workshop' ? (
                   <button
-                    className={`btn btn-warning text-white ${!isAvailable ||
+                    className={`btn text-white ${!isAvailable ||
                       isFull ||
                       !areInscriptionsOpen ||
                       isSubscribing ||
@@ -198,13 +199,13 @@ const ResourceCard = ({ resource, type, displayMode = 'full', onInscriptionSucce
                       : ''
                       }`}
                     style={{
-                      backgroundColor: inscriptionStatus === 'APPROVED' ? '#0076A8' :
-                        inscriptionStatus === 'PENDING' ? '#3399CC' :
-                          '#F28C00',
-                      borderColor: inscriptionStatus === 'APPROVED' ? '#0076A8' :
-                        inscriptionStatus === 'PENDING' ? '#3399CC' :
-                          '#F28C00',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      backgroundColor: inscriptionStatus === 'APPROVED'
+                        ? (tenant?.config?.inscriptionApprovedColor || '#28A745')
+                        : inscriptionStatus === 'PENDING'
+                          ? (tenant?.config?.inscriptionPendingColor || '#ff9500')
+                          : (tenant?.config?.inscriptionDefaultColor || '#ff9500'),
+                      border: 'none'
                     }}
                     onClick={() => handleInscribe()}
                     disabled={
@@ -247,16 +248,14 @@ const ResourceCard = ({ resource, type, displayMode = 'full', onInscriptionSucce
                   </button>
                 ) : type === 'space' && resource._count?.equipments && resource._count.equipments > 0 ? (
                   <button
-                    className="btn btn-warning text-white"
-                    style={{ backgroundColor: '#F28C00', borderColor: '#F28C00' }}
+                    className={`btn ${styles.customActionButton}`}
                     onClick={() => onConfigureSpace && onConfigureSpace(resource.id)}
                   >
                     Agregar
                   </button>
                 ) : (
                   <button
-                    className="btn btn-warning text-white"
-                    style={{ backgroundColor: '#F28C00', borderColor: '#F28C00' }}
+                    className={`btn ${styles.customActionButton}`}
                     onClick={() => addToCart({ ...resource, type, reservationLeadTime: resource.reservationLeadTime, isFixedToSpace: resource.isFixedToSpace })}
                   >
                     Agregar
@@ -267,7 +266,7 @@ const ResourceCard = ({ resource, type, displayMode = 'full', onInscriptionSucce
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

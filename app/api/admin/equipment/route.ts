@@ -2,7 +2,9 @@
 import { Role, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma'; // Import singleton Prisma client
+import { detectTenant } from '@/lib/tenant/detection';
+import { normalizeText } from '@/lib/search-utils';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 
 // Helper function to generate a random alphanumeric string
@@ -33,6 +35,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Acceso denegado. Se requieren privilegios de Superusuario o Administrador de Recursos.' }, { status: 403 });
   }
 
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
@@ -45,25 +53,9 @@ export async function GET(request: Request) {
       whereClause.responsibleUserId = session.user.id;
     }
 
-    if (search) {
-      whereClause.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { serialNumber: { contains: search, mode: 'insensitive' } },
-        { fixedAssetId: { contains: search, mode: 'insensitive' } },
-        { displayId: { not: null, contains: search, mode: 'insensitive' } },
-        {
-          responsibleUser: {
-            OR: [
-              { firstName: { contains: search, mode: 'insensitive' } },
-              { lastName: { contains: search, mode: 'insensitive' } },
-            ],
-          },
-        },
-      ];
-    }
-
-    const skip = (page - 1) * pageSize;
+    // When searching, fetch more results and filter in memory for accent-insensitive search
+    const fetchLimit = search ? 1000 : pageSize;
+    const skip = search ? 0 : (page - 1) * pageSize;
 
     const equipment = await prisma.equipment.findMany({
       where: whereClause,
@@ -80,12 +72,32 @@ export async function GET(request: Request) {
         createdAt: 'desc',
       },
       skip,
-      take: pageSize,
+      take: fetchLimit,
     });
 
-    const totalEquipment = await prisma.equipment.count({ where: whereClause });
+    // Filter in memory for accent-insensitive search
+    let filteredEquipment = equipment;
+    if (search) {
+      const normalizedSearch = normalizeText(search);
+      filteredEquipment = equipment.filter(item => {
+        const responsibleName = item.responsibleUser
+          ? `${item.responsibleUser.firstName} ${item.responsibleUser.lastName}`
+          : '';
+        const searchableText = [
+          item.name || '',
+          item.description || '',
+          item.serialNumber || '',
+          item.fixedAssetId || '',
+          item.displayId || '',
+          responsibleName,
+        ].join(' ');
+        return normalizeText(searchableText).includes(normalizedSearch);
+      });
+    }
 
-    return NextResponse.json({ equipment, totalEquipment }, { status: 200 });
+    const totalEquipment = search ? filteredEquipment.length : await prisma.equipment.count({ where: whereClause });
+
+    return NextResponse.json({ equipment: filteredEquipment, totalEquipment }, { status: 200 });
   } catch (error) {
     console.error('Error fetching equipment:', error);
     return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
@@ -99,6 +111,12 @@ export async function POST(request: Request) {
   if (!session || (session.user.role !== Role.SUPERUSER && session.user.role !== Role.ADMIN_RESOURCE)) {
     return NextResponse.json({ error: 'Acceso denegado. Se requieren privilegios de Superusuario o Administrador de Recursos.' }, { status: 403 });
   }
+
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
 
   try {
     const { name, description, serialNumber, fixedAssetId, images, responsibleUserId, spaceId, reservationLeadTime, isFixedToSpace } = await request.json();

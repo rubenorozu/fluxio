@@ -89,19 +89,11 @@ export default function WorkshopsPage() {
     return () => clearTimeout(handler);
   }, [sessionLoading, user, refresh, searchTerm]);
 
-  if (loading || sessionLoading) {
+  if (sessionLoading) {
     return (
       <Container className="mt-5 text-center">
         <Spinner animation="border" />
         <p>Cargando talleres...</p>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container className="mt-5">
-        <Alert variant="danger">{error}</Alert>
       </Container>
     );
   }
@@ -117,9 +109,17 @@ export default function WorkshopsPage() {
         style={{ width: '100%' }}
         className="mb-4"
       />
-      {workshops.length === 0 ? (
+
+      {loading && (
+        <div className="text-center mb-3">
+          <Spinner animation="border" size="sm" />
+        </div>
+      )}
+
+      {error && <Alert variant="danger">{error}</Alert>}
+      {!loading && workshops.length === 0 ? (
         <Alert variant="info">No hay talleres disponibles en este momento.</Alert>
-      ) : (
+      ) : !loading && (
         <div className="row mx-auto">
           {workshops.map(workshop => {
             const inscription = inscriptions.find(i => i.workshopId === workshop.id);

@@ -1,16 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useSession } from '@/context/SessionContext'; // Importamos useSession
+import { useSession } from '@/context/SessionContext';
+import { useTenant } from '@/context/TenantContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
-  const { user, loading, login } = useSession(); // Usamos el hook useSession
+  const searchParams = useSearchParams();
+  const { user, loading, login } = useSession();
+  const tenant = useTenant(); // Obtener tenant del context
+
+  // Detectar error de tenant pausado desde URL
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam === 'tenant_paused') {
+      setError('Esta organización ha sido pausada. Contacta al administrador.');
+    }
+  }, [searchParams]);
 
   // Redirigir si el usuario ya está logueado
   useEffect(() => {
@@ -34,7 +45,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, tenantId: tenant.id }),
       });
 
       if (res.ok) {

@@ -1,13 +1,20 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import { Role, ReservationStatus } from '@prisma/client';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 const allowedAdminRoles: Role[] = [Role.SUPERUSER, Role.ADMIN_RESOURCE, Role.ADMIN_RESERVATION];
 
 // PATCH /api/reservations/[id]
 // Updates the status of a reservation (e.g., to approve or reject it)
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
   if (!session || !allowedAdminRoles.includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -41,6 +48,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 // DELETE /api/reservations/[id]
 // Deletes a reservation or an administrative block
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
   if (!session || !allowedAdminRoles.includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

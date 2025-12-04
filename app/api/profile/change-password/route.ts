@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import bcrypt from 'bcryptjs'; // Assuming bcryptjs is installed
+import bcrypt from 'bcryptjs';
 
 interface UserPayload {
   userId: string;
@@ -12,6 +13,11 @@ interface UserPayload {
 }
 
 export async function PUT(req: Request) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
   const cookieStore = cookies();
   const tokenCookie = cookieStore.get('session');
 

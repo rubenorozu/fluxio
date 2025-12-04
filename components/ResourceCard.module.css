@@ -1,22 +1,45 @@
 .customPrimaryButton {
-  /* Estado normal: Fondo blanco, texto azul, borde azul */
-  color: #1577a5;
-  border-color: #1577a5;
-  background-color: transparent; /* Para que sea "outline" */
+  /* Estado normal: Fondo azul, texto blanco, borde azul */
+  background-color: var(--tenant-primary-color);
+  color: #ffffff;
+  border-color: var(--tenant-primary-color);
 }
 
 .customPrimaryButton:hover {
-  /* Estado hover: Fondo azul, texto blanco, borde azul */
-  background-color: #1577a5;
-  color: #ffffff;
-  border-color: #1577a5;
+  /* Estado hover: Fondo transparente, texto azul, borde azul */
+  background-color: transparent;
+  color: var(--tenant-primary-color);
+  border-color: var(--tenant-primary-color);
 }
 
 .customPrimaryButton:focus,
 .customPrimaryButton:active {
   /* Estado active/focus: Fondo azul, texto blanco, borde azul */
-  background-color: #1577a5;
+  background-color: var(--tenant-primary-color);
   color: #ffffff;
-  border-color: #1577a5;
-  box-shadow: 0 0 0 0.25rem rgba(21, 119, 165, 0.5); /* Sombra de focus */
+  border-color: var(--tenant-primary-color);
+  box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--tenant-primary-color), transparent 50%);
+  /* Sombra de focus */
+}
+
+.customActionButton {
+  /* Estado normal: Fondo terciario (naranja), texto blanco */
+  background-color: var(--tenant-tertiary-color);
+  border-color: var(--tenant-tertiary-color);
+  color: #ffffff;
+}
+
+.customActionButton:hover {
+  /* Estado hover: Fondo blanco, texto terciario (naranja), borde terciario */
+  background-color: #ffffff;
+  color: var(--tenant-tertiary-color);
+  border-color: var(--tenant-tertiary-color);
+}
+
+.customActionButton:focus,
+.customActionButton:active {
+  background-color: var(--tenant-tertiary-color);
+  color: #ffffff;
+  border-color: var(--tenant-tertiary-color);
+  box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--tenant-tertiary-color), transparent 50%);
 }

@@ -15,8 +15,9 @@ export async function GET(request: Request) {
 
   try {
     const spaces = await prisma.space.findMany({
-      // We don't apply any filters here, returning all spaces.
-      // This API is specifically for admin forms that need a full list of spaces.
+      where: {
+        tenantId: session.user.tenantId, // Filtrar por tenant del usuario
+      },
       select: {
         id: true,
         name: true,

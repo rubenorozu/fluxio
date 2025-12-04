@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
 import { Role, Prisma, InscriptionStatus } from '@prisma/client';
+import { normalizeText } from '@/lib/search-utils';
 
 export async function GET(request: Request) {
   const session = await getServerSession();
@@ -34,16 +35,16 @@ export async function GET(request: Request) {
         {
           user: {
             OR: [
-              { firstName: { contains: search, mode: 'insensitive' } },
-              { lastName: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } },
-              { identifier: { contains: search, mode: 'insensitive' } },
+              { firstName: { contains: search } },
+              { lastName: { contains: search } },
+              { email: { contains: search } },
+              { identifier: { contains: search } },
             ],
           },
         },
         {
           workshop: {
-            name: { contains: search, mode: 'insensitive' },
+            name: { contains: search },
           },
         },
       ];
@@ -51,6 +52,9 @@ export async function GET(request: Request) {
 
     const skip = (page - 1) * pageSize;
 
+    // When searching, fetch more results and filter in memory for accent-insensitive search
+    const fetchLimit = search ? 1000 : pageSize;
+    const effectiveSkip = search ? 0 : skip;
 
     const inscriptions = await prisma.inscription.findMany({
       where: whereClause,
@@ -67,18 +71,34 @@ export async function GET(request: Request) {
       orderBy: {
         createdAt: 'desc',
       },
-      skip,
-      take: pageSize,
+      skip: effectiveSkip,
+      take: fetchLimit,
     });
 
-    const totalInscriptions = await prisma.inscription.count({ where: whereClause });
+    // Filter in memory for accent-insensitive search
+    let filteredInscriptions = inscriptions;
+    if (search) {
+      const normalizedSearch = normalizeText(search);
+      filteredInscriptions = inscriptions.filter(inscription => {
+        const searchableText = [
+          inscription.user.firstName || '',
+          inscription.user.lastName || '',
+          inscription.user.email || '',
+          inscription.user.identifier || '',
+          inscription.workshop.name || '',
+        ].join(' ');
+        return normalizeText(searchableText).includes(normalizedSearch);
+      });
+    }
+
+    const totalInscriptions = search ? filteredInscriptions.length : await prisma.inscription.count({ where: whereClause });
 
     const format = searchParams.get('format');
     if (format === 'csv') {
       const csvRows = [];
       csvRows.push('"Nombre del Usuario","Matrícula","Taller","Estatus de Inscripción"');
 
-      for (const inscription of inscriptions) {
+      for (const inscription of filteredInscriptions) {
         const userName = `${inscription.user.firstName} ${inscription.user.lastName}`;
         const userIdentifier = inscription.user.identifier || 'N/A';
         const workshopName = inscription.workshop.name;
@@ -103,7 +123,7 @@ export async function GET(request: Request) {
     }
 
 
-    return NextResponse.json({ inscriptions, totalInscriptions }, { status: 200 });
+    return NextResponse.json({ inscriptions: filteredInscriptions, totalInscriptions }, { status: 200 });
   } catch (error) {
     console.error('Error al obtener las inscripciones:', error);
     return NextResponse.json({ error: 'No se pudieron obtener las inscripciones.' }, { status: 500 });

@@ -154,7 +154,7 @@ export default function AdminInscriptionsPage() {
           <Col xs={12} className="text-center mt-3">
             <Row className="g-0 mb-2">
               <Col xs={6} className="px-1">
-                <Button variant="outline-secondary" onClick={() => fetchInscriptions(filter, searchTerm)} className="w-100" style={{ borderColor: '#1577a5', color: '#1577a5' }}>
+                <Button variant="outline-primary" onClick={() => fetchInscriptions(filter, searchTerm)} className="w-100">
                   Refrescar
                 </Button>
               </Col>
@@ -206,7 +206,7 @@ export default function AdminInscriptionsPage() {
               style={{ width: 'auto' }} // Allow natural width
               className="me-2" // Add margin to the right of the search field
             />
-            <Button variant="outline-secondary" onClick={() => fetchInscriptions(filter, searchTerm)}>
+            <Button variant="outline-primary" onClick={() => fetchInscriptions(filter, searchTerm)}>
               Refrescar
             </Button>
             <Button variant="secondary" onClick={() => {

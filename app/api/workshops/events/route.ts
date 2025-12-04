@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { getServerSession } from '@/lib/auth';
 import { Role } from '@prisma/client';
 import { eachDayOfInterval, getDay, parseISO } from 'date-fns';
@@ -7,6 +8,12 @@ import { eachDayOfInterval, getDay, parseISO } from 'date-fns';
 const allowedAdminRoles: Role[] = [Role.SUPERUSER, Role.ADMIN_RESOURCE, Role.ADMIN_RESERVATION];
 
 export async function GET(request: NextRequest) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
   if (!session || !allowedAdminRoles.includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -79,9 +86,9 @@ export async function GET(request: NextRequest) {
               title: `${workshop.name} (${workshop.teacher})`,
               start: eventStart,
               end: eventEnd,
-              resource: { 
+              resource: {
                 workshopId: workshop.id,
-                room: session.room 
+                room: session.room
               },
             });
           }

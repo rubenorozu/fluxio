@@ -18,6 +18,7 @@ export async function GET() {
         role: {
           in: responsibleRoles,
         },
+        tenantId: session.user.tenantId, // Filter by current tenant
       },
       select: {
         id: true,

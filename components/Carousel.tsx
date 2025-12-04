@@ -14,12 +14,16 @@ interface Resource {
   name: string;
   description?: string | null;
   images: Image[]; // Cambiado a array de Image
-  type: 'space' | 'equipment'; // type is now on the resource
+  type: 'space' | 'equipment' | 'workshop'; // type is now on the resource
   reservationLeadTime?: number | null; // Added
   isFixedToSpace?: boolean; // Added
   requiresSpaceReservationWithEquipment?: boolean; // Added
+  inscriptionsStartDate?: string | null; // Added for workshops
+  inscriptionsOpen?: boolean; // Added for workshops
+  capacity?: number; // Added for workshops
   _count?: { // Added
     equipments?: number;
+    inscriptions?: number; // Added for workshops
   };
 }
 

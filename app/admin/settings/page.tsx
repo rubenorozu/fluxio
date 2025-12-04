@@ -1,19 +1,49 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Container, Form, Button, Spinner, Alert } from 'react-bootstrap';
+import { Container, Form, Button, Spinner, Alert, Row, Col } from 'react-bootstrap';
 import { useSession } from '@/context/SessionContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { DEFAULT_HOW_IT_WORKS, DEFAULT_PRIVACY_POLICY } from '@/lib/default-content';
 
 export default function AdminSettingsPage() {
   const { user, loading: sessionLoading } = useSession();
   const router = useRouter();
   const [limit, setLimit] = useState('');
   const [reservationLeadTime, setReservationLeadTime] = useState('');
+
+  // New Tenant Config State
+  const [siteName, setSiteName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [allowedDomains, setAllowedDomains] = useState('');
+  const [privacyPolicy, setPrivacyPolicy] = useState('');
+  const [howItWorks, setHowItWorks] = useState(''); // JSON string
+  const [topLogoUrl, setTopLogoUrl] = useState('');
+  const [topLogoHeight, setTopLogoHeight] = useState(50); // Default 50
+  const [bottomLogoUrl, setBottomLogoUrl] = useState('');
+  const [faviconUrl, setFaviconUrl] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#145775');
+  const [secondaryColor, setSecondaryColor] = useState('#1F2937');
+  const [tertiaryColor, setTertiaryColor] = useState('#ff9500');
+  const [inscriptionDefaultColor, setInscriptionDefaultColor] = useState('#ff9500');
+  const [inscriptionPendingColor, setInscriptionPendingColor] = useState('#ff9500');
+  const [inscriptionApprovedColor, setInscriptionApprovedColor] = useState('#28A745');
+  const [pdfTopLogoUrl, setPdfTopLogoUrl] = useState('');
+  const [pdfBottomLogoUrl, setPdfBottomLogoUrl] = useState('');
+  const [pdfTopLogoFile, setPdfTopLogoFile] = useState<File | null>(null);
+  const [pdfBottomLogoFile, setPdfBottomLogoFile] = useState<File | null>(null);
+  const [regulationsUrl, setRegulationsUrl] = useState('');
+  const [regulationsFile, setRegulationsFile] = useState<File | null>(null);
+  const [attachmentFormUrl, setAttachmentFormUrl] = useState('');
+  const [attachmentFormFile, setAttachmentFormFile] = useState<File | null>(null);
+
+
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!sessionLoading && (!user || user.role !== 'SUPERUSER')) {
@@ -32,6 +62,28 @@ export default function AdminSettingsPage() {
         const data = await response.json();
         setLimit(data.extraordinaryInscriptionLimit || '');
         setReservationLeadTime(data.reservationLeadTime || '');
+
+        // Set Tenant Config
+        setSiteName(data.siteName || '');
+        setContactEmail(data.contactEmail || '');
+        setAllowedDomains(data.allowedDomains || '');
+        setPrivacyPolicy(data.privacyPolicy || DEFAULT_PRIVACY_POLICY);
+        setHowItWorks(data.howItWorks || DEFAULT_HOW_IT_WORKS);
+        setTopLogoUrl(data.topLogoUrl || '');
+        setTopLogoHeight(data.topLogoHeight || 50); // Set height
+        setBottomLogoUrl(data.bottomLogoUrl || '');
+        setFaviconUrl(data.faviconUrl || '');
+        setPrimaryColor(data.primaryColor || '#3B82F6');
+        setSecondaryColor(data.secondaryColor || '#1F2937');
+        setTertiaryColor(data.tertiaryColor || '#ff9500');
+        setInscriptionDefaultColor(data.inscriptionDefaultColor || '#ff9500');
+        setInscriptionPendingColor(data.inscriptionPendingColor || '#ff9500');
+        setInscriptionApprovedColor(data.inscriptionApprovedColor || '#28A745');
+        setPdfTopLogoUrl(data.pdfTopLogoUrl || '');
+        setPdfBottomLogoUrl(data.pdfBottomLogoUrl || '');
+        setRegulationsUrl(data.regulationsUrl || '');
+        setAttachmentFormUrl(data.attachmentFormUrl || '');
+
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError(err.message);
@@ -48,16 +100,142 @@ export default function AdminSettingsPage() {
     }
   }, [user]);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('files', e.target.files[0]);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Error uploading image');
+
+      const data = await response.json();
+      if (data.urls && data.urls.length > 0) {
+        setUrl(data.urls[0]);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Error al subir la imagen');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
+    let uploadedPdfTopLogoUrl = pdfTopLogoUrl;
+    let uploadedPdfBottomLogoUrl = pdfBottomLogoUrl;
+
+    if (pdfTopLogoFile) {
+      const formData = new FormData();
+      formData.append('files', pdfTopLogoFile);
+      try {
+        const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!uploadResponse.ok) throw new Error('Error al subir logo superior PDF');
+        const uploadData = await uploadResponse.json();
+        uploadedPdfTopLogoUrl = uploadData.urls[0]; // Also accessing urls[0] since API returns { urls: [...] }
+      } catch (err) {
+        setError('Error al subir logo superior PDF');
+        // setIsSubmitting(false); // Removed as it's not defined
+        return;
+      }
+    }
+
+    if (pdfBottomLogoFile) {
+      const formData = new FormData();
+      formData.append('files', pdfBottomLogoFile);
+      try {
+        const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!uploadResponse.ok) throw new Error('Error al subir logo inferior PDF');
+        const uploadData = await uploadResponse.json();
+        uploadedPdfBottomLogoUrl = uploadData.urls[0]; // Also accessing urls[0] since API returns { urls: [...] }
+      } catch (err) {
+        setError('Error al subir logo inferior PDF');
+        // setIsSubmitting(false); // Removed as it's not defined
+        return;
+      }
+    }
+
+    let uploadedRegulationsUrl = regulationsUrl;
+    let uploadedAttachmentFormUrl = attachmentFormUrl;
+
+    if (regulationsFile) {
+      const formData = new FormData();
+      formData.append('file', regulationsFile);
+      formData.append('type', 'regulations');
+      try {
+        const uploadResponse = await fetch('/api/upload/config', { method: 'POST', body: formData });
+        if (!uploadResponse.ok) throw new Error('Error al subir reglamento');
+        const uploadData = await uploadResponse.json();
+        uploadedRegulationsUrl = uploadData.url;
+      } catch (err) {
+        setError('Error al subir reglamento');
+        return;
+      }
+    }
+
+    if (attachmentFormFile) {
+      const formData = new FormData();
+      formData.append('file', attachmentFormFile);
+      formData.append('type', 'attachmentForm');
+      try {
+        const uploadResponse = await fetch('/api/upload/config', { method: 'POST', body: formData });
+        if (!uploadResponse.ok) throw new Error('Error al subir formato de adjunto');
+        const uploadData = await uploadResponse.json();
+        uploadedAttachmentFormUrl = uploadData.url;
+      } catch (err) {
+        setError('Error al subir formato de adjunto');
+        return;
+      }
+    }
+
+
+    console.log('Submitting settings:', {
+      siteName,
+      contactEmail,
+      faviconUrl,
+      topLogoUrl,
+      bottomLogoUrl,
+      pdfTopLogoUrl: uploadedPdfTopLogoUrl,
+      pdfBottomLogoUrl: uploadedPdfBottomLogoUrl
+    });
+
     try {
       const response = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ extraordinaryInscriptionLimit: limit, reservationLeadTime: reservationLeadTime }),
+        body: JSON.stringify({
+          extraordinaryInscriptionLimit: limit,
+          reservationLeadTime: reservationLeadTime,
+          siteName,
+          contactEmail,
+          allowedDomains,
+          privacyPolicy,
+          howItWorks,
+          topLogoUrl,
+          topLogoHeight, // Send height
+          bottomLogoUrl,
+          faviconUrl,
+          primaryColor,
+          secondaryColor,
+          tertiaryColor,
+          inscriptionDefaultColor,
+          inscriptionPendingColor,
+          inscriptionApprovedColor,
+          pdfTopLogoUrl: uploadedPdfTopLogoUrl,
+          pdfBottomLogoUrl: uploadedPdfBottomLogoUrl,
+          regulationsUrl: uploadedRegulationsUrl,
+          attachmentFormUrl: uploadedAttachmentFormUrl
+        }),
       });
 
       if (!response.ok) {
@@ -65,7 +243,12 @@ export default function AdminSettingsPage() {
         throw new Error(errorData.error || 'No se pudo actualizar la configuración.');
       }
 
-      setSuccess('Configuración actualizada correctamente.');
+      setSuccess('Configuración actualizada correctamente. Recargando página...');
+
+      // Reload page after 1.5 seconds to apply changes
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -84,9 +267,349 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <Container style={{ paddingTop: '100px' }}>
+    <Container style={{ paddingTop: '100px', paddingBottom: '50px' }}>
       <h2>Configuración del Sistema</h2>
       <Form onSubmit={handleSubmit}>
+
+        <h4 className="mt-4">General</h4>
+        <Form.Group className="mb-3">
+          <Form.Label>Nombre del Sitio</Form.Label>
+          <Form.Control
+            type="text"
+            value={siteName}
+            onChange={(e) => setSiteName(e.target.value)}
+            placeholder="Ej: Fluxio RSV"
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Correo de Contacto</Form.Label>
+          <Form.Control
+            type="email"
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+            placeholder="contacto@ejemplo.com"
+          />
+        </Form.Group>
+
+        <h4 className="mt-4">Branding</h4>
+        <Form.Group className="mb-3">
+          <Form.Label>Logotipo Superior (Header)</Form.Label>
+          <div className="d-flex align-items-center gap-3 mb-2">
+            {topLogoUrl && <img src={topLogoUrl} alt="Top Logo" height={topLogoHeight} style={{ maxHeight: '100px' }} />}
+            <Form.Control
+              type="file"
+              onChange={(e) => handleImageUpload(e as any, setTopLogoUrl)}
+              disabled={uploading}
+            />
+          </div>
+          {topLogoUrl && (
+            <div className="mt-2">
+              <Form.Label>Tamaño del Logotipo: {topLogoHeight}px</Form.Label>
+              <Form.Range
+                min={20}
+                max={100}
+                value={topLogoHeight}
+                onChange={(e) => setTopLogoHeight(parseInt(e.target.value))}
+              />
+            </div>
+          )}
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Logotipo Inferior (Footer)</Form.Label>
+          <div className="d-flex align-items-center gap-3 mb-2">
+            {bottomLogoUrl && <img src={bottomLogoUrl} alt="Bottom Logo" height="50" />}
+            <Form.Control
+              type="file"
+              onChange={(e) => handleImageUpload(e as any, setBottomLogoUrl)}
+              disabled={uploading}
+            />
+          </div>
+        </Form.Group>
+
+        <hr className="my-4" />
+        <h4 className="mb-3">Personalización de Documentos PDF (Hojas de Salida, Listas)</h4>
+        <Alert variant="info">
+          <i className="bi bi-info-circle me-2"></i>
+          Para la generación de PDFs, se requieren imágenes en formato <strong>PNG</strong> o <strong>JPG</strong>. Los archivos SVG no son compatibles.
+        </Alert>
+        <Row className="mb-3">
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Logo Superior para PDF (PNG/JPG)</Form.Label>
+              {pdfTopLogoUrl && (
+                <div className="mb-2 p-2 border rounded bg-light text-center">
+                  <img src={pdfTopLogoUrl} alt="Logo Superior PDF" style={{ maxHeight: '50px', maxWidth: '100%' }} />
+                </div>
+              )}
+              <Form.Control
+                type="file"
+                accept="image/png, image/jpeg"
+                onChange={(e: any) => setPdfTopLogoFile(e.target.files[0])}
+              />
+              <Form.Text className="text-muted">
+                Aparecerá en la esquina superior izquierda de los documentos.
+              </Form.Text>
+            </Form.Group>
+          </Col>
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Logo Inferior para PDF (PNG/JPG)</Form.Label>
+              {pdfBottomLogoUrl && (
+                <div className="mb-2 p-2 border rounded bg-light text-center">
+                  <img src={pdfBottomLogoUrl} alt="Logo Inferior PDF" style={{ maxHeight: '50px', maxWidth: '100%' }} />
+                </div>
+              )}
+              <Form.Control
+                type="file"
+                accept="image/png, image/jpeg"
+                onChange={(e: any) => setPdfBottomLogoFile(e.target.files[0])}
+              />
+              <Form.Text className="text-muted">
+                Aparecerá en la esquina inferior derecha de los documentos.
+              </Form.Text>
+            </Form.Group>
+          </Col>
+        </Row>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Favicon (Icono de pestaña)</Form.Label>
+          <div className="d-flex align-items-center gap-3 mb-2">
+            {faviconUrl && <img src={faviconUrl} alt="Favicon" height="32" />}
+            <Form.Control
+              type="file"
+              onChange={(e) => handleImageUpload(e as any, setFaviconUrl)}
+              disabled={uploading}
+            />
+          </div>
+        </Form.Group>
+
+        <h4 className="mt-4">Colores</h4>
+        <div className="row">
+          <div className="col-md-4">
+            <Form.Group className="mb-3">
+              <Form.Label>Color Primario (Botones, Enlaces)</Form.Label>
+              <div className="d-flex align-items-center gap-2">
+                <Form.Control
+                  type="color"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  title="Elige el color primario"
+                  style={{ width: '50px', padding: '0' }}
+                />
+                <Form.Control
+                  type="text"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  placeholder="#3B82F6"
+                />
+              </div>
+            </Form.Group>
+          </div>
+          <div className="col-md-4">
+            <Form.Group className="mb-3">
+              <Form.Label>Color Secundario (Fondos oscuros)</Form.Label>
+              <div className="d-flex align-items-center gap-2">
+                <Form.Control
+                  type="color"
+                  value={secondaryColor}
+                  onChange={(e) => setSecondaryColor(e.target.value)}
+                  title="Elige el color secundario"
+                  style={{ width: '50px', padding: '0' }}
+                />
+                <Form.Control
+                  type="text"
+                  value={secondaryColor}
+                  onChange={(e) => setSecondaryColor(e.target.value)}
+                  placeholder="#1F2937"
+                />
+              </div>
+            </Form.Group>
+          </div>
+          <div className="col-md-4">
+            <Form.Group className="mb-3">
+              <Form.Label>Color de Acción (Botones Agregar)</Form.Label>
+              <div className="d-flex align-items-center gap-2">
+                <Form.Control
+                  type="color"
+                  value={tertiaryColor}
+                  onChange={(e) => setTertiaryColor(e.target.value)}
+                  title="Elige el color de acción"
+                  style={{ width: '50px', padding: '0' }}
+                />
+                <Form.Control
+                  type="text"
+                  value={tertiaryColor}
+                  onChange={(e) => setTertiaryColor(e.target.value)}
+                  placeholder="#F28C00"
+                />
+              </div>
+            </Form.Group>
+          </div>
+        </div>
+
+        <h5 className="mt-4">Colores de Inscripciones</h5>
+        <div className="row">
+          <div className="col-md-4">
+            <Form.Group className="mb-3">
+              <Form.Label>Botón "Inscribirme" (Sin inscripción)</Form.Label>
+              <div className="d-flex align-items-center gap-2">
+                <Form.Control
+                  type="color"
+                  value={inscriptionDefaultColor}
+                  onChange={(e) => setInscriptionDefaultColor(e.target.value)}
+                  title="Elige el color para el botón de inscribirme"
+                  style={{ width: '50px', padding: '0' }}
+                />
+                <Form.Control
+                  type="text"
+                  value={inscriptionDefaultColor}
+                  onChange={(e) => setInscriptionDefaultColor(e.target.value)}
+                  placeholder="#FFC107"
+                />
+              </div>
+              <Form.Text className="text-muted">
+                Color del botón cuando el usuario puede inscribirse.
+              </Form.Text>
+            </Form.Group>
+          </div>
+          <div className="col-md-4">
+            <Form.Group className="mb-3">
+              <Form.Label>Color Inscripción Pendiente</Form.Label>
+              <div className="d-flex align-items-center gap-2">
+                <Form.Control
+                  type="color"
+                  value={inscriptionPendingColor}
+                  onChange={(e) => setInscriptionPendingColor(e.target.value)}
+                  title="Elige el color para inscripciones pendientes"
+                  style={{ width: '50px', padding: '0' }}
+                />
+                <Form.Control
+                  type="text"
+                  value={inscriptionPendingColor}
+                  onChange={(e) => setInscriptionPendingColor(e.target.value)}
+                  placeholder="#17A2B8"
+                />
+              </div>
+              <Form.Text className="text-muted">
+                Color del botón cuando la inscripción está pendiente de aprobación.
+              </Form.Text>
+            </Form.Group>
+          </div>
+          <div className="col-md-4">
+            <Form.Group className="mb-3">
+              <Form.Label>Color Inscripción Aprobada</Form.Label>
+              <div className="d-flex align-items-center gap-2">
+                <Form.Control
+                  type="color"
+                  value={inscriptionApprovedColor}
+                  onChange={(e) => setInscriptionApprovedColor(e.target.value)}
+                  title="Elige el color para inscripciones aprobadas"
+                  style={{ width: '50px', padding: '0' }}
+                />
+                <Form.Control
+                  type="text"
+                  value={inscriptionApprovedColor}
+                  onChange={(e) => setInscriptionApprovedColor(e.target.value)}
+                  placeholder="#28A745"
+                />
+              </div>
+              <Form.Text className="text-muted">
+                Color del botón cuando el usuario ya está inscrito.
+              </Form.Text>
+            </Form.Group>
+          </div>
+        </div>
+
+        <h4 className="mt-4">Acceso y Seguridad</h4>
+        <Form.Group className="mb-3">
+          <Form.Label>Dominios Permitidos (Registro)</Form.Label>
+          <Form.Control
+            type="text"
+            value={allowedDomains}
+            onChange={(e) => setAllowedDomains(e.target.value)}
+            placeholder="Ej: ejemplo.com, alumnos.ejemplo.com"
+          />
+          <Form.Text className="text-muted">
+            Separa los dominios con comas. Deja vacío para permitir cualquier dominio.
+          </Form.Text>
+        </Form.Group>
+
+        <h4 className="mt-4">Contenido</h4>
+        <Form.Group className="mb-3">
+          <Form.Label>Pasos "Cómo Funciona" (JSON)</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={5}
+            value={howItWorks}
+            onChange={(e) => setHowItWorks(e.target.value)}
+            placeholder='[{"title": "Crea tu cuenta", "description": "Usa tu correo institucional..."}]'
+          />
+          <Form.Text className="text-muted">
+            Formato JSON array con objetos que tengan 'title' y 'description'.
+          </Form.Text>
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Aviso de Privacidad</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={10}
+            value={privacyPolicy}
+            onChange={(e) => setPrivacyPolicy(e.target.value)}
+            placeholder="Escribe aquí el contenido de tu aviso de privacidad. El sistema respetará los espacios y saltos de línea automáticamente."
+          />
+          <Form.Text className="text-muted">
+            Puedes escribir texto normal. Se mostrará tal cual lo escribas.
+          </Form.Text>
+        </Form.Group>
+
+        <h4 className="mt-4">Archivos PDF</h4>
+        <Row className="mb-3">
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Reglamento (PDF)</Form.Label>
+              {regulationsUrl && (
+                <div className="mb-2 p-2 border rounded bg-light">
+                  <a href={regulationsUrl} target="_blank" rel="noopener noreferrer" className="text-primary">
+                    📄 Ver reglamento actual
+                  </a>
+                </div>
+              )}
+              <Form.Control
+                type="file"
+                accept="application/pdf"
+                onChange={(e: any) => setRegulationsFile(e.target.files[0])}
+              />
+              <Form.Text className="text-muted">
+                Sube el reglamento que los usuarios deben consultar.
+              </Form.Text>
+            </Form.Group>
+          </Col>
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Formato de Adjunto (PDF)</Form.Label>
+              {attachmentFormUrl && (
+                <div className="mb-2 p-2 border rounded bg-light">
+                  <a href={attachmentFormUrl} target="_blank" rel="noopener noreferrer" className="text-primary">
+                    📄 Ver formato actual
+                  </a>
+                </div>
+              )}
+              <Form.Control
+                type="file"
+                accept="application/pdf"
+                onChange={(e: any) => setAttachmentFormFile(e.target.files[0])}
+              />
+              <Form.Text className="text-muted">
+                Sube el formato que los usuarios deben descargar y adjuntar.
+              </Form.Text>
+            </Form.Group>
+          </Col>
+        </Row>
+
+        <h4 className="mt-4">Límites y Reglas</h4>
         <Form.Group className="mb-3">
           <Form.Label>Límite de Solicitudes Extraordinarias</Form.Label>
           <Form.Control
@@ -95,9 +618,6 @@ export default function AdminSettingsPage() {
             onChange={(e) => setLimit(e.target.value)}
             placeholder="Introduce el límite"
           />
-          <Form.Text className="text-muted">
-            El número máximo de solicitudes de inscripción extraordinarias que un usuario puede tener.
-          </Form.Text>
         </Form.Group>
 
         <Form.Group className="mb-3">
@@ -108,17 +628,16 @@ export default function AdminSettingsPage() {
             onChange={(e) => setReservationLeadTime(e.target.value)}
             placeholder="Introduce el tiempo en horas"
           />
-          <Form.Text className="text-muted">
-            El tiempo mínimo de antelación con el que se puede solicitar una reserva. Este valor se usará de forma global a menos que se especifique uno diferente en un recurso o espacio.
-          </Form.Text>
         </Form.Group>
+
         {success && <Alert variant="success">{success}</Alert>}
-        <div className="d-flex gap-2">
-          <Button variant="primary" type="submit">
-            Guardar Cambios
+
+        <div className="d-flex gap-2 mt-4">
+          <Button variant="primary" type="submit" disabled={uploading}>
+            {uploading ? 'Subiendo...' : 'Guardar Cambios'}
           </Button>
           <Link href="/admin/requirements" passHref>
-            <Button variant="info">Gestionar Requisitos</Button>
+            <Button variant="outline-primary">Gestionar Requisitos</Button>
           </Link>
           <Link href="/admin" passHref>
             <Button variant="outline-primary">Regresar</Button>

@@ -1,8 +1,15 @@
 import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 export async function GET(request: Request) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return new NextResponse('Unauthorized Tenant', { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
 
   if (!session) {

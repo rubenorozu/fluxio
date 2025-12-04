@@ -76,6 +76,10 @@ export default function AdminUsersPage() {
   }, [sessionLoading, currentUser, searchTerm, currentPage, fetchUsers]);
 
   const handleRoleChange = async (userId: string, newRole: Role) => {
+    if (!window.confirm(`¿Estás seguro de que deseas cambiar el rol de este usuario a ${newRole}?`)) {
+      return;
+    }
+
     try {
       const response = await fetch(`/api/admin/users/${userId}`,
         {
@@ -282,7 +286,7 @@ export default function AdminUsersPage() {
                   <td>{user.isVerified ? 'Sí' : 'No'}</td>
                   <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td>
-                    <Button variant="info" size="sm" className="me-2" onClick={() => handleResetPassword(user.id, user.email)}>
+                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleResetPassword(user.id, user.email)}>
                       Restablecer Contraseña
                     </Button>
                     <Button variant="danger" size="sm" onClick={() => handleDelete(user.id)} disabled={user.id === currentUser.id}>

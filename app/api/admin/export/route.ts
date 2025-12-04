@@ -1,15 +1,36 @@
 import { Role } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma'; // Import singleton Prisma client
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 
 export async function GET(request: Request) {
   const session = await getServerSession();
+  let userRole = session?.user.role;
 
-  if (!session || (session.user.role !== Role.SUPERUSER && session.user.role !== Role.ADMIN_RESOURCE)) {
+  // Fallback: Check for token in URL if no session
+  if (!session) {
+    const { searchParams } = new URL(request.url);
+    const token = searchParams.get('token');
+    if (token) {
+      const { verifyToken } = await import('@/lib/auth');
+      const payload = await verifyToken(token);
+      if (payload) {
+        userRole = payload.role as Role;
+      }
+    }
+  }
+
+  if (userRole !== Role.SUPERUSER && userRole !== Role.ADMIN_RESOURCE) {
     return NextResponse.json({ error: 'Acceso denegado.' }, { status: 403 });
   }
+
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
 
   const { searchParams } = new URL(request.url);
   const model = searchParams.get('model');
@@ -21,6 +42,7 @@ export async function GET(request: Request) {
         const users = await prisma.user.findMany({
           select: {
             id: true,
+            displayId: true,
             firstName: true,
             lastName: true,
             email: true,
@@ -34,7 +56,7 @@ export async function GET(request: Request) {
         userCsvRows.push('"ID del usuario","Nombre","Apellidos","Email","Matrícula","Teléfono"');
         for (const user of users) {
           userCsvRows.push(
-            `"${user.id}",` +
+            `"${user.displayId || user.id}",` +
             `"${(user.firstName || '').replace(/"/g, '""')}",` +
             `"${(user.lastName || '').replace(/"/g, '""')}",` +
             `"${user.email.replace(/"/g, '""')}",` +
@@ -54,6 +76,7 @@ export async function GET(request: Request) {
         const spaces = await prisma.space.findMany({
           select: {
             id: true,
+            displayId: true,
             name: true,
             responsibleUser: {
               select: {
@@ -70,7 +93,7 @@ export async function GET(request: Request) {
         for (const space of spaces) {
           const responsibleName = space.responsibleUser ? `${space.responsibleUser.firstName} ${space.responsibleUser.lastName}` : 'N/A';
           spaceCsvRows.push(
-            `"${space.id}",` +
+            `"${space.displayId || space.id}",` +
             `"${space.name.replace(/"/g, '""')}",` +
             `"${responsibleName.replace(/"/g, '""')}"`
           );
@@ -88,6 +111,7 @@ export async function GET(request: Request) {
         const equipmentList = await prisma.equipment.findMany({
           select: {
             id: true,
+            displayId: true,
             name: true,
             serialNumber: true,
             fixedAssetId: true,
@@ -106,7 +130,7 @@ export async function GET(request: Request) {
         for (const equipment of equipmentList) {
           const responsibleName = equipment.responsibleUser ? `${equipment.responsibleUser.firstName} ${equipment.responsibleUser.lastName}` : 'N/A';
           equipmentCsvRows.push(
-            `"${equipment.id}",` +
+            `"${equipment.displayId || equipment.id}",` +
             `"${equipment.name.replace(/"/g, '""')}",` +
             `"${(equipment.serialNumber || 'N/A').replace(/"/g, '""')}",` +
             `"${(equipment.fixedAssetId || 'N/A').replace(/"/g, '""')}",` +
@@ -125,6 +149,7 @@ export async function GET(request: Request) {
         const workshopsList = await prisma.workshop.findMany({
           select: {
             id: true,
+            displayId: true,
             name: true,
             description: true,
             teacher: true,
@@ -158,7 +183,7 @@ export async function GET(request: Request) {
           }).join('; ');
 
           workshopCsvRows.push(
-            `"${workshop.id}",` +
+            `"${workshop.displayId || workshop.id}",` +
             `"${workshop.name.replace(/"/g, '""')}",` +
             `"${responsibleName.replace(/"/g, '""')}",` +
             `"${(workshop.teacher || 'N/A').replace(/"/g, '""')}",` +
@@ -187,3 +212,5 @@ export async function GET(request: Request) {
     });
   }
 }
+
+export const dynamic = 'force-dynamic';

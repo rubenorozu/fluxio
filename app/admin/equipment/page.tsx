@@ -478,7 +478,7 @@ export default function AdminEquipmentPage() {
           <Col xs={12} className="text-center mt-3">
             <Row className="g-0 mb-2">
               <Col xs={6} className="px-1">
-                <Button variant="primary" onClick={() => handleShowModal()} className="w-100 text-nowrap overflow-hidden text-truncate" style={{ backgroundColor: '#1577a5', borderColor: '#1577a5' }}>Añadir Nuevo Equipo</Button>
+                <Button variant="primary" onClick={() => handleShowModal()} className="w-100 text-nowrap overflow-hidden text-truncate">Añadir Nuevo Equipo</Button>
               </Col>
               <Col xs={6} className="px-1">
                 <Button
@@ -528,7 +528,7 @@ export default function AdminEquipmentPage() {
         <Col md={9} className="text-end">
           <div className="d-flex justify-content-end gap-2">
             <Form.Control type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: 'auto' }} className="me-2" />
-            <Button variant="primary" onClick={() => handleShowModal()} style={{ backgroundColor: '#1577a5', borderColor: '#1577a5' }}>Añadir Nuevo Equipo</Button>
+            <Button variant="primary" onClick={() => handleShowModal()}>Añadir Nuevo Equipo</Button>
             <Button
               variant="danger"
               onClick={handleBulkDelete}

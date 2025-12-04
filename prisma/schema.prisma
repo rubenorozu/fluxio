@@ -3,24 +3,99 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Tenant {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  isActive        Boolean  @default(true)
+  
+  // Subscription Plan
+  plan            String   @default("BASIC") // TRIAL, BASIC, PROFESSIONAL, ENTERPRISE
+  maxUsers        Int      @default(100) // User limit based on plan
+  maxResources    Int      @default(50) // Resource limit (spaces + equipment)
+  maxStorage      Int      @default(10) // Storage in GB
+
+  // Trial plan fields
+  trialDays       Int?     @default(7) // Days of trial period
+  trialExpiresAt  DateTime? // When trial expires
+  
+  users           User[]
+  spaces          Space[]
+  equipment       Equipment[]
+  workshops       Workshop[]
+  reservations    Reservation[]
+  projects        Project[]
+  reports         Report[]
+  recurringBlocks RecurringBlock[]
+  inscriptions    Inscription[]
+  reservationCounters ReservationCounter[]
+  reportCounters      ReportCounter[]
+  config              TenantConfig?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([slug])
+}
+
+model TenantConfig {
+  id              String   @id @default(cuid())
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId        String   @unique
+  
+  topLogoUrl      String?
+  topLogoHeight   Int?     @default(50) // Default height 50px
+  bottomLogoUrl   String?
+  faviconUrl      String?  // New field
+  primaryColor    String?  @default("#145775") // Default blue
+  secondaryColor  String?  @default("#1F2937") // Default dark gray
+  tertiaryColor   String?  @default("#ff9500") // Default orange (Action color)
+  inscriptionDefaultColor  String? @default("#ff9500") // Orange for default inscription button
+  inscriptionPendingColor  String? @default("#ff9500") // Orange for pending inscriptions
+  inscriptionApprovedColor String? @default("#28A745") // Success green for approved inscriptions
+  pdfTopLogoUrl   String?  // URL for PDF top logo (PNG)
+  pdfBottomLogoUrl String? // URL for PDF bottom logo (PNG)
+  siteName        String?
+  contactEmail    String?
+  allowedDomains  String?  // Comma separated list of allowed domains
+  privacyPolicy   String?  // HTML or Markdown content
+  howItWorks      String?  // JSON string storing steps
+  regulationsUrl  String?  // URL for regulations PDF
+  attachmentFormUrl String? // URL for attachment form PDF
+  
+  // Landing page configuration
+  landingContactEmail         String?  @default("contacto@fluxiorsv.com")
+  landingDemoTrialDays        Int?     @default(7)
+  landingFormFields           Json?
+  landingAutoResponse         Boolean? @default(true)
+  landingAutoResponseMessage  String?  @default("Gracias por tu interés en Fluxio RSV.")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model User {
   id                 String    @id @default(cuid())
-  displayId          String?   @unique
-  email              String    @unique
+  displayId          String?
+  email              String
   firstName          String
   lastName           String
   password           String
-  identifier         String    @unique
+  identifier         String
   phoneNumber        String?
-  alternativeEmail   String?   @unique
+  alternativeEmail   String?
   profileImageUrl    String?
   role               Role      @default(USER)
   isVerified         Boolean   @default(false)
   verificationToken  String?   @unique
+  
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId           String?
+  
   reservations       Reservation[]
   inscriptions       Inscription[]
   notifications      Notification[]
@@ -35,11 +110,11 @@ model User {
   updatedAt          DateTime  @updatedAt
   reports            Report[]
   comments           Comment[]
-
-  @@index([email])
-  @@index([firstName])
-  @@index([lastName])
-  @@index([identifier])
+  
+  @@unique([email, tenantId])
+  @@unique([identifier, tenantId])
+  @@unique([displayId, tenantId])
+  @@index([tenantId])
 }
 
 enum Role {
@@ -56,13 +131,16 @@ model Space {
   displayId    String?       @unique
   name         String
   description  String?
-  // imageUrl     String? // REMOVED
-  images       Image[] // NEW: One-to-many relationship with Image model
+  images       Image[]
   status       ResourceStatus @default(AVAILABLE)
+  
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId           String?
+  
   responsibleUserId String?
   responsibleUser   User?         @relation(fields: [responsibleUserId], references: [id])
-  requiresSpaceReservationWithEquipment Boolean @default(false) // NEW: Indicates if space must be reserved with its equipment
-  reservationLeadTime Int? // NEW: Specific reservation lead time for this space (in hours)
+  requiresSpaceReservationWithEquipment Boolean @default(false)
+  reservationLeadTime Int?
   reservations Reservation[]
   equipments   Equipment[]
   recurringBlocks RecurringBlock[]
@@ -70,20 +148,19 @@ model Space {
   reports      Report[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-
-  @@index([name])
+  
+  @@index([tenantId])
 }
 
-// NEW MODEL FOR MULTIPLE IMAGES
 model Image {
   id          String    @id @default(cuid())
   url         String
   space       Space?    @relation(fields: [spaceId], references: [id])
   spaceId     String?
-  equipment   Equipment? @relation(fields: [equipmentId], references: [id]) // NEW
-  equipmentId String? // NEW
-  workshop    Workshop? @relation(fields: [workshopId], references: [id]) // NEW
-  workshopId  String? // NEW
+  equipment   Equipment? @relation(fields: [equipmentId], references: [id])
+  equipmentId String?
+  workshop    Workshop? @relation(fields: [workshopId], references: [id])
+  workshopId  String?
 }
 
 model Equipment {
@@ -93,20 +170,25 @@ model Equipment {
   description  String?
   serialNumber String?
   fixedAssetId String?
-  // imageUrl     String? // REMOVED
-  images       Image[] // NEW: One-to-many relationship with Image model
+  images       Image[]
   status       ResourceStatus @default(AVAILABLE)
+  
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId           String?
+  
   spaceId      String?   @map("space_id")
   space        Space?    @relation(fields: [spaceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   responsibleUserId String?
   responsibleUser   User?         @relation(fields: [responsibleUserId], references: [id])
   reservationLeadTime Int?
-  isFixedToSpace    Boolean @default(false) // NEW: Indicates if the equipment is fixed to its space
+  isFixedToSpace    Boolean @default(false)
   reservations      Reservation[]
-  recurringBlocks   RecurringBlockOnEquipment[] // Many-to-many relation
+  recurringBlocks   RecurringBlockOnEquipment[]
   reports      Report[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  
+  @@index([tenantId])
 }
 
 model Workshop {
@@ -117,33 +199,36 @@ model Workshop {
   capacity          Int           @default(0)
   availableFrom     DateTime?
   inscriptionsOpen  Boolean       @default(true)
-  inscriptionsStartDate DateTime? // NUEVO: Fecha de inicio de inscripciones
+  inscriptionsStartDate DateTime?
   teacher           String?
-  schedule          String? // Mantener por ahora, pero se puede eliminar después de migrar a sesiones
+  schedule          String?
   room              String?
-  startDate         DateTime? // NUEVO: Fecha de inicio de las sesiones recurrentes
-  endDate           DateTime? // NUEVO: Fecha de fin del taller
-  // imageUrl          String? // REMOVED
-  images            Image[] // NEW: One-to-many relationship with Image model
+  startDate         DateTime?
+  endDate           DateTime?
+  images            Image[]
+  
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId           String?
+  
   responsibleUserId String?
   responsibleUser   User?         @relation(fields: [responsibleUserId], references: [id])
   inscriptions      Inscription[]
-  sessions          WorkshopSession[] // NUEVO: Relación con WorkshopSession
+  sessions          WorkshopSession[]
   reports           Report[]
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
-
-  @@index([name])
+  
+  @@index([tenantId])
 }
 
 model WorkshopSession {
   id          String    @id @default(cuid())
   workshop    Workshop  @relation(fields: [workshopId], references: [id])
   workshopId  String
-  dayOfWeek   Int       // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
-  timeStart   String    // Ej: "09:00"
-  timeEnd     String    // Ej: "11:00"
-  room        String?   // Opcional: si la sala puede variar por sesión
+  dayOfWeek   Int
+  timeStart   String
+  timeEnd     String
+  room        String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -151,13 +236,17 @@ model WorkshopSession {
 model Reservation {
   id            String    @id @default(cuid())
   displayId     String?
+  
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId           String?
+  
   user          User      @relation(fields: [userId], references: [id])
   userId        String
   space         Space?    @relation(fields: [spaceId], references: [id])
   spaceId       String?
   equipment     Equipment? @relation(fields: [equipmentId], references: [id])
   equipmentId   String?
-  cartSubmissionId String? // New field
+  cartSubmissionId String?
   project       Project?  @relation(fields: [projectId], references: [id])
   projectId     String?
   startTime     DateTime
@@ -180,6 +269,8 @@ model Reservation {
   notifications Notification[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  
+  @@index([tenantId])
 }
 
 enum ReservationStatus {
@@ -214,6 +305,10 @@ model Report {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   status      ReportStatus  @default(OPEN)
+  
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId           String?
+  
   space       Space?        @relation(fields: [spaceId], references: [id])
   spaceId     String?
   equipment   Equipment?    @relation(fields: [equipmentId], references: [id])
@@ -223,6 +318,8 @@ model Report {
   user        User          @relation(fields: [userId], references: [id])
   userId      String
   comments    Comment[]
+  
+  @@index([tenantId])
 }
 
 model Comment {
@@ -258,6 +355,10 @@ model Notification {
 
 model Inscription {
   id          String    @id @default(cuid())
+  
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId           String?
+  
   workshop    Workshop  @relation(fields: [workshopId], references: [id])
   workshopId  String
   user        User      @relation(fields: [userId], references: [id])
@@ -266,12 +367,18 @@ model Inscription {
   createdAt   DateTime  @default(now())
 
   @@unique([workshopId, userId])
-  @@index([status])
+  @@index([tenantId])
 }
 
 model ReservationCounter {
-  date        String @id // Format: "YYYY-MM-DD"
+  id          String @id @default(cuid())
+  date        String
   lastNumber  Int
+  
+  tenant             Tenant    @relation(fields: [tenantId], references: [id])
+  tenantId           String
+  
+  @@unique([date, tenantId])
 }
 
 model SystemSettings {
@@ -283,11 +390,17 @@ model Project {
   id          String  @id @default(cuid())
   name        String
   description String?
+  
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId           String?
+  
   owner       User    @relation(fields: [ownerId], references: [id])
   ownerId     String
   reservations Reservation[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  @@index([tenantId])
 }
 
 model RecurringBlock {
@@ -296,16 +409,22 @@ model RecurringBlock {
   description         String?
   startDate           DateTime
   endDate             DateTime
-  dayOfWeek           Int[] // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  startTime           String // e.g., "09:00"
-  endTime             String // e.g., "11:00"
+  dayOfWeek           String
+  startTime           String
+  endTime             String
+  
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  tenantId           String?
+  
   space               Space?                      @relation(fields: [spaceId], references: [id])
   spaceId             String?
-  equipment           RecurringBlockOnEquipment[] // Many-to-many relation
-  exceptions          RecurringBlockException[] // Opposite relation for RecurringBlockException
+  equipment           RecurringBlockOnEquipment[]
+  exceptions          RecurringBlockException[]
   isVisibleToViewer   Boolean                     @default(true)
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
+  
+  @@index([tenantId])
 }
 
 model RecurringBlockOnEquipment {
@@ -322,12 +441,12 @@ model RecurringBlockException {
   recurringBlock     RecurringBlock @relation(fields: [recurringBlockId], references: [id], onDelete: Cascade)
   recurringBlockId   String
   exceptionDate      DateTime
-  exceptionStartTime String // e.g., "09:00"
-  exceptionEndTime   String // e.g., "11:00"
+  exceptionStartTime String
+  exceptionEndTime   String
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
-  @@unique([recurringBlockId, exceptionDate, exceptionStartTime, exceptionEndTime]) // Ensure unique exceptions
+  @@unique([recurringBlockId, exceptionDate, exceptionStartTime, exceptionEndTime])
 }
 
 model Requirement {
@@ -337,16 +456,12 @@ model Requirement {
 }
 
 model ReportCounter {
-  date        String @id // Format: "YYYY-MM-DD"
+  id          String @id @default(cuid())
+  date        String
   lastNumber  Int
+  
+  tenant             Tenant    @relation(fields: [tenantId], references: [id])
+  tenantId           String
+  
+  @@unique([date, tenantId])
 }
-
-
-// Seed the SystemSettings table with a default value for reservationLeadTime
-// This is not a migration, but it will be used in the seed script.
-// prisma.systemSettings.create({
-//   data: {
-//     key: 'reservationLeadTime',
-//     value: '24', // in hours
-//   },
-// });

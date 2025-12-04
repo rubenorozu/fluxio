@@ -1,15 +1,32 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/prisma-tenant';
 
 export async function GET(request: Request, { params }: { params: { spaceId: string } }) {
-  const { spaceId } = params;
-
-  if (!spaceId) {
-    return NextResponse.json({ error: 'Space ID is required' }, { status: 400 });
-  }
-
   try {
-    const equipmentInSpace = await prisma.equipment.findMany({
+    const tenant = await detectTenant();
+    if (!tenant) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { spaceId } = await params;
+
+    if (!spaceId) {
+      return NextResponse.json({ error: 'Space ID is required' }, { status: 400 });
+    }
+
+    const tenantPrisma = getTenantPrisma(tenant.id);
+
+    // Verify space belongs to tenant
+    const space = await tenantPrisma.space.findFirst({
+      where: { id: spaceId },
+    });
+
+    if (!space) {
+      return NextResponse.json({ error: 'Space not found' }, { status: 404 });
+    }
+
+    const equipmentInSpace = await tenantPrisma.equipment.findMany({
       where: {
         spaceId: spaceId,
       },
@@ -23,7 +40,7 @@ export async function GET(request: Request, { params }: { params: { spaceId: str
 
     return NextResponse.json(equipmentInSpace);
   } catch (error) {
-    console.error(`Error fetching equipment for space ${spaceId}:`, error);
+    console.error(`Error fetching equipment for space:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

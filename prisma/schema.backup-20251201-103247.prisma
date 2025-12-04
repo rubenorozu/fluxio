@@ -1,0 +1,328 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  displayId          String?   @unique
+  email              String    @unique
+  firstName          String
+  lastName           String
+  password           String
+  identifier         String    @unique
+  phoneNumber        String?
+  alternativeEmail   String?   @unique
+  profileImageUrl    String?
+  role               Role      @default(USER)
+  isVerified         Boolean   @default(false)
+  verificationToken  String?   @unique
+  reservations       Reservation[]
+  inscriptions       Inscription[]
+  notifications      Notification[]
+  managedSpaces      Space[]
+  managedEquipment   Equipment[]
+  managedWorkshops   Workshop[]
+  projects           Project[]
+  approvedReservations Reservation[] @relation("ApprovedReservations")
+  checkedOutReservations Reservation[] @relation("CheckedOutReservations")
+  checkedInReservations  Reservation[] @relation("CheckedInReservations")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  reports            Report[]
+  comments           Comment[]
+}
+
+enum Role {
+  USER
+  ADMIN_RESOURCE
+  ADMIN_RESERVATION
+  SUPERUSER
+  VIGILANCIA
+  CALENDAR_VIEWER
+}
+
+model Space {
+  id           String        @id @default(cuid())
+  displayId    String?       @unique
+  name         String
+  description  String?
+  images       Image[]
+  status       ResourceStatus @default(AVAILABLE)
+  responsibleUserId String?
+  responsibleUser   User?         @relation(fields: [responsibleUserId], references: [id])
+  requiresSpaceReservationWithEquipment Boolean @default(false)
+  reservationLeadTime Int?
+  reservations Reservation[]
+  equipments   Equipment[]
+  recurringBlocks RecurringBlock[]
+  requirements Requirement[] @relation("SpaceRequirements")
+  reports      Report[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Image {
+  id          String    @id @default(cuid())
+  url         String
+  space       Space?    @relation(fields: [spaceId], references: [id])
+  spaceId     String?
+  equipment   Equipment? @relation(fields: [equipmentId], references: [id])
+  equipmentId String?
+  workshop    Workshop? @relation(fields: [workshopId], references: [id])
+  workshopId  String?
+}
+
+model Equipment {
+  id           String        @id @default(cuid())
+  displayId    String?       @unique
+  name         String
+  description  String?
+  serialNumber String?
+  fixedAssetId String?
+  images       Image[]
+  status       ResourceStatus @default(AVAILABLE)
+  spaceId      String?   @map("space_id")
+  space        Space?    @relation(fields: [spaceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  responsibleUserId String?
+  responsibleUser   User?         @relation(fields: [responsibleUserId], references: [id])
+  reservationLeadTime Int?
+  isFixedToSpace    Boolean @default(false)
+  reservations      Reservation[]
+  recurringBlocks   RecurringBlockOnEquipment[]
+  reports      Report[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Workshop {
+  id                String        @id @default(cuid())
+  displayId         String?       @unique
+  name              String
+  description       String?
+  capacity          Int           @default(0)
+  availableFrom     DateTime?
+  inscriptionsOpen  Boolean       @default(true)
+  inscriptionsStartDate DateTime?
+  teacher           String?
+  schedule          String?
+  room              String?
+  startDate         DateTime?
+  endDate           DateTime?
+  images            Image[]
+  responsibleUserId String?
+  responsibleUser   User?         @relation(fields: [responsibleUserId], references: [id])
+  inscriptions      Inscription[]
+  sessions          WorkshopSession[]
+  reports           Report[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model WorkshopSession {
+  id          String    @id @default(cuid())
+  workshop    Workshop  @relation(fields: [workshopId], references: [id])
+  workshopId  String
+  dayOfWeek   Int
+  timeStart   String
+  timeEnd     String
+  room        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Reservation {
+  id            String    @id @default(cuid())
+  displayId     String?
+  user          User      @relation(fields: [userId], references: [id])
+  userId        String
+  space         Space?    @relation(fields: [spaceId], references: [id])
+  spaceId       String?
+  equipment     Equipment? @relation(fields: [equipmentId], references: [id])
+  equipmentId   String?
+  cartSubmissionId String?
+  project       Project?  @relation(fields: [projectId], references: [id])
+  projectId     String?
+  startTime     DateTime
+  endTime       DateTime
+  justification String
+  subject       String?
+  coordinator   String?
+  teacher       String?
+  status        ReservationStatus @default(PENDING)
+  rejectionReason String?
+  approvedByUserId String?
+  approvedByUser   User?             @relation("ApprovedReservations", fields: [approvedByUserId], references: [id])
+  checkedOutAt      DateTime?
+  checkedOutByUserId String?
+  checkedOutByUser   User?             @relation("CheckedOutReservations", fields: [checkedOutByUserId], references: [id])
+  checkedInAt       DateTime?
+  checkedInByUserId  String?
+  checkedInByUser    User?             @relation("CheckedInReservations", fields: [checkedInByUserId], references: [id])
+  documents     Document[]
+  notifications Notification[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum ReservationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PARTIALLY_APPROVED
+}
+
+enum InscriptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PENDING_EXTRAORDINARY
+}
+
+enum ResourceStatus {
+  AVAILABLE
+  IN_MAINTENANCE
+}
+
+enum ReportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model Report {
+  id          String        @id @default(cuid())
+  reportIdCode String?      @unique
+  description String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  status      ReportStatus  @default(OPEN)
+  space       Space?        @relation(fields: [spaceId], references: [id])
+  spaceId     String?
+  equipment   Equipment?    @relation(fields: [equipmentId], references: [id])
+  equipmentId String?
+  workshop    Workshop?     @relation(fields: [workshopId], references: [id])
+  workshopId  String?
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  comments    Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  report    Report   @relation(fields: [reportId], references: [id])
+  reportId  String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+model Document {
+  id            String      @id @default(cuid())
+  fileName      String
+  filePath      String
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  reservationId String
+  createdAt     DateTime    @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  recipient User     @relation(fields: [recipientId], references: [id])
+  recipientId String
+  message   String
+  read      Boolean  @default(false)
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  reservationId String?
+  createdAt DateTime @default(now())
+}
+
+model Inscription {
+  id          String    @id @default(cuid())
+  workshop    Workshop  @relation(fields: [workshopId], references: [id])
+  workshopId  String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  status      InscriptionStatus @default(PENDING)
+  createdAt   DateTime  @default(now())
+
+  @@unique([workshopId, userId])
+}
+
+model ReservationCounter {
+  date        String @id
+  lastNumber  Int
+}
+
+model SystemSettings {
+  key   String @id
+  value String
+}
+
+model Project {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  owner       User    @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  reservations Reservation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model RecurringBlock {
+  id                  String                      @id @default(cuid())
+  title               String
+  description         String?
+  startDate           DateTime
+  endDate             DateTime
+  dayOfWeek           String
+  startTime           String
+  endTime             String
+  space               Space?                      @relation(fields: [spaceId], references: [id])
+  spaceId             String?
+  equipment           RecurringBlockOnEquipment[]
+  exceptions          RecurringBlockException[]
+  isVisibleToViewer   Boolean                     @default(true)
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+}
+
+model RecurringBlockOnEquipment {
+  recurringBlock   RecurringBlock @relation(fields: [recurringBlockId], references: [id])
+  recurringBlockId String
+  equipment        Equipment      @relation(fields: [equipmentId], references: [id])
+  equipmentId      String
+
+  @@id([recurringBlockId, equipmentId])
+}
+
+model RecurringBlockException {
+  id                 String       @id @default(cuid())
+  recurringBlock     RecurringBlock @relation(fields: [recurringBlockId], references: [id], onDelete: Cascade)
+  recurringBlockId   String
+  exceptionDate      DateTime
+  exceptionStartTime String
+  exceptionEndTime   String
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([recurringBlockId, exceptionDate, exceptionStartTime, exceptionEndTime])
+}
+
+model Requirement {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  spaces Space[] @relation("SpaceRequirements")
+}
+
+model ReportCounter {
+  date        String @id
+  lastNumber  Int
+}

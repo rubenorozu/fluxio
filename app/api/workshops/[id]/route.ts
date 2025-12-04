@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 interface Params {
   params: { id: string };
@@ -7,6 +8,12 @@ interface Params {
 
 export async function GET(req: Request, { params }: Params) {
   try {
+    const tenant = await detectTenant();
+    if (!tenant) {
+      return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+    }
+    const prisma = getTenantPrisma(tenant.id);
+
     const { id } = await params;
 
     const workshop = await prisma.workshop.findUnique({

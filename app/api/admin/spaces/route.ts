@@ -2,7 +2,9 @@
 import { Role, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma'; // Import singleton Prisma client
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
+import { normalizeText } from '@/lib/search-utils';
 
 // Helper function to generate a random alphanumeric string
 function generateRandomString(length: number): string {
@@ -22,6 +24,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Acceso denegado. Se requieren privilegios de Superusuario o Administrador de Recursos.' }, { status: 403 });
   }
 
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
@@ -34,23 +42,9 @@ export async function GET(request: Request) {
       whereClause.responsibleUserId = session.user.id;
     }
 
-    if (search) {
-      whereClause.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { displayId: { not: null, contains: search, mode: 'insensitive' } },
-        {
-          responsibleUser: {
-            OR: [
-              { firstName: { contains: search, mode: 'insensitive' } },
-              { lastName: { contains: search, mode: 'insensitive' } },
-            ],
-          },
-        },
-      ];
-    }
-
-    const skip = (page - 1) * pageSize;
+    // When searching, fetch more results and filter in memory for accent-insensitive search
+    const fetchLimit = search ? 1000 : pageSize;
+    const skip = search ? 0 : (page - 1) * pageSize;
 
     const spaces = await prisma.space.findMany({
       where: whereClause,
@@ -68,12 +62,30 @@ export async function GET(request: Request) {
         createdAt: 'desc',
       },
       skip,
-      take: pageSize,
+      take: fetchLimit,
     });
 
-    const totalSpaces = await prisma.space.count({ where: whereClause });
+    // Filter in memory for accent-insensitive search
+    let filteredSpaces = spaces;
+    if (search) {
+      const normalizedSearch = normalizeText(search);
+      filteredSpaces = spaces.filter(space => {
+        const responsibleName = space.responsibleUser
+          ? `${space.responsibleUser.firstName} ${space.responsibleUser.lastName}`
+          : '';
+        const searchableText = [
+          space.name || '',
+          space.description || '',
+          space.displayId || '',
+          responsibleName,
+        ].join(' ');
+        return normalizeText(searchableText).includes(normalizedSearch);
+      });
+    }
 
-    return NextResponse.json({ spaces, totalSpaces }, { status: 200 });
+    const totalSpaces = search ? filteredSpaces.length : await prisma.space.count({ where: whereClause });
+
+    return NextResponse.json({ spaces: filteredSpaces, totalSpaces }, { status: 200 });
   } catch (error) {
     console.error('Error al obtener los espacios:', JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'No se pudo obtener la lista de espacios.', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
@@ -87,6 +99,12 @@ export async function POST(request: Request) {
   if (!session || (session.user.role !== Role.SUPERUSER && session.user.role !== Role.ADMIN_RESOURCE)) {
     return NextResponse.json({ error: 'Acceso denegado. Se requieren privilegios de Superusuario o Administrador de Recursos.' }, { status: 403 });
   }
+
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
 
   try {
     const { name, description, responsibleUserId, images, requirementIds, reservationLeadTime, requiresSpaceReservationWithEquipment } = await request.json();

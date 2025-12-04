@@ -2,7 +2,7 @@
 import 'server-only';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { Role } from '@prisma/client';
+import { Role } from './types';
 
 const secretKey = process.env.JWT_SECRET;
 if (!secretKey) {
@@ -14,6 +14,7 @@ const key = new TextEncoder().encode(secretKey);
 interface SessionPayload {
   userId: string;
   role: Role;
+  tenantId: string;
   [propName: string]: any; // Agrega un index signature
 }
 
@@ -22,9 +23,9 @@ interface SessionPayload {
 /**
  * Encripta el payload de la sesión y lo establece como una cookie HTTPOnly.
  */
-export async function createSession(userId: string, role: Role) {
+export async function createSession(userId: string, role: Role, tenantId: string) {
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
-  const sessionPayload: SessionPayload = { userId, role };
+  const sessionPayload: SessionPayload = { userId, role, tenantId };
 
   const token = await new SignJWT(sessionPayload)
     .setProtectedHeader({ alg: 'HS256' })
@@ -47,13 +48,21 @@ export async function createSession(userId: string, role: Role) {
  * Obtiene y verifica la sesión del usuario a partir de la cookie.
  * Diseñada para ser usada en API Routes y Server Components.
  */
-export async function getServerSession(): Promise<{ user: { id: string; role: Role } } | null> {
+export async function getServerSession(): Promise<{ user: { id: string; role: Role; tenantId: string } } | null> {
   // --- CAMBIO CLAVE AQUÍ ---
   const cookieStore = await cookies(); // Obtener el almacén de cookies de forma explícita y AWAIT
-  const token = cookieStore.get('session')?.value;
+  let token = cookieStore.get('session')?.value;
 
   if (!token) {
+    const { headers } = await import('next/headers');
+    const headersList = await headers();
+    const authHeader = headersList.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
 
+  if (!token) {
     return null;
   }
 
@@ -63,12 +72,27 @@ export async function getServerSession(): Promise<{ user: { id: string; role: Ro
       user: {
         id: payload.userId as string,
         role: payload.role as Role,
+        tenantId: payload.tenantId as string,
       },
     };
 
     return sessionData;
   } catch (e) {
     console.error('--- GET SERVER SESSION: JWT verification failed ---', e);
+    return null;
+  }
+}
+
+/**
+ * Verifica un token JWT manualmente.
+ * Útil cuando el token viene en headers o query params en lugar de cookies.
+ */
+export async function verifyToken(token: string): Promise<SessionPayload | null> {
+  try {
+    const { payload } = await jwtVerify(token, key, { algorithms: ['HS256'] });
+    return payload as SessionPayload;
+  } catch (e) {
+    console.error('--- VERIFY TOKEN: JWT verification failed ---', e);
     return null;
   }
 }

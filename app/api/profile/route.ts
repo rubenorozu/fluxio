@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { writeFile } from 'fs/promises';
 import path from 'path';
 import * as fs from 'fs/promises';
@@ -14,6 +15,12 @@ interface UserPayload {
 }
 
 export async function GET() {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const cookieStore = cookies();
   const tokenCookie = cookieStore.get('session');
 
@@ -61,6 +68,11 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
   const cookieStore = cookies();
   const tokenCookie = cookieStore.get('session');
 

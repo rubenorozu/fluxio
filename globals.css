@@ -1,16 +1,30 @@
 @import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 body {
-  /* Intentionally left empty for now, can be customized later */
+  padding-top: 80px;
+  /* Adjust based on header height */
+}
+
+:root {
+  --bs-primary: var(--tenant-primary-color);
+  --bs-link-color: var(--tenant-primary-color);
+  --bs-link-hover-color: var(--tenant-primary-color);
+  --bs-btn-bg: var(--tenant-primary-color);
+  --bs-btn-border-color: var(--tenant-primary-color);
+  --bs-btn-hover-bg: var(--tenant-primary-color);
+  --bs-btn-hover-border-color: var(--tenant-primary-color);
 }
 
 .carousel-container {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .carousel-container::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+  display: none;
+  /* Chrome, Safari and Opera */
 }
 
 .carousel-item-container {
@@ -42,7 +56,8 @@ body {
 
 .text-truncate-multiline {
   display: -webkit-box;
-  -webkit-line-clamp: 5; /* Number of lines to show */
+  -webkit-line-clamp: 5;
+  /* Number of lines to show */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -62,69 +77,99 @@ body {
   padding-left: calc(var(--bs-gutter-x) * .5);
 }
 
-@media (max-width: 1199.98px) { /* Bootstrap's large breakpoint */
+@media (max-width: 1199.98px) {
+
+  /* Bootstrap's large breakpoint */
   .col-5-per-row {
-    width: 25%; /* 4 items per row */
+    width: 25%;
+    /* 4 items per row */
   }
 }
 
-@media (max-width: 991.98px) { /* Bootstrap's medium breakpoint */
+@media (max-width: 991.98px) {
+
+  /* Bootstrap's medium breakpoint */
   .col-5-per-row {
-    width: 33.333333%; /* 3 items per row */
+    width: 33.333333%;
+    /* 3 items per row */
   }
 }
 
-@media (max-width: 767.98px) { /* Bootstrap's small breakpoint */
+@media (max-width: 767.98px) {
+
+  /* Bootstrap's small breakpoint */
   .col-5-per-row {
-    width: calc(50% - var(--bs-gutter-x) * .25); /* Make cards wider, reduce gutter */
-    padding-right: calc(var(--bs-gutter-x) * .125); /* Reduce padding */
-    padding-left: calc(var(--bs-gutter-x) * .125); /* Reduce padding */
+    width: calc(50% - var(--bs-gutter-x) * .25);
+    /* Make cards wider, reduce gutter */
+    padding-right: calc(var(--bs-gutter-x) * .125);
+    /* Reduce padding */
+    padding-left: calc(var(--bs-gutter-x) * .125);
+    /* Reduce padding */
   }
 
   .col-4-per-row {
-    width: calc(50% - var(--bs-gutter-x) * .25); /* 2 items per row on mobile */
-    padding-right: calc(var(--bs-gutter-x) * .125); /* Reduce padding */
-    padding-left: calc(var(--bs-gutter-x) * .125); /* Reduce padding */
+    width: calc(50% - var(--bs-gutter-x) * .25);
+    /* 2 items per row on mobile */
+    padding-right: calc(var(--bs-gutter-x) * .125);
+    /* Reduce padding */
+    padding-left: calc(var(--bs-gutter-x) * .125);
+    /* Reduce padding */
   }
 
   .row.mx-auto {
-    margin-left: 10px !important; /* Shift the entire row 5px to the right on mobile */
+    margin-left: 10px !important;
+    /* Shift the entire row 5px to the right on mobile */
   }
 
   .admin-card-row {
-    flex-wrap: nowrap; /* Prevent cards from wrapping to the next line */
-    overflow-x: auto; /* Enable horizontal scrolling */
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-    padding-bottom: 10px; /* Add some padding for the scrollbar */
-    margin-left: 10px !important; /* Apply the same 10px offset as other sections */
-    scroll-snap-type: x mandatory; /* Enable horizontal scroll snapping */
-    scroll-padding-right: 30vw; /* Add padding to the end for better snapping of the last card */
+    flex-wrap: nowrap;
+    /* Prevent cards from wrapping to the next line */
+    overflow-x: auto;
+    /* Enable horizontal scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scrolling on iOS */
+    padding-bottom: 10px;
+    /* Add some padding for the scrollbar */
+    margin-left: 10px !important;
+    /* Apply the same 10px offset as other sections */
+    scroll-snap-type: x mandatory;
+    /* Enable horizontal scroll snapping */
+    scroll-padding-right: 30vw;
+    /* Add padding to the end for better snapping of the last card */
   }
 
   .admin-card-row::after {
-    content: '''';
+    content: '' '';
     display: block;
     flex-shrink: 0;
-    width: 30%; /* Adjust this value as needed */
+    width: 30%;
+    /* Adjust this value as needed */
   }
 
-  .admin-card-row > .col {
-    scroll-snap-align: start; /* Snap each card to the start */
+  .admin-card-row>.col {
+    scroll-snap-align: start;
+    /* Snap each card to the start */
   }
 
-  .admin-card-row > .col {
-    flex: 0 0 70%; /* Make each card take up 70% width on mobile */
-    max-width: 70%; /* Ensure it doesn't grow beyond 70% */
-    margin-right: 15px; /* Add spacing between cards */
+  .admin-card-row>.col {
+    flex: 0 0 70%;
+    /* Make each card take up 70% width on mobile */
+    max-width: 70%;
+    /* Ensure it doesn't grow beyond 70% */
+    margin-right: 15px;
+    /* Add spacing between cards */
   }
 
   /* Hide scrollbar for a cleaner look */
   .admin-card-row::-webkit-scrollbar {
     display: none;
   }
+
   .admin-card-row {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 }
 
@@ -132,90 +177,101 @@ body {
   display: block;
 }
 
-@media (min-width: 768px) { /* Bootstrap's md breakpoint */
-  .bg-light h3.fw-medium { /* Target the h3 within the gray footer section */
-        font-size: 1.5rem !important;
-      }
-    
-    .btn-hover-white-text:hover {
-      color: white !important; /* Use !important to override Bootstrap's default hover color */
+@media (min-width: 768px) {
+
+  /* Bootstrap's md breakpoint */
+  .bg-light h3.fw-medium {
+    /* Target the h3 within the gray footer section */
+    font-size: 1.5rem !important;
+  }
+
+  .btn-hover-white-text:hover {
+    color: white !important;
+    /* Use !important to override Bootstrap's default hover color */
   }
 }
 
 .text-primary {
-  color: #1577a5 !important;
+  color: var(--tenant-primary-color) !important;
 }
 
 .btn-outline-primary:hover,
 .btn-outline-warning:hover,
 .btn-primary:hover,
 .btn-warning:hover {
-  background-color: #1577a5;
+  background-color: var(--tenant-primary-color);
   color: #ffffff !important;
-  border-color: #1577a5;
+  border-color: var(--tenant-primary-color);
 }
 
 .btn-primary {
-  background-color: #1577a5;
-  border-color: #1577a5;
+  background-color: var(--tenant-primary-color);
+  border-color: var(--tenant-primary-color);
 }
 
 .btn-outline-primary {
-  color: #1577a5;
-  border-color: #1577a5;
+  color: var(--tenant-primary-color);
+  border-color: var(--tenant-primary-color);
 }
 
 .dropdown-item:active,
 .dropdown-item.active {
-  background-color: #1577a5 !important;
+  background-color: var(--tenant-primary-color) !important;
 }
 
 .btn-primary:active,
 .btn-primary:focus,
 .btn-outline-primary:active,
 .btn-outline-primary:focus {
-  background-color: #1577a5 !important;
-  border-color: #1577a5 !important;
+  background-color: var(--tenant-primary-color) !important;
+  border-color: var(--tenant-primary-color) !important;
   color: #ffffff !important;
-  box-shadow: 0 0 0 0.25rem rgba(21, 119, 165, 0.5) !important;
+  box-shadow: 0 0 0 0.25rem var(--tenant-primary-color) !important;
+  /* Simplified shadow */
 }
 
 /* Hide stray '}' character if it appears as a pseudo-element after the last table data cell */
-tbody > tr > td:last-child::after {
-  content: '''';
+tbody>tr>td:last-child::after {
+  content: '';
   display: none;
 }
 
 /* Custom styles for react-big-calendar */
 .rbc-event {
-  min-height: 50px; /* Increase min-height to allow for more text */
-  white-space: normal; /* Allow text to wrap */
+  min-height: 50px;
+  /* Increase min-height to allow for more text */
+  white-space: normal;
+  /* Allow text to wrap */
   padding: 4px 6px;
+  background-color: var(--tenant-primary-color) !important;
+  /* Ensure events use primary color */
 }
 
 /* Custom styles for Pagination active item */
 .pagination .page-item.active .page-link {
-  background-color: #1577a5 !important;
-  border-color: #1577a5 !important;
+  background-color: var(--tenant-primary-color) !important;
+  border-color: var(--tenant-primary-color) !important;
   color: #ffffff !important;
 }
 
 /* Custom styles for Pagination default item */
 .pagination .page-item .page-link {
-  color: #1577a5 !important;
-  border-color: #1577a5 !important;
+  color: var(--tenant-primary-color) !important;
+  border-color: var(--tenant-primary-color) !important;
 }
 
 /* Custom styles for Pagination disabled item */
 .pagination .page-item.disabled .page-link {
-  color: #1577a5 !important; /* Keep blue color even when disabled */
-  border-color: #1577a5 !important;
-  opacity: 0.6; /* Slightly dim the disabled state */
+  color: var(--tenant-primary-color) !important;
+  /* Keep blue color even when disabled */
+  border-color: var(--tenant-primary-color) !important;
+  opacity: 0.6;
+  /* Slightly dim the disabled state */
 }
 
 /* Custom styles for Pagination item hover */
 .pagination .page-item .page-link:hover {
-  background-color: #1577a5 !important;
-  border-color: #1577a5 !important;
+  background-color: var(--tenant-primary-color) !important;
+  border-color: var(--tenant-primary-color) !important;
   color: #ffffff !important;
 }

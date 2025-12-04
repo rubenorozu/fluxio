@@ -18,23 +18,29 @@ interface Resource {
     name: string;
     description?: string | null;
     images: Image[];
-    type: 'space' | 'equipment';
+    type: 'space' | 'equipment' | 'workshop';
     reservationLeadTime?: number | null;
     isFixedToSpace?: boolean;
     requiresSpaceReservationWithEquipment?: boolean;
+    inscriptionsStartDate?: string | null;
+    inscriptionsOpen?: boolean;
+    capacity?: number;
     _count?: {
         equipments?: number;
+        inscriptions?: number;
     };
 }
 
 interface HomeClientProps {
     initialResources: Resource[];
+    howItWorks?: string | null;
+    siteName?: string | null;
 }
 
-export default function HomeClient({ initialResources }: HomeClientProps) {
+export default function HomeClient({ initialResources, howItWorks, siteName }: HomeClientProps) {
     const { addToCart } = useCart();
     const [allResources, setAllResources] = useState<Resource[]>(initialResources);
-    const [filter, setFilter] = useState<'all' | 'space' | 'equipment'>('all');
+    const [filter, setFilter] = useState<'all' | 'space' | 'equipment' | 'workshop'>('all');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false); // Changed initial loading to false as we have data
     const [showSpaceConfigModal, setShowSpaceConfigModal] = useState(false);
@@ -43,6 +49,16 @@ export default function HomeClient({ initialResources }: HomeClientProps) {
     const [spaceEquipment, setSpaceEquipment] = useState<Resource[]>([]);
     const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
     const [isSingleSelection, setIsSingleSelection] = useState(false);
+
+    // Parse howItWorks steps or use default
+    const steps = howItWorks
+        ? JSON.parse(howItWorks)
+        : [
+            { title: "Paso 1", description: "Explora los recursos disponibles." },
+            { title: "Paso 2", description: "Selecciona el espacio o equipo que necesitas." },
+            { title: "Paso 3", description: "Configura tu reserva y añádela al carrito." },
+            { title: "Paso 4", description: "Confirma tu solicitud y espera la aprobación." }
+        ];
 
     // Effect to shuffle resources on mount only if needed, or we can rely on server shuffle
     useEffect(() => {
@@ -136,7 +152,7 @@ export default function HomeClient({ initialResources }: HomeClientProps) {
     return (
         <div className="pt-5 mt-4">
             <div className="container">
-                <Hero />
+                <Hero siteName={siteName} />
 
                 <div className="mt-4">
                     <div className="d-flex flex-column flex-md-row justify-content-center justify-content-md-between align-items-center mb-3">

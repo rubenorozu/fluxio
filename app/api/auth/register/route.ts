@@ -3,14 +3,17 @@ import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 
-const ALLOWED_DOMAINS = ['univa.mx', 'alumnos.univa.mx'];
-
 export async function POST(req: Request) {
   try {
-    const { firstName, lastName, identifier, email, password, phoneNumber } = await req.json();
+    const { firstName, lastName, identifier, email, password, phoneNumber, tenantId } = await req.json();
+    console.log(`[Register API] Received registration request for TenantID: ${tenantId}, Email: ${email}`);
 
     if (!firstName || !lastName || !identifier || !email || !password) {
       return NextResponse.json({ message: 'Missing fields' }, { status: 400 });
+    }
+
+    if (!tenantId) {
+      return NextResponse.json({ message: 'No se pudo detectar la organización.' }, { status: 400 });
     }
 
     // Password complexity validation
@@ -30,21 +33,47 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'La contraseña debe contener al menos un carácter especial.' }, { status: 400 });
     }
 
-    const domain = email.split('@')[1];
-    if (!ALLOWED_DOMAINS.includes(domain)) {
-      return NextResponse.json({ message: 'Invalid email domain' }, { status: 400 });
+    // Validar dominio de email solo si el tenant tiene allowedDomains configurado
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        config: {
+          select: {
+            allowedDomains: true
+          }
+        }
+      },
+    });
+
+    if (tenant?.config?.allowedDomains && tenant.config.allowedDomains.trim() !== '') {
+      const allowedDomains = tenant.config.allowedDomains.split(',').map(d => d.trim().toLowerCase());
+      const emailDomain = email.split('@')[1]?.toLowerCase();
+
+      if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+        return NextResponse.json({
+          message: `El dominio del correo electrónico no está permitido. Dominios permitidos: ${allowedDomains.join(', ')}`
+        }, { status: 400 });
+      }
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    // Validar que email sea único POR TENANT
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        email,
+        tenantId
+      },
     });
 
     if (existingUser) {
       return NextResponse.json({ message: 'User with that email already exists' }, { status: 409 });
     }
 
-    const existingIdentifier = await prisma.user.findUnique({
-      where: { identifier },
+    // Validar que identifier sea único POR TENANT
+    const existingIdentifier = await prisma.user.findFirst({
+      where: {
+        identifier,
+        tenantId
+      },
     });
 
     if (existingIdentifier) {
@@ -64,6 +93,7 @@ export async function POST(req: Request) {
         password: hashedPassword,
         phoneNumber,
         verificationToken,
+        tenantId, // Asignar tenant al usuario
       },
     });
 
@@ -74,8 +104,8 @@ export async function POST(req: Request) {
     const { password: _, ...userWithoutPassword } = user;
 
     return NextResponse.json(userWithoutPassword, { status: 201 });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Registration error:', error);
+    return NextResponse.json({ message: 'Something went wrong', error: error.message }, { status: 500 });
   }
 }

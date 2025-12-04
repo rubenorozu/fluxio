@@ -1,40 +1,39 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { PDFDocument, rgb, StandardFonts, PDFPage } from 'pdf-lib';
 import fs from 'fs/promises';
 import path from 'path';
-import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-
-interface UserPayload {
-  userId: string;
-  role: string;
-  iat: number;
-  exp: number;
-}
+import { verifyToken } from '@/lib/auth';
 
 interface Params {
   params: { id: string };
 }
 
 export async function GET(request: Request, { params }: Params) {
+  // Auth check - support both cookies and query param token
+  const { searchParams } = new URL(request.url);
   const cookieStore = cookies();
-  const tokenCookie = cookieStore.get('session');
+  let token = cookieStore.get('session')?.value;
 
-  if (!tokenCookie) {
+  const queryToken = searchParams.get('token');
+  if (queryToken) token = queryToken;
+
+  if (!token) {
     return NextResponse.json({ error: 'Acceso denegado. No se encontró la sesión.' }, { status: 401 });
   }
 
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify<UserPayload>(tokenCookie.value, secret);
-
-    if (payload.role !== 'SUPERUSER' && payload.role !== 'ADMIN_RESOURCE') {
-      return NextResponse.json({ error: 'Acceso denegado.' }, { status: 403 });
-    }
-  } catch (err) {
-    return NextResponse.json({ error: 'Acceso denegado. La sesión no es válida.' }, { status: 401 });
+  const payload = await verifyToken(token);
+  if (!payload || (payload.role !== 'SUPERUSER' && payload.role !== 'ADMIN_RESOURCE')) {
+    return NextResponse.json({ error: 'Acceso denegado.' }, { status: 403 });
   }
+
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
 
   try {
     const { id } = params;
@@ -43,14 +42,14 @@ export async function GET(request: Request, { params }: Params) {
       where: { id },
       include: {
         responsibleUser: { select: { firstName: true, lastName: true } },
-        sessions: true, // Include sessions
+        sessions: true,
         inscriptions: {
-          where: { status: 'APPROVED' }, // Filter by APPROVED status
+          where: { status: 'APPROVED' },
           include: {
-            user: { select: { firstName: true, lastName: true, email: true, identifier: true } }, // Add identifier
+            user: { select: { firstName: true, lastName: true, email: true, identifier: true } },
           },
           orderBy: {
-            user: { lastName: 'asc' }, // Order by last name
+            user: { lastName: 'asc' },
           },
         },
       },
@@ -65,12 +64,12 @@ export async function GET(request: Request, { params }: Params) {
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     // Cargar Logos
-    const univaLogoBytes = await fs.readFile(path.join(process.cwd(), 'public/assets/UNIVA.png'));
-    const ceproaLogoBytes = await fs.readFile(path.join(process.cwd(), 'public/assets/Ceproa.png'));
-    const univaLogo = await pdfDoc.embedPng(univaLogoBytes);
-    const ceproaLogo = await pdfDoc.embedPng(ceproaLogoBytes);
-    const univaDims = univaLogo.scale(0.25 * 0.6);
-    const ceproaDims = ceproaLogo.scale(0.25 * 0.4);
+    const fluxioLogo2Bytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV2.png'));
+    const fluxioLogoBytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV.png'));
+    const fluxioLogo2 = await pdfDoc.embedPng(fluxioLogo2Bytes);
+    const fluxioLogo = await pdfDoc.embedPng(fluxioLogoBytes);
+    const fluxioLogo2Dims = fluxioLogo2.scale(0.25 * 0.6);
+    const fluxioLogoDims = fluxioLogo.scale(0.25 * 0.4);
 
     const tableLeft = 50;
     const tableRight = 792 - 50;
@@ -83,7 +82,7 @@ export async function GET(request: Request, { params }: Params) {
       const { width, height } = page.getSize();
       const tableTop = height - 120;
       // --- Encabezado ---
-      page.drawImage(univaLogo, { x: 50, y: height - 60, width: univaDims.width, height: univaDims.height });
+      page.drawImage(fluxioLogo2, { x: 50, y: height - 60, width: fluxioLogo2Dims.width, height: fluxioLogo2Dims.height });
 
       const teacherName = workshop.teacher || (workshop.responsibleUser ? `${workshop.responsibleUser.firstName} ${workshop.responsibleUser.lastName}` : 'N/A');
       const teacherText = `MAESTRO/A: ${teacherName}`.toUpperCase();
@@ -105,25 +104,25 @@ export async function GET(request: Request, { params }: Params) {
       });
 
       // --- Pie de Página ---
-      page.drawImage(ceproaLogo, {
-        x: width - 50 - ceproaDims.width,
-        y: 60,
-        width: ceproaDims.width,
-        height: ceproaDims.height
+      page.drawImage(fluxioLogo, {
+        x: width - 50 - fluxioLogoDims.width,
+        y: height - 60,
+        width: fluxioLogoDims.width,
+        height: fluxioLogoDims.height
       });
 
       // --- Formatted Schedule ---
       const scheduleText = workshop.sessions.length > 0
         ? workshop.sessions.reduce((acc, session) => {
-            const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-            const day = dayNames[session.dayOfWeek];
-            const time = `${session.timeStart} - ${session.timeEnd}`;
-            if (!acc[time]) {
-              acc[time] = { days: [], room: session.room };
-            }
-            acc[time].days.push(day);
-            return acc;
-          }, {} as Record<string, { days: string[], room: string | null }>)
+          const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+          const day = dayNames[session.dayOfWeek];
+          const time = `${session.timeStart} - ${session.timeEnd}`;
+          if (!acc[time]) {
+            acc[time] = { days: [], room: session.room };
+          }
+          acc[time].days.push(day);
+          return acc;
+        }, {} as Record<string, { days: string[], room: string | null }>)
         : {};
 
       let scheduleY = 60;
@@ -135,7 +134,7 @@ export async function GET(request: Request, { params }: Params) {
       });
 
       page.drawText('HORARIO', { x: 50, y: 80, font: boldFont, size: 10 });
-      page.drawLine({ start: { x: 50, y: 75 }, end: { x: width - 50 - ceproaDims.width - 10, y: 75 }, thickness: 0.5 });
+      page.drawLine({ start: { x: 50, y: 75 }, end: { x: width - 50 - fluxioLogoDims.width - 10, y: 75 }, thickness: 0.5 });
 
       // Draw table header and grid
       const headerY = tableTop - 13;
@@ -147,12 +146,12 @@ export async function GET(request: Request, { params }: Params) {
 
       // Table container and vertical lines
       page.drawRectangle({
-          x: tableLeft,
-          y: tableBottom,
-          width: tableRight - tableLeft,
-          height: tableTop - tableBottom,
-          borderColor: rgb(0, 0, 0),
-          borderWidth: 1,
+        x: tableLeft,
+        y: tableBottom,
+        width: tableRight - tableLeft,
+        height: tableTop - tableBottom,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
       });
       page.drawLine({ start: { x: tableLeft + 30, y: tableTop }, end: { x: tableLeft + 30, y: tableBottom }, thickness: 0.5 });
       page.drawLine({ start: { x: 340, y: tableTop }, end: { x: 340, y: tableBottom }, thickness: 0.5 });
@@ -161,9 +160,9 @@ export async function GET(request: Request, { params }: Params) {
       const attendanceStart = 440;
       const attendanceColWidth = 20;
       for (let i = 0; i < 15; i++) {
-          const x = attendanceStart + (i * attendanceColWidth);
-          if (x > tableRight) break;
-          page.drawLine({ start: { x, y: tableTop }, end: { x, y: tableBottom }, thickness: 0.5 });
+        const x = attendanceStart + (i * attendanceColWidth);
+        if (x > tableRight) break;
+        page.drawLine({ start: { x, y: tableTop }, end: { x, y: tableBottom }, thickness: 0.5 });
       }
     };
 

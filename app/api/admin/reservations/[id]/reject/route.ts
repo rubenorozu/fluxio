@@ -2,9 +2,16 @@ import { Role, ReservationStatus } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma'; // Import singleton Prisma client
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
 
   if (!session || (session.user.role !== Role.SUPERUSER && session.user.role !== Role.ADMIN_RESERVATION && session.user.role !== Role.ADMIN_RESOURCE)) {

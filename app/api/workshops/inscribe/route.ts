@@ -1,10 +1,18 @@
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
 import { InscriptionStatus } from '@prisma/client';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
+import { prisma as globalPrisma } from '@/lib/prisma'; // Keep global prisma for SystemSettings if needed
 
 export async function POST(req: Request) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
   if (!session) {
     return NextResponse.json({ error: 'Debes iniciar sesión para inscribirte.' }, { status: 401 });
@@ -74,7 +82,8 @@ export async function POST(req: Request) {
 
     if (currentActiveInscriptionsCount >= 3) {
       if (isExtraordinary) {
-        const limitSetting = await prisma.systemSettings.findUnique({
+        // Use globalPrisma for SystemSettings as it doesn't have tenantId
+        const limitSetting = await globalPrisma.systemSettings.findUnique({
           where: { key: 'extraordinaryInscriptionLimit' },
         });
         const limit = limitSetting ? parseInt(limitSetting.value, 10) : 0;
@@ -95,6 +104,7 @@ export async function POST(req: Request) {
             workshopId,
             userId,
             status: InscriptionStatus.PENDING_EXTRAORDINARY,
+            tenantId: tenant.id, // Explicitly set tenantId
           },
         });
         return NextResponse.json(inscription, { status: 201 });
@@ -107,6 +117,7 @@ export async function POST(req: Request) {
       data: {
         workshopId,
         userId,
+        tenantId: tenant.id, // Explicitly set tenantId
       },
     });
 

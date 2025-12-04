@@ -75,7 +75,21 @@ export default function AdminReportsPage() {
     if (user) {
       fetchReports();
     }
-  }, [user, fetchReports]); // Add fetchReports to dependencies
+  }, [user, currentPage, pageSize]); // Removed fetchReports from dependencies
+
+  // Debounce search term
+  useEffect(() => {
+    if (!user) return;
+
+    const handler = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page on new search
+      fetchReports();
+    }, 500); // 500ms debounce
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]); // Only trigger on searchTerm change
 
   const handleShowDetails = (reportId: string) => {
     setSelectedReportId(reportId);
@@ -120,14 +134,14 @@ export default function AdminReportsPage() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to first page on new search
+    // setCurrentPage is handled by the debounced useEffect
   };
 
-  if (sessionLoading || loading) {
+  if (sessionLoading) {
     return <Container className="mt-5 text-center"><Spinner animation="border" /></Container>;
   }
 
-  if (error) {
+  if (error && !user) {
     return <Container className="mt-5"><Alert variant="danger">{error}</Alert></Container>;
   }
 
@@ -149,11 +163,21 @@ export default function AdminReportsPage() {
         />
       </InputGroup>
 
-      {reports.length === 0 && !loading && (
+      {loading && (
+        <div className="text-center mb-3">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Cargando...</span>
+          </Spinner>
+        </div>
+      )}
+
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      {!loading && reports.length === 0 && (
         <Alert variant="info">No se encontraron reportes.</Alert>
       )}
 
-      {reports.length > 0 && (
+      {!loading && reports.length > 0 && (
         <Table striped bordered hover responsive className="mb-3">
           <thead>
             <tr>

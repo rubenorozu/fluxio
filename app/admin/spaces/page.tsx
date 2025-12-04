@@ -432,7 +432,7 @@ export default function AdminSpacesPage() {
           <Col xs={12} className="text-center mt-3">
             <Row className="g-0 mb-2">
               <Col xs={6} className="px-1">
-                <Button variant="primary" onClick={() => handleShowModal()} className="w-100 text-nowrap overflow-hidden text-truncate" style={{ backgroundColor: '#1577a5', borderColor: '#1577a5' }}>Añadir Nuevo Espacio</Button>
+                <Button variant="primary" onClick={() => handleShowModal()} className="w-100 text-nowrap overflow-hidden text-truncate">Añadir Nuevo Espacio</Button>
               </Col>
               <Col xs={6} className="px-1">
                 <Button
@@ -491,7 +491,7 @@ export default function AdminSpacesPage() {
               style={{ width: 'auto' }} // Allow natural width
               className="me-2" // Add margin to the right of the search field
             />
-            <Button variant="primary" onClick={() => handleShowModal()} style={{ backgroundColor: '#1577a5', borderColor: '#1577a5' }}>Añadir Nuevo Espacio</Button>
+            <Button variant="primary" onClick={() => handleShowModal()}>Añadir Nuevo Espacio</Button>
             <Button
               variant="danger"
               onClick={handleBulkDelete}

@@ -134,11 +134,11 @@ export default function ProfilePage() {
       setEditMode(false);
       setProfileImageFile(null);
     } catch (err: unknown) {
-        if (err instanceof Error) {
-            setError(err.message);
-        } else {
-            setError('An unknown error occurred');
-        }
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
     }
   };
 
@@ -146,7 +146,7 @@ export default function ProfilePage() {
     return <Container className="mt-5 text-center"><Spinner animation="border" /><p>Cargando perfil...</p></Container>;
   }
 
-  if (error && !userProfile) { 
+  if (error && !userProfile) {
     return <Container className="mt-5"><Alert variant="danger">Error: {error}</Alert></Container>;
   }
 
@@ -156,7 +156,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container" style={{ paddingTop: '100px' }}>
-      <h2 style={{ color: '#0076A8' }}>Mi Espacio</h2>
+      <h2>Mi Espacio</h2>
       <hr />
 
       {error && <Alert variant="danger">{error}</Alert>}
@@ -192,7 +192,7 @@ export default function ProfilePage() {
               <p><strong>Rol:</strong> {userProfile.role}</p>
               <p><strong>Verificado:</strong> {userProfile.isVerified ? 'Sí' : 'No'}</p>
               <p><strong>Miembro desde:</strong> {new Date(userProfile.createdAt).toLocaleDateString()}</p>
-              <button className="btn btn-primary" onClick={() => setEditMode(true)} style={{ backgroundColor: '#0076A8', borderColor: '#0076A8' }}>
+              <button className="btn btn-primary" onClick={() => setEditMode(true)}>
                 Editar Perfil
               </button>
             </div>

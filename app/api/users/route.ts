@@ -1,9 +1,9 @@
 import { jwtVerify } from 'jose';
 import { Role } from '@prisma/client';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers'; // Add missing import
-import { getServerSession } from '@/lib/auth'; // Fix syntax error
-import { prisma } from '@/lib/prisma'; // Import singleton Prisma client
+import { cookies } from 'next/headers';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 interface UserPayload {
   userId: string;
@@ -13,6 +13,12 @@ interface UserPayload {
 }
 
 export async function GET(request: Request) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const cookieStore = cookies();
   const tokenCookie = cookieStore.get('session');
 

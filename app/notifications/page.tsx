@@ -71,7 +71,7 @@ export default function NotificationsPage() {
   return (
     <div className="container" style={{ paddingTop: '100px' }}>
       <div className="d-flex justify-content-between align-items-center">
-        <h2 style={{ color: '#0076A8' }}>Mis Notificaciones</h2>
+        <h2>Mis Notificaciones</h2>
         {notifications.some(n => !n.read) && (
           <button className="btn btn-sm btn-outline-primary" onClick={handleMarkAllAsRead}>
             Marcar todas como leídas
@@ -85,7 +85,7 @@ export default function NotificationsPage() {
         <div className="space-y-4">
           {Object.entries(groupedNotifications).map(([reservationId, group]) => (
             <div key={reservationId} className="card shadow-sm">
-              <div className="card-header" style={{ backgroundColor: '#0076A8', color: 'white' }}>
+              <div className="card-header bg-primary text-white">
                 {group.reservation ? (
                   <>
                     <strong>Reserva: </strong>

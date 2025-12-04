@@ -1,0 +1,487 @@
+.landingPage {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #ffffff;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* Header */
+.landingHeader {
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 0;
+}
+
+/* Hero Section */
+.hero {
+    background: linear-gradient(135deg, #145775 0%, #0f172a 100%);
+    position: relative;
+    overflow: hidden;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+}
+
+.hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></svg>');
+    opacity: 0.3;
+    z-index: 0;
+}
+
+.heroTitle {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.highlight {
+    color: #ff9500;
+    position: relative;
+}
+
+.heroSubtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    position: relative;
+    z-index: 1;
+}
+
+.heroImage {
+    position: relative;
+    z-index: 1;
+}
+
+.heroImagePlaceholder {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-radius: 16px;
+    height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.heroImagePlaceholder:hover {
+    border-color: rgba(255, 149, 0, 0.5);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+}
+
+.mockupPlaceholder {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-radius: 20px;
+    padding: 4rem 2rem;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mockupPlaceholder p {
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+}
+
+/* Buttons */
+.ctaPrimary {
+    display: inline-block;
+    background: linear-gradient(135deg, #ff9500 0%, #ff7700 100%);
+    border: none;
+    padding: 1rem 2.5rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(255, 149, 0, 0.4);
+    color: #ffffff;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.ctaPrimary:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 35px rgba(255, 149, 0, 0.6);
+    background: linear-gradient(135deg, #ff7700 0%, #ff9500 100%);
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.ctaPrimary:active {
+    transform: translateY(-1px) scale(0.98);
+    box-shadow: 0 6px 20px rgba(255, 149, 0, 0.5);
+}
+
+.ctaSecondary {
+    display: inline-block;
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    color: #ffffff;
+    padding: 1rem 2.5rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.ctaSecondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #ffffff;
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.ctaSecondary:active {
+    transform: translateY(-1px) scale(0.98);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Problem Section */
+.problemSection {
+    padding: 6rem 0;
+    background: #1e293b;
+}
+
+/* Features Section */
+.featuresSection {
+    padding: 6rem 0;
+    background: #0f172a;
+}
+
+.sectionTitle {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.sectionSubtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.featureCard {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.featureCard:hover {
+    transform: translateY(-8px);
+    border-color: #ff9500;
+    box-shadow: 0 12px 30px rgba(255, 149, 0, 0.2);
+}
+
+.featureIcon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.featureTitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #ffffff;
+}
+
+.featureDescription {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Screenshots Section */
+.screenshotsSection {
+    padding: 6rem 0;
+    background: #1e293b;
+}
+
+.screenshotsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+@media (max-width: 767px) {
+    .screenshotsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.screenshotCard {
+    transition: all 0.3s ease;
+}
+
+.screenshotCard:hover {
+    transform: scale(1.02);
+}
+
+.screenshotImage {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.screenshotPlaceholder {
+    background: linear-gradient(135deg, #334155 0%, #475569 100%);
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.screenshotPlaceholder p {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+}
+
+/* Pricing Section */
+.pricingSection {
+    padding: 6rem 0;
+    background: #0f172a;
+}
+
+.pricingCard {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    height: 100%;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.pricingCard :global(.card-body) {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+}
+
+.pricingCard:hover {
+    transform: translateY(-8px);
+    border-color: #ff9500;
+    box-shadow: 0 12px 40px rgba(255, 149, 0, 0.3);
+}
+
+.featuredPlan {
+    border-color: #ff9500;
+    box-shadow: 0 8px 30px rgba(255, 149, 0, 0.2);
+}
+
+.popularBadge {
+    position: absolute;
+    top: -12px;
+    right: 20px;
+    background: linear-gradient(135deg, #ff9500 0%, #ff7700 100%);
+    color: #ffffff;
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.planName {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #ffffff;
+}
+
+.planPrice {
+    margin-bottom: 2rem;
+}
+
+.currency {
+    font-size: 1.5rem;
+    vertical-align: super;
+    color: #ff9500;
+}
+
+.amount {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #ff9500;
+}
+
+.period {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.customPrice {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ff9500;
+}
+
+.billingNote {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.featureList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex: 1 !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.featureList li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.featureList li:last-child {
+    border-bottom: none;
+}
+
+.checkmark {
+    color: #28A745;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+/* CTA Section */
+.ctaSection {
+    padding: 6rem 0;
+    background: linear-gradient(135deg, #145775 0%, #0f172a 100%);
+    position: relative;
+}
+
+.ctaTitle {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.ctaSubtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 2rem;
+}
+
+/* Contact Form */
+.contactForm {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 3rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.formInput,
+.formTextarea {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.formInput::placeholder,
+.formTextarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.formInput:focus,
+.formTextarea:focus {
+    outline: none;
+    border-color: #ff9500;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.1);
+}
+
+.formTextarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.formInput option {
+    background: #1e293b;
+    color: #ffffff;
+}
+
+/* Footer */
+.footer {
+    padding: 2rem 0;
+    background: #0a0f1a;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+    .heroTitle {
+        font-size: 2.5rem;
+    }
+
+    .sectionTitle {
+        font-size: 2rem;
+    }
+
+    .amount {
+        font-size: 2.5rem;
+    }
+}
+
+@media (max-width: 767px) {
+    .heroTitle {
+        font-size: 2rem;
+    }
+
+    .heroSubtitle {
+        font-size: 1rem;
+    }
+
+    .sectionTitle {
+        font-size: 1.75rem;
+    }
+
+    .sectionSubtitle {
+        font-size: 1rem;
+    }
+}

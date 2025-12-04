@@ -2,7 +2,9 @@
 import { Role, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma'; // Import singleton Prisma client
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
+import { normalizeText } from '@/lib/search-utils';
 
 // Helper function to generate a random alphanumeric string
 function generateRandomString(length: number): string {
@@ -22,6 +24,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Acceso denegado. Se requieren privilegios de Superusuario o Administrador de Recursos.' }, { status: 403 });
   }
 
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
@@ -34,24 +42,9 @@ export async function GET(request: Request) {
       whereClause.responsibleUserId = session.user.id;
     }
 
-    if (search) {
-      whereClause.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { teacher: { contains: search, mode: 'insensitive' } },
-        { displayId: { not: null, contains: search, mode: 'insensitive' } },
-        {
-          responsibleUser: {
-            OR: [
-              { firstName: { contains: search, mode: 'insensitive' } },
-              { lastName: { contains: search, mode: 'insensitive' } },
-            ],
-          },
-        },
-      ];
-    }
-
-    const skip = (page - 1) * pageSize;
+    // When searching, fetch more results and filter in memory for accent-insensitive search
+    const fetchLimit = search ? 1000 : pageSize;
+    const skip = search ? 0 : (page - 1) * pageSize;
 
     const workshops = await prisma.workshop.findMany({
       where: whereClause,
@@ -69,10 +62,29 @@ export async function GET(request: Request) {
         createdAt: 'desc',
       },
       skip,
-      take: pageSize,
+      take: fetchLimit,
     });
 
-    const totalWorkshops = await prisma.workshop.count({ where: whereClause });
+    // Filter in memory for accent-insensitive search
+    let filteredWorkshops = workshops;
+    if (search) {
+      const normalizedSearch = normalizeText(search);
+      filteredWorkshops = workshops.filter(workshop => {
+        const responsibleName = workshop.responsibleUser
+          ? `${workshop.responsibleUser.firstName} ${workshop.responsibleUser.lastName}`
+          : '';
+        const searchableText = [
+          workshop.name || '',
+          workshop.description || '',
+          workshop.teacher || '',
+          workshop.displayId || '',
+          responsibleName,
+        ].join(' ');
+        return normalizeText(searchableText).includes(normalizedSearch);
+      });
+    }
+
+    const totalWorkshops = search ? filteredWorkshops.length : await prisma.workshop.count({ where: whereClause });
 
     const format = searchParams.get('format');
     if (format === 'csv') {
@@ -80,7 +92,7 @@ export async function GET(request: Request) {
       // Headers
       csvRows.push('"ID del taller","Nombre del taller","Responsable","Maestro","Descripción","Fecha de inicio","Fecha de finalización","Sesiones"');
 
-      for (const workshop of workshops) {
+      for (const workshop of filteredWorkshops) { // Use filteredWorkshops for CSV export
         const responsibleName = workshop.responsibleUser ? `${workshop.responsibleUser.firstName} ${workshop.responsibleUser.lastName}` : 'N/A';
         const sessions = workshop.sessions.map(session => {
           const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -108,7 +120,7 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.json({ workshops, totalWorkshops }, { status: 200 });
+    return NextResponse.json({ workshops: filteredWorkshops, totalWorkshops }, { status: 200 });
   } catch (error) {
     console.error('Error al obtener los talleres:', error);
     return NextResponse.json({ error: 'No se pudo obtener la lista de talleres.' }, { status: 500 });
@@ -122,6 +134,12 @@ export async function POST(request: Request) {
   if (!session || (session.user.role !== Role.SUPERUSER && session.user.role !== Role.ADMIN_RESOURCE)) {
     return NextResponse.json({ error: 'Acceso denegado. Se requieren privilegios de Superusuario o Administrador de Recursos.' }, { status: 403 });
   }
+
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
 
   try {
     const { name, description, capacity, teacher, startDate, endDate, inscriptionsStartDate, responsibleUserId, sessions, images } = await request.json();
@@ -172,9 +190,11 @@ export async function POST(request: Request) {
             timeStart: session.timeStart,
             timeEnd: session.timeEnd,
             room: session.room,
+            tenantId: tenant.id // Explicitly set tenantId for sessions if needed, though workshop relation handles it usually. But WorkshopSession might need it if it has tenantId column.
           })),
         },
         responsibleUser: finalResponsibleUserId ? { connect: { id: finalResponsibleUserId } } : undefined,
+        // tenantId is automatically added by getTenantPrisma.create
       },
       include: { images: true, sessions: true },
     });

@@ -1,12 +1,20 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { Role } from '@prisma/client';
+import { generateDisplayId } from '@/lib/displayId';
 
 const allowedAdminRoles: Role[] = [Role.SUPERUSER, Role.ADMIN_RESOURCE, Role.ADMIN_RESERVATION];
 
 // GET /api/reservations
 export async function GET(request: NextRequest) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
   if (!session || !allowedAdminRoles.includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -69,6 +77,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/reservations
 export async function POST(request: NextRequest) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
   if (!session || !allowedAdminRoles.includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -96,13 +110,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // import { generateDisplayId } from '@/lib/displayId'; // Removed from here
+
+    // ... (inside POST function)
+
+    // Generate displayId using the shared utility
+    // We pass prisma as the transaction client since we are not in a larger transaction here, 
+    // but the utility handles the counter update atomically enough for this context.
+    const displayId = await generateDisplayId(prisma as any, session.user.id, tenant.id);
+
     const data: any = {
+      displayId,
       startTime: new Date(start),
       endTime: new Date(end),
       justification: title,
       status: 'APPROVED',
       userId: session.user.id,
       subject: 'Bloqueo Administrativo',
+      // tenantId is automatically injected by getTenantPrisma wrapper
     };
 
     if (spaceId) {

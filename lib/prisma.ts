@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
+// Force reload comment
+
 declare global {
   // allow global `var` declarations
   // eslint-disable-next-line no-var
@@ -13,3 +15,4 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+// Force rebuild for Prisma Client update

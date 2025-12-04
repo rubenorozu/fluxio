@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTenant } from '@/context/TenantContext';
 
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState('');
@@ -15,6 +16,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
+  const tenant = useTenant(); // Obtener tenant del context
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,13 +33,23 @@ export default function RegisterPage() {
       return;
     }
 
+    // Validar dominios permitidos solo si están configurados
+    if (tenant?.config?.allowedDomains && tenant.config.allowedDomains.trim() !== '') {
+      const allowed = tenant.config.allowedDomains.split(',').map(d => d.trim().toLowerCase());
+      const emailDomain = email.split('@')[1]?.toLowerCase();
+      if (emailDomain && !allowed.includes(emailDomain)) {
+        setError(`El dominio del correo electrónico no está permitido. Dominios permitidos: ${allowed.join(', ')}`);
+        return;
+      }
+    }
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ firstName, lastName, identifier, email, password, phoneNumber }),
+        body: JSON.stringify({ firstName, lastName, identifier, email, password, phoneNumber, tenantId: tenant.id }),
       });
 
       if (res.ok) {
@@ -61,6 +73,11 @@ export default function RegisterPage() {
           <div className="card shadow-sm">
             <div className="card-body p-4">
               <h2 className="card-title text-center mb-4" style={{ color: '#0076A8' }}>Registro de Usuario</h2>
+              <div className="alert alert-info text-center">
+                <small>Registrando en: <strong>{tenant?.name || 'Desconocido'}</strong></small>
+                <br />
+                <small className="text-muted" style={{ fontSize: '0.7em' }}>ID: {tenant?.id}</small>
+              </div>
               {error && <div className="alert alert-danger">{error}</div>}
               {success && <div className="alert alert-success">{success}</div>}
               <form onSubmit={handleSubmit}>

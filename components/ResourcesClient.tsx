@@ -20,8 +20,12 @@ interface Resource {
     reservationLeadTime?: number | null;
     isFixedToSpace?: boolean;
     requiresSpaceReservationWithEquipment?: boolean;
+    inscriptionsStartDate?: string | null;
+    inscriptionsOpen?: boolean;
+    capacity?: number;
     _count?: {
         equipments?: number;
+        inscriptions?: number;
     };
 }
 
@@ -31,7 +35,7 @@ interface ResourcesClientProps {
 
 export default function ResourcesClient({ initialResources }: ResourcesClientProps) {
     const { addToCart } = useCart();
-    const [filter, setFilter] = useState<'all' | 'space' | 'equipment'>('all');
+    const [filter, setFilter] = useState<'all' | 'space' | 'equipment' | 'workshop'>('all');
     const [searchTerm, setSearchTerm] = useState('');
 
     // Modal state

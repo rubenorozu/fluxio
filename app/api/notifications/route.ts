@@ -1,33 +1,22 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { getServerSession } from '@/lib/auth';
-import { jwtVerify } from 'jose';
-import { prisma } from '@/lib/prisma'; // Import singleton Prisma client
-
-
-interface UserPayload {
-  userId: string;
-  role: string;
-  iat: number;
-  exp: number;
-}
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 export async function GET() {
-  const cookieStore = cookies();
-  const tokenCookie = cookieStore.get('session');
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
 
-  if (!tokenCookie) {
+  const session = await getServerSession();
+
+  if (!session) {
     return NextResponse.json({ error: 'No autenticado.' }, { status: 401 });
   }
 
-  let userId: string;
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify<UserPayload>(tokenCookie.value, secret);
-    userId = payload.userId;
-  } catch (err) {
-    return NextResponse.json({ error: 'La sesión no es válida.' }, { status: 401 });
-  }
+  const userId = session.user.id;
 
   try {
     const notifications = await prisma.notification.findMany({

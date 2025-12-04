@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/prisma-tenant';
 import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
+    const tenant = await detectTenant();
+    if (!tenant) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const prisma = getTenantPrisma(tenant.id);
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
 
@@ -29,14 +36,47 @@ export async function GET(request: Request) {
         description: true,
         displayId: true,
         images: true,
-        reservationLeadTime: true, // NEW: Include reservationLeadTime
-        isFixedToSpace: true, // NEW: Include isFixedToSpace
+        reservationLeadTime: true,
+        isFixedToSpace: true,
       },
     });
 
     return NextResponse.json(equipment);
   } catch (error) {
     console.error(error);
+    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const tenant = await detectTenant();
+    if (!tenant) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const prisma = getTenantPrisma(tenant.id);
+    const body = await request.json();
+    const { name, description, serialNumber, fixedAssetId, reservationLeadTime, isFixedToSpace } = body;
+
+    if (!name) {
+      return NextResponse.json({ message: 'Name is required' }, { status: 400 });
+    }
+
+    const newEquipment = await prisma.equipment.create({
+      data: {
+        name,
+        description,
+        serialNumber,
+        fixedAssetId,
+        reservationLeadTime: reservationLeadTime ? parseInt(reservationLeadTime) : null,
+        isFixedToSpace: isFixedToSpace || false,
+      },
+    });
+
+    return NextResponse.json(newEquipment, { status: 201 });
+  } catch (error) {
+    console.error('Error creating equipment:', error);
     return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
   }
 }

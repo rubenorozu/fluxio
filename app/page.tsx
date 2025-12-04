@@ -1,5 +1,7 @@
-import { prisma } from '@/lib/prisma';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
 import HomeClient from '@/components/HomeClient';
+import PlatformLandingPage from '@/app/platform-landing/page';
 import { Metadata } from 'next';
 
 // Define types locally if not available from a shared type file, or reuse from HomeClient if exported
@@ -13,24 +15,48 @@ interface Resource {
   name: string;
   description?: string | null;
   images: Image[];
-  type: 'space' | 'equipment';
+  type: 'space' | 'equipment' | 'workshop';
   reservationLeadTime?: number | null;
   isFixedToSpace?: boolean;
   requiresSpaceReservationWithEquipment?: boolean;
+  inscriptionsStartDate?: string | null;
+  inscriptionsOpen?: boolean;
+  capacity?: number;
   _count?: {
     equipments?: number;
+    inscriptions?: number;
   };
 }
 
-export const metadata: Metadata = {
-  title: 'Recursos Disponibles | Tu Ceproa',
-  description: 'Explora y reserva espacios y equipos disponibles en Tu Ceproa.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const tenant = await detectTenant();
+  const siteName = tenant?.config?.siteName || 'Fluxio RSV';
+  return {
+    title: `Recursos Disponibles | ${siteName}`,
+    description: `Explora y reserva espacios y equipos disponibles en ${siteName}.`,
+  };
+}
 
 export const dynamic = 'force-dynamic'; // Ensure we get fresh data
 
 export default async function Home() {
-  // Fetch data directly from DB
+  console.log('Home page rendering...');
+  // Detect tenant
+  const tenant = await detectTenant();
+
+  // If no tenant detected (localhost without subdomain), show landing page
+  if (!tenant) {
+    return <PlatformLandingPage />;
+  }
+
+  // If default tenant, also show landing
+  if (tenant.slug === 'default') {
+    return <PlatformLandingPage />;
+  }
+
+  const prisma = getTenantPrisma(tenant.id);
+
+  // Fetch data directly from DB using tenant-aware prisma
   const [spaces, equipment] = await Promise.all([
     prisma.space.findMany({
       where: {
@@ -71,15 +97,15 @@ export default async function Home() {
 
   // Transform to Resource type and add equipment count
   const resources: Resource[] = [
-    ...spaces.map((s) => ({
+    ...(spaces as any[]).map((s) => ({
       ...s,
       images: s.images as Image[],
       type: 'space' as const,
-      _count: { equipments: s.equipments.length },
+      _count: { equipments: s.equipments?.length || 0 },
       equipments: undefined, // Remove equipments from final object
     })),
-    ...equipment.map((e) => ({ ...e, images: e.images as Image[], type: 'equipment' as const })),
+    ...(equipment as any[]).map((e) => ({ ...e, images: e.images as Image[], type: 'equipment' as const })),
   ];
 
-  return <HomeClient initialResources={resources} />;
+  return <HomeClient initialResources={resources} howItWorks={tenant.config?.howItWorks} siteName={tenant.config?.siteName || 'Fluxio RSV'} />;
 }

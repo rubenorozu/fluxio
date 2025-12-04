@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { getServerSession } from '@/lib/auth';
 
 export async function POST(request: Request) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
@@ -36,9 +43,14 @@ export async function POST(request: Request) {
 
     // Get and increment daily report counter
     const reportCounter = await prisma.reportCounter.upsert({
-      where: { date: datePart },
+      where: {
+        date_tenantId: {
+          date: datePart,
+          tenantId: tenant.id
+        }
+      },
       update: { lastNumber: { increment: 1 } },
-      create: { date: datePart, lastNumber: 1 },
+      create: { date: datePart, lastNumber: 1, tenantId: tenant.id },
     });
 
     const sequenceNumber = reportCounter.lastNumber.toString().padStart(4, '0');

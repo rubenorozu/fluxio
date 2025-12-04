@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
+import { normalizeText } from '@/lib/search-utils';
 
 export async function GET(request: Request) {
   const session = await getServerSession();
@@ -15,17 +16,20 @@ export async function GET(request: Request) {
     const searchTerm = searchParams.get('search') || '';
 
     const skip = (page - 1) * pageSize;
-    const take = pageSize;
+
+    // When searching, fetch more results and filter in memory for accent-insensitive search
+    const fetchLimit = searchTerm ? 1000 : pageSize;
+    const effectiveSkip = searchTerm ? 0 : skip;
 
     const whereClause: any = {};
     if (searchTerm) {
       whereClause.OR = [
-        { description: { contains: searchTerm, mode: 'insensitive' } },
-        { space: { name: { contains: searchTerm, mode: 'insensitive' } } },
-        { equipment: { name: { contains: searchTerm, mode: 'insensitive' } } },
-        { workshop: { name: { contains: searchTerm, mode: 'insensitive' } } },
-        { user: { firstName: { contains: searchTerm, mode: 'insensitive' } } },
-        { user: { lastName: { contains: searchTerm, mode: 'insensitive' } } },
+        { description: { contains: searchTerm } },
+        { space: { name: { contains: searchTerm } } },
+        { equipment: { name: { contains: searchTerm } } },
+        { workshop: { name: { contains: searchTerm } } },
+        { user: { firstName: { contains: searchTerm } } },
+        { user: { lastName: { contains: searchTerm } } },
       ];
     }
 
@@ -35,8 +39,8 @@ export async function GET(request: Request) {
         orderBy: {
           createdAt: 'desc',
         },
-        skip,
-        take,
+        skip: effectiveSkip,
+        take: fetchLimit,
         select: {
           id: true,
           reportIdCode: true,
@@ -69,14 +73,31 @@ export async function GET(request: Request) {
       prisma.report.count({ where: whereClause }),
     ]);
 
-    const formattedReports = reports.map(report => ({
+    // Filter in memory for accent-insensitive search
+    let filteredReports = reports;
+    if (searchTerm) {
+      const normalizedSearch = normalizeText(searchTerm);
+      filteredReports = reports.filter(report => {
+        const userName = report.user ? `${report.user.firstName} ${report.user.lastName}` : '';
+        const searchableText = [
+          report.description || '',
+          report.space?.name || '',
+          report.equipment?.name || '',
+          report.workshop?.name || '',
+          userName,
+        ].join(' ');
+        return normalizeText(searchableText).includes(normalizedSearch);
+      });
+    }
+
+    const formattedReports = filteredReports.map(report => ({
       ...report,
       resource: report.space || report.equipment || report.workshop,
     }));
 
     return NextResponse.json({
       reports: formattedReports,
-      totalReports,
+      totalReports: searchTerm ? filteredReports.length : totalReports,
       currentPage: page,
       pageSize,
     });

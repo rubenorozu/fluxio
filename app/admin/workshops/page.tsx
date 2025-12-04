@@ -54,6 +54,15 @@ export default function AdminWorkshopsPage() {
   const { user, loading: sessionLoading } = useSession();
   const router = useRouter();
 
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setToken(localStorage.getItem('token'));
+    }
+  }, []);
+
+
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +92,16 @@ export default function AdminWorkshopsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 10; // Define page size
   const [selectedWorkshopIds, setSelectedWorkshopIds] = useState<string[]>([]);
+
+  // Confirmation Modal State
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmAction, setConfirmAction] = useState<() => void>(() => { });
+
+  const handleConfirmAction = () => {
+    confirmAction();
+    setShowConfirmModal(false);
+  };
 
   useEffect(() => {
     if (!sessionLoading && (!user || (user.role !== 'SUPERUSER' && user.role !== 'ADMIN_RESOURCE'))) {
@@ -414,40 +433,73 @@ export default function AdminWorkshopsPage() {
     }
   };
 
-  const handleToggleInscriptions = async (workshopId: string) => {
+  const handleToggleInscriptions = (workshopId: string) => {
     const workshop = workshops.find(w => w.id === workshopId);
     if (!workshop) return;
 
     const newStatus = !workshop.inscriptionsOpen;
-    if (!window.confirm(`¿Estás seguro de que quieres ${newStatus ? 'reabrir' : 'cerrar'} las inscripciones para este taller?`)) {
-      return;
-    }
 
+    setConfirmMessage(`¿Estás seguro de que quieres ${newStatus ? 'reabrir' : 'cerrar'} las inscripciones para este taller?`);
+    setConfirmAction(() => async () => {
+      try {
+        const response = await fetch(`/api/admin/workshops/${workshopId}/toggle-inscriptions`, {
+          method: 'PUT',
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'No se pudo cambiar el estado de las inscripciones.');
+        }
+
+        // alert(`Inscripciones ${newStatus ? 'abiertas' : 'cerradas'} correctamente.`); // Optional: remove alert if modal is enough feedback, or keep it.
+        if (user && user.role === 'ADMIN_RESOURCE') {
+          fetchWorkshops(searchTerm, user.id);
+        } else {
+          fetchWorkshops(searchTerm);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+          alert(`Error al cambiar el estado: ${err.message}`);
+        } else {
+          setError('An unknown error occurred');
+          alert('An unknown error occurred');
+        }
+      }
+    });
+    setShowConfirmModal(true);
+  };
+
+  // State for tracking downloads
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const downloadFile = (url: string, filename: string, id: string = 'global') => {
+    setDownloadingId(id);
     try {
-      const response = await fetch(`/api/admin/workshops/${workshopId}/toggle-inscriptions`, {
-        method: 'PUT',
-      });
+      console.log(`Iniciando descarga de: ${filename} desde ${url}`);
+      const token = localStorage.getItem('token');
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'No se pudo cambiar el estado de las inscripciones.');
-      }
+      const separator = url.includes('?') ? '&' : '?';
+      const finalUrl = token ? `${url}${separator}token=${token}` : url;
 
-      alert(`Inscripciones ${newStatus ? 'abiertas' : 'cerradas'} correctamente.`);
-      if (user && user.role === 'ADMIN_RESOURCE') {
-        fetchWorkshops(searchTerm, user.id);
-      } else {
-        fetchWorkshops(searchTerm);
-      }
+      // Use window.open for reliable download
+      window.open(finalUrl, '_blank');
+
+      // Reset loading state after a short delay
+      setTimeout(() => {
+        setDownloadingId(null);
+      }, 2000);
+
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-        alert(`Error al cambiar el estado: ${err.message}`);
-      } else {
-        setError('An unknown error occurred');
-        alert('An unknown error occurred');
-      }
+      console.error('Error en downloadFile:', err);
+      alert('Ocurrió un error al iniciar la descarga.');
+      setDownloadingId(null);
     }
+  };
+
+  const handleDownloadPdf = (workshopId: string, workshopName: string) => {
+    const safeName = workshopName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    downloadFile(`/api/admin/workshops/${workshopId}/inscriptions/pdf`, `Inscritos_${safeName}.pdf`, workshopId);
   };
 
   if (sessionLoading || !user) {
@@ -467,33 +519,31 @@ export default function AdminWorkshopsPage() {
             <h2>Gestión de Talleres</h2>
           </Col>
           <Col xs={12} className="text-center mt-3">
-          <Row className="g-0 mb-2">
-            <Col xs={6} className="px-1">
-              <Button variant="primary" onClick={() => handleShowModal()} className="w-100 text-nowrap overflow-hidden text-truncate" style={{ backgroundColor: '#1577a5', borderColor: '#1577a5' }}>Añadir Nuevo Taller</Button>
-            </Col>
-            <Col xs={6} className="px-1">
-              <Button
-                variant="danger"
-                onClick={handleBulkDelete}
-                className="w-100 text-nowrap overflow-hidden text-truncate"
-                disabled={selectedWorkshopIds.length === 0}
-              >
-                Eliminar Seleccionados ({selectedWorkshopIds.length})
-              </Button>
-            </Col>
-            <Col xs={6} className="px-1">
-              <Button variant="secondary" onClick={() => {
-                const link = document.createElement('a');
-                link.href = '/api/admin/export?model=workshops';
-                link.setAttribute('download', 'Talleres_TuCeproa.csv'); // Suggest a filename
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              }} className="w-100 text-nowrap overflow-hidden text-truncate">
-                Descargar CSV
-              </Button>
-            </Col>
-          </Row>            <div className="d-flex justify-content-end">
+            <Row className="g-0 mb-2">
+              <Col xs={6} className="px-1">
+                <Button variant="primary" onClick={() => handleShowModal()} className="w-100 text-nowrap overflow-hidden text-truncate">Añadir Nuevo Taller</Button>
+              </Col>
+              <Col xs={6} className="px-1">
+                <Button
+                  variant="danger"
+                  onClick={handleBulkDelete}
+                  className="w-100 text-nowrap overflow-hidden text-truncate"
+                  disabled={selectedWorkshopIds.length === 0}
+                >
+                  Eliminar Seleccionados ({selectedWorkshopIds.length})
+                </Button>
+              </Col>
+              <Col xs={6} className="px-1">
+                <Button
+                  variant="secondary"
+                  onClick={() => downloadFile('/api/admin/export?model=workshops', 'Talleres_TuCeproa.csv', 'csv-mobile')}
+                  className="w-100 text-nowrap overflow-hidden text-truncate"
+                  disabled={downloadingId === 'csv-mobile'}
+                >
+                  {downloadingId === 'csv-mobile' ? <Spinner as="span" animation="border" size="sm" /> : 'Descargar CSV'}
+                </Button>
+              </Col>
+            </Row>            <div className="d-flex justify-content-end">
               <Link href="/admin" passHref>
                 <Button variant="outline-secondary">Regresar</Button>
               </Link>
@@ -528,7 +578,7 @@ export default function AdminWorkshopsPage() {
               style={{ width: 'auto' }} // Allow natural width
               className="me-2" // Add margin to the right of the search field
             />
-            <Button variant="primary" onClick={() => handleShowModal()} style={{ backgroundColor: '#1577a5', borderColor: '#1577a5' }}>Añadir Nuevo Taller</Button>
+            <Button variant="primary" onClick={() => handleShowModal()}>Añadir Nuevo Taller</Button>
             <Button
               variant="danger"
               onClick={handleBulkDelete}
@@ -536,15 +586,12 @@ export default function AdminWorkshopsPage() {
             >
               Eliminar Seleccionados ({selectedWorkshopIds.length})
             </Button>
-            <Button variant="secondary" onClick={() => {
-              const link = document.createElement('a');
-              link.href = '/api/admin/export?model=workshops';
-              link.setAttribute('download', 'Talleres_TuCeproa.csv'); // Suggest a filename
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }}>
-              Descargar CSV
+            <Button
+              variant="secondary"
+              onClick={() => downloadFile('/api/admin/export?model=workshops', 'Talleres_TuCeproa.csv', 'csv-desktop')}
+              disabled={downloadingId === 'csv-desktop'}
+            >
+              {downloadingId === 'csv-desktop' ? <Spinner as="span" animation="border" size="sm" /> : 'Descargar CSV'}
             </Button>
             <Link href="/admin" passHref>
               <Button variant="outline-secondary">Regresar</Button>
@@ -636,17 +683,17 @@ export default function AdminWorkshopsPage() {
                       className="me-2"
                       onClick={() => handleToggleInscriptions(item.id)}
                     >
-                                          {item.inscriptionsOpen 
-                        ? 'Cerrar' 
-                        : new Date(item.inscriptionsStartDate || 0) < new Date() 
-                        ? 'Reabrir' 
-                        : 'Abrir'}
+                      {item.inscriptionsOpen
+                        ? 'Cerrar'
+                        : new Date(item.inscriptionsStartDate || 0) < new Date()
+                          ? 'Reabrir'
+                          : 'Abrir'}
 
                     </Button>
                     <Button variant="warning" size="sm" className="me-2" onClick={() => handleShowModal(item)}>
                       Editar
                     </Button>
-                    <a href={`/api/admin/workshops/${item.id}/inscriptions/pdf`} className="btn btn-success btn-sm me-2" target="_blank">
+                    <a href={`/api/admin/workshops/${item.id}/inscriptions/pdf?token=${token || ''}`} className="btn btn-success btn-sm me-2" target="_blank">
                       Descargar PDF
                     </a>
                     <Button variant="danger" size="sm" className="me-2" onClick={() => handleDelete(item.id)}>
@@ -688,7 +735,26 @@ export default function AdminWorkshopsPage() {
             </ButtonGroup>
           </div>
         </>
-      )}
+      )
+      }
+
+      {/* Confirmation Modal */}
+      <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmación</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {confirmMessage}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowConfirmModal(false)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={handleConfirmAction}>
+            Confirmar
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       <Modal show={showModal} onHide={handleCloseModal}>
         <Modal.Header closeButton>
@@ -896,6 +962,6 @@ export default function AdminWorkshopsPage() {
           </Form>
         </Modal.Body>
       </Modal>
-    </Container>
+    </Container >
   );
 }

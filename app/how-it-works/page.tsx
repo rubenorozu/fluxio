@@ -4,12 +4,16 @@ import React from 'react';
 import { Mail, Key, Monitor, FileText, GraduationCap, Upload, Eye, CheckCircle } from "lucide-react";
 import styles from './Infografia.module.css'; // Import CSS Module
 
-export default function Infografia() { // Changed component name to Infografia
-  const pasos = [
+import { useTenant } from '@/context/TenantContext';
+
+export default function Infografia() {
+  const tenant = useTenant();
+
+  const defaultPasos = [
     {
       numero: 1,
       titulo: "Crea tu cuenta",
-      texto: "Usa tu correo @univa.mx o @alumnos.univa.mx y no olvides usar tus nombres y apellidos reales para ser candidato a préstamo.",
+      texto: "Usa tu correo @fluxiorsv.com o @fluxiorsv.com.mx y no olvides usar tus nombres y apellidos reales para ser candidato a préstamo.",
       icono: Mail,
     },
     {
@@ -21,7 +25,7 @@ export default function Infografia() { // Changed component name to Infografia
     {
       numero: 3,
       titulo: "Accede a la plataforma",
-      texto: "Entra a Tu CEPROA desde tu navegador",
+      texto: `Entra a ${tenant?.config?.siteName || 'Fluxio RSV'} desde tu navegador`,
       icono: Monitor,
     },
     {
@@ -56,9 +60,27 @@ export default function Infografia() { // Changed component name to Infografia
     },
   ];
 
+  let pasos = defaultPasos;
+
+  if (tenant?.config?.howItWorks) {
+    try {
+      const parsedSteps = JSON.parse(tenant.config.howItWorks);
+      if (Array.isArray(parsedSteps) && parsedSteps.length > 0) {
+        pasos = parsedSteps.map((step: any, index: number) => ({
+          numero: index + 1,
+          titulo: step.title,
+          texto: step.description,
+          icono: CheckCircle, // Default icon for custom steps
+        }));
+      }
+    } catch (e) {
+      console.error("Error parsing howItWorks JSON", e);
+    }
+  }
+
   return (
-    <div className={styles.infografia} style={{ paddingTop: '100px' }}> {/* Added paddingTop for header clearance */}
-      <h1 className={styles.titulo}>Cómo funciona Tu CEPROA</h1>
+    <div className={styles.infografia} style={{ paddingTop: '100px' }}>
+      <h1 className={styles.titulo}>Cómo funciona {tenant?.config?.siteName || tenant?.name || 'Fluxio RSV'}</h1>
 
       <div className={styles.lista}>
         {pasos.map((paso) => (

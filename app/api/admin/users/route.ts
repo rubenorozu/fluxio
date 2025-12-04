@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
+import { normalizeText } from '@/lib/search-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +15,12 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
+    const tenant = await detectTenant();
+    if (!tenant) {
+      return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+    }
+    const prisma = getTenantPrisma(tenant.id);
+
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -20,17 +28,9 @@ export async function GET(req: Request) {
 
     const whereClause: Prisma.UserWhereInput = {};
 
-    if (search) {
-      whereClause.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { identifier: { contains: search, mode: 'insensitive' } },
-        { displayId: { not: null, contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    const skip = (page - 1) * pageSize;
+    // When searching, we'll fetch more results and filter in memory for accent-insensitive search
+    const fetchLimit = search ? 1000 : pageSize;
+    const skip = search ? 0 : (page - 1) * pageSize;
 
     const users = await prisma.user.findMany({
       where: whereClause,
@@ -47,12 +47,28 @@ export async function GET(req: Request) {
       },
       orderBy: { firstName: 'asc' },
       skip,
-      take: pageSize,
+      take: fetchLimit,
     });
 
-    const totalUsers = await prisma.user.count({ where: whereClause });
+    // Filter in memory for accent-insensitive search
+    let filteredUsers = users;
+    if (search) {
+      const normalizedSearch = normalizeText(search);
+      filteredUsers = users.filter(user => {
+        const searchableText = [
+          user.firstName || '',
+          user.lastName || '',
+          user.email || '',
+          user.identifier || '',
+          user.displayId || '',
+        ].join(' ');
+        return normalizeText(searchableText).includes(normalizedSearch);
+      });
+    }
 
-    const safeUsers = users.map(user => ({
+    const totalUsers = search ? filteredUsers.length : await prisma.user.count({ where: whereClause });
+
+    const safeUsers = filteredUsers.map(user => ({
       id: user.id,
       displayId: user.displayId,
       name: `${user.firstName} ${user.lastName}`,

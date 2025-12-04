@@ -1,13 +1,20 @@
-
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-
 import { Prisma } from '@prisma/client';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
+    const tenant = await detectTenant();
+    if (!tenant) {
+      console.log('[API/Workshops] No tenant detected');
+      return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+    }
+    console.log(`[API/Workshops] Detected Tenant: ${tenant.slug} (${tenant.id})`);
+    const prisma = getTenantPrisma(tenant.id);
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
 

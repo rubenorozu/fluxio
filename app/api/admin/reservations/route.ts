@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma, Role, ReservationStatus } from '@prisma/client';
 import { getServerSession } from '@/lib/auth';
+import { normalizeText } from '@/lib/search-utils';
 
 import { prisma } from '@/lib/prisma';
 
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const search = searchParams.get('search');
-    
+
     const whereClause: Prisma.ReservationWhereInput = {};
 
     if (statusFilter && statusFilter !== 'all' && statusFilter.toUpperCase() !== 'PARTIALLY_APPROVED') {
@@ -29,21 +30,24 @@ export async function GET(request: Request) {
 
     if (search) {
       whereClause.OR = [
-        { user: { firstName: { contains: search, mode: 'insensitive' } } },
-        { user: { lastName: { contains: search, mode: 'insensitive' } } },
-        { user: { email: { contains: search, mode: 'insensitive' } } },
-        { subject: { contains: search, mode: 'insensitive' } },
-        { justification: { contains: search, mode: 'insensitive' } },
-        { space: { name: { contains: search, mode: 'insensitive' } } },
-        { equipment: { name: { contains: search, mode: 'insensitive' } } },
+        { user: { firstName: { contains: search } } },
+        { user: { lastName: { contains: search } } },
+        { user: { email: { contains: search } } },
+        { subject: { contains: search } },
+        { justification: { contains: search } },
+        { space: { name: { contains: search } } },
+        { equipment: { name: { contains: search } } },
       ];
     }
 
     const isPartialFilter = statusFilter?.toUpperCase() === 'PARTIALLY_APPROVED';
 
+    // When searching, show all results (up to 1000) instead of paginating
+    const shouldShowAll = search || isPartialFilter;
+
     const reservations = await prisma.reservation.findMany({
       where: whereClause,
-      select: { 
+      select: {
         id: true,
         displayId: true,
         cartSubmissionId: true,
@@ -61,22 +65,40 @@ export async function GET(request: Request) {
       orderBy: {
         createdAt: 'desc',
       },
-      // If filtering for partial, we can't use database-level pagination
-      ...(isPartialFilter ? {} : {
+      // If filtering for partial or searching, we can't use database-level pagination
+      ...(shouldShowAll ? {} : {
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
     });
 
+    // Filter in memory for accent-insensitive search
+    let filteredReservations = reservations;
+    if (search) {
+      const normalizedSearch = normalizeText(search);
+      filteredReservations = reservations.filter(reservation => {
+        const userName = `${reservation.user.firstName || ''} ${reservation.user.lastName || ''}`.trim();
+        const searchableText = [
+          userName,
+          reservation.user.email || '',
+          reservation.subject || '',
+          reservation.justification || '',
+          reservation.space?.name || '',
+          reservation.equipment?.name || '',
+        ].join(' ');
+        return normalizeText(searchableText).includes(normalizedSearch);
+      });
+    }
+
     const grouped: { [key: string]: GroupedReservation } = {};
 
-    for (const r of reservations) {
+    for (const r of filteredReservations) {
       const groupId = r.cartSubmissionId || `single-${r.id}`;
       if (!grouped[groupId]) {
         grouped[groupId] = {
           cartSubmissionId: groupId,
           items: [],
-          overallStatus: 'PENDING', 
+          overallStatus: 'PENDING',
         };
       }
       const userName = `${r.user.firstName || ''} ${r.user.lastName || ''}`.trim() || null;
@@ -110,11 +132,11 @@ export async function GET(request: Request) {
       finalResult = finalResult.filter(group => group.overallStatus === 'PARTIALLY_APPROVED');
     }
 
-    const totalReservations = isPartialFilter 
-      ? finalResult.length 
+    const totalReservations = (isPartialFilter || search)
+      ? finalResult.length
       : await prisma.reservation.count({ where: whereClause });
 
-    const paginatedResult = isPartialFilter 
+    const paginatedResult = isPartialFilter
       ? finalResult.slice((page - 1) * pageSize, page * pageSize)
       : finalResult;
 

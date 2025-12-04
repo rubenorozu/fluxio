@@ -1,9 +1,16 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { detectTenant } from '@/lib/tenant/detection';
+import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { getServerSession } from '@/lib/auth';
 import { InscriptionStatus } from '@prisma/client';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  const tenant = await detectTenant();
+  if (!tenant) {
+    return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
+  }
+  const prisma = getTenantPrisma(tenant.id);
+
   const session = await getServerSession();
 
   if (!session) {
@@ -32,6 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         userId: userId,
         workshopId: workshopId,
         status: InscriptionStatus.PENDING, // Default status
+        tenantId: tenant.id,
       },
     });
 

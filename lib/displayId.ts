@@ -1,7 +1,7 @@
 
 import { PrismaClient, Prisma } from '@prisma/client';
 
-export async function generateDisplayId(tx: Prisma.TransactionClient, userId: string): Promise<string> {
+export async function generateDisplayId(tx: Prisma.TransactionClient, userId: string, tenantId: string): Promise<string> {
   const now = new Date();
   const year = String(now.getFullYear()).slice(-2);
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -12,21 +12,32 @@ export async function generateDisplayId(tx: Prisma.TransactionClient, userId: st
   const lastNamePart = user?.lastName.split(' ')[0].toUpperCase() || 'USER';
 
   const todayString = now.toISOString().split('T')[0]; // YYYY-MM-DD
-  const counter = await tx.reservationCounter.findUnique({
-    where: { date: todayString },
+
+  // Find counter for this specific tenant and date using findFirst to avoid composite key issues in client
+  const counter = await tx.reservationCounter.findFirst({
+    where: {
+      date: todayString,
+      tenantId: tenantId
+    },
   });
 
   let nextNumber;
   if (counter) {
     nextNumber = counter.lastNumber + 1;
     await tx.reservationCounter.update({
-      where: { date: todayString },
+      where: {
+        id: counter.id
+      },
       data: { lastNumber: nextNumber },
     });
   } else {
     nextNumber = 1;
     await tx.reservationCounter.create({
-      data: { date: todayString, lastNumber: nextNumber },
+      data: {
+        date: todayString,
+        lastNumber: nextNumber,
+        tenantId: tenantId
+      },
     });
   }
 

@@ -19,9 +19,11 @@ export default async function SuperAdminLayout({
     console.log('Is Default?', session?.user?.tenantId === 'default');
     console.log('Condition:', (!session || session.user.role !== Role.SUPERUSER || (session.user.tenantId && session.user.tenantId !== 'default')));
 
-    // Only allow SUPERUSER who is NOT bound to a specific tenant (or is bound to 'default')
-    // Assuming global superusers have tenantId as null or 'default'
-    if (!session || session.user.role !== Role.SUPERUSER || (session.user.tenantId && session.user.tenantId !== 'default')) {
+    // Only allow SUPERUSER who is NOT bound to a specific tenant (or is bound to 'default' or 'platform')
+    // Assuming global superusers have tenantId as null, 'default', or 'platform'
+    const isValidSuperAdminTenant = !session.user.tenantId || session.user.tenantId === 'default' || session.user.tenantId === 'platform';
+
+    if (!session || session.user.role !== Role.SUPERUSER || !isValidSuperAdminTenant) {
         console.log('Redirecting to / ...');
         redirect('/');
     }

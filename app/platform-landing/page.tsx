@@ -5,8 +5,11 @@ import { Container, Row, Col, Button, Card } from 'react-bootstrap';
 import Image from 'next/image';
 import styles from './LandingPage.module.css';
 
+import { useSession } from '@/context/SessionContext';
+
 export default function PlatformLandingPage() {
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+    const { user, loading } = useSession();
 
     return (
         <div className={styles.landingPage}>
@@ -21,14 +24,16 @@ export default function PlatformLandingPage() {
                             height={90}
                             style={{ width: 'auto', height: '75px' }}
                         />
-                        <Button
-                            href="/login"
-                            variant="outline-light"
-                            className="rounded-pill px-4"
-                            as="a"
-                        >
-                            Iniciar Sesión
-                        </Button>
+                        {!loading && (
+                            <Button
+                                href={user ? "/superadmin" : "/login"}
+                                variant="outline-light"
+                                className="rounded-pill px-4"
+                                as="a"
+                            >
+                                {user ? "Ir al Dashboard" : "Iniciar Sesión"}
+                            </Button>
+                        )}
                     </div>
                 </Container>
             </header>

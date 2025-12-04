@@ -94,7 +94,7 @@ export async function GET(request: Request) {
 
       for (const workshop of filteredWorkshops) { // Use filteredWorkshops for CSV export
         const responsibleName = (workshop as any).responsibleUser ? `${(workshop as any).responsibleUser.firstName} ${(workshop as any).responsibleUser.lastName}` : 'N/A';
-        const sessions = workshop.sessions.map(session => {
+        const sessions = (workshop as any).sessions.map((session: any) => {
           const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
           return `${days[session.dayOfWeek]} ${session.timeStart}-${session.timeEnd}${session.room ? ` (${session.room})` : ''}`;
         }).join('; ');

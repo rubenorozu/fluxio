@@ -112,8 +112,8 @@ export async function GET(request: Request, { params }: Params) {
       });
 
       // --- Formatted Schedule ---
-      const scheduleText = workshop.sessions.length > 0
-        ? workshop.sessions.reduce((acc, session) => {
+      const scheduleText = (workshop as any).sessions.length > 0
+        ? (workshop as any).sessions.reduce((acc: any, session: any) => {
           const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
           const day = dayNames[session.dayOfWeek];
           const time = `${session.timeStart} - ${session.timeEnd}`;
@@ -179,13 +179,14 @@ export async function GET(request: Request, { params }: Params) {
         const yPos = tableTop - rowHeight - (i * rowHeight);
         if (yPos < tableBottom) break;
 
-        const inscription = workshop.inscriptions[inscriptionIndex];
+        const totalInscriptions = (workshop as any).inscriptions.length;
+        const inscription = (workshop as any).inscriptions[inscriptionIndex];
         if (inscription) {
-          const matricula = inscription.user.identifier || inscription.user.email.split('@')[0];
-          const fullName = `${inscription.user.lastName}, ${inscription.user.firstName}`;
+          const matricula = (inscription as any).user.identifier || (inscription as any).user.email.split('@')[0];
+          const studentName = (inscription as any).user ? `${(inscription as any).user.firstName} ${(inscription as any).user.lastName}` : 'N/A';
 
           page.drawText(`${inscriptionIndex + 1}`, { x: tableLeft + 5, y: yPos - 12, font: font, size: 9 });
-          page.drawText(fullName.toUpperCase(), { x: tableLeft + 40, y: yPos - 12, font: font, size: 9 });
+          page.drawText(studentName.toUpperCase(), { x: tableLeft + 40, y: yPos - 12, font: font, size: 9 });
           page.drawText(matricula, { x: 350, y: yPos - 12, font: font, size: 9 });
         }
 

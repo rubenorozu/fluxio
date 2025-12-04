@@ -30,9 +30,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       data: {
         title,
         description,
+        name,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        dayOfWeek: dayOfWeek,
+        dayOfWeek: JSON.stringify(dayOfWeek),
         startTime,
         endTime,
         space: spaceId ? { connect: { id: spaceId } } : { disconnect: true },

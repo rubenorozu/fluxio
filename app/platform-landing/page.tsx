@@ -24,16 +24,6 @@ export default function PlatformLandingPage() {
                             height={90}
                             style={{ width: 'auto', height: '75px' }}
                         />
-                        {!loading && (
-                            <Button
-                                href={user ? "/superadmin" : "/login"}
-                                variant="outline-light"
-                                className="rounded-pill px-4"
-                                as="a"
-                            >
-                                {user ? "Ir al Dashboard" : "Iniciar Sesión"}
-                            </Button>
-                        )}
                     </div>
                 </Container>
             </header>

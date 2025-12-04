@@ -69,7 +69,7 @@ export async function GET(request: Request) {
         }
       },
       orderBy: {
-        createdAt: 'desc',
+        name: 'asc',
       },
       skip,
       take: fetchLimit,
@@ -80,8 +80,8 @@ export async function GET(request: Request) {
     if (search) {
       const normalizedSearch = normalizeText(search);
       filteredEquipment = equipment.filter(item => {
-        const responsibleName = item.responsibleUser
-          ? `${item.responsibleUser.firstName} ${item.responsibleUser.lastName}`
+        const responsibleName = (item as any).responsibleUser
+          ? `${(item as any).responsibleUser.firstName} ${(item as any).responsibleUser.lastName}`
           : '';
         const searchableText = [
           item.name || '',

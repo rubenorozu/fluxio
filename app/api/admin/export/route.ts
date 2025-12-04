@@ -1,6 +1,7 @@
 import { Role } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth-core';
 import { detectTenant } from '@/lib/tenant/detection';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
 
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
       const { verifyToken } = await import('@/lib/auth');
       const payload = await verifyToken(token);
       if (payload) {
-        userRole = payload.role as Role;
+        userRole = payload.role;
       }
     }
   }
@@ -56,12 +57,12 @@ export async function GET(request: Request) {
         userCsvRows.push('"ID del usuario","Nombre","Apellidos","Email","Matrícula","Teléfono"');
         for (const user of users) {
           userCsvRows.push(
-            `"${user.displayId || user.id}",` +
-            `"${(user.firstName || '').replace(/"/g, '""')}",` +
-            `"${(user.lastName || '').replace(/"/g, '""')}",` +
-            `"${user.email.replace(/"/g, '""')}",` +
-            `"${(user.identifier || 'N/A').replace(/"/g, '""')}",` +
-            `"${(user.phoneNumber || 'N/A').replace(/"/g, '""')}"`
+            `\"${user.displayId || user.id}\", ` +
+            `\"${(user.firstName || '').replace(/\"/g, '\"\"')}\",` +
+            `\"${(user.lastName || '').replace(/\"/g, '\"\"')}\",` +
+            `\"${user.email.replace(/\"/g, '\"\"')}\",` +
+            `\"${(user.identifier || 'N/A').replace(/\"/g, '\"\"')}\",` +
+            `\"${(user.phoneNumber || 'N/A').replace(/\"/g, '\"\"')}\"`
           );
         }
         const userCsv = userCsvRows.join('\n');
@@ -91,7 +92,7 @@ export async function GET(request: Request) {
         const spaceCsvRows = [];
         spaceCsvRows.push('"ID del espacio","Nombre del espacio","Encargado"');
         for (const space of spaces) {
-          const responsibleName = space.responsibleUser ? `${space.responsibleUser.firstName} ${space.responsibleUser.lastName}` : 'N/A';
+          const responsibleName = (space as any).responsibleUser ? `${(space as any).responsibleUser.firstName} ${(space as any).responsibleUser.lastName}` : 'N/A';
           spaceCsvRows.push(
             `"${space.displayId || space.id}",` +
             `"${space.name.replace(/"/g, '""')}",` +
@@ -128,7 +129,7 @@ export async function GET(request: Request) {
         const equipmentCsvRows = [];
         equipmentCsvRows.push('"ID del equipo","Nombre","Número de serie","Activo fijo","Responsable"');
         for (const equipment of equipmentList) {
-          const responsibleName = equipment.responsibleUser ? `${equipment.responsibleUser.firstName} ${equipment.responsibleUser.lastName}` : 'N/A';
+          const responsibleName = (equipment as any).responsibleUser ? `${(equipment as any).responsibleUser.firstName} ${(equipment as any).responsibleUser.lastName}` : 'N/A';
           equipmentCsvRows.push(
             `"${equipment.displayId || equipment.id}",` +
             `"${equipment.name.replace(/"/g, '""')}",` +
@@ -176,8 +177,8 @@ export async function GET(request: Request) {
         const workshopCsvRows = [];
         workshopCsvRows.push('"ID del taller","Nombre del taller","Responsable","Maestro","Descripción","Fecha de inicio","Fecha de finalización","Sesiones"');
         for (const workshop of workshopsList) {
-          const responsibleName = workshop.responsibleUser ? `${workshop.responsibleUser.firstName} ${workshop.responsibleUser.lastName}` : 'N/A';
-          const sessions = workshop.sessions.map(session => {
+          const responsibleName = (workshop as any).responsibleUser ? `${(workshop as any).responsibleUser.firstName} ${(workshop as any).responsibleUser.lastName}` : 'N/A';
+          const sessions = (workshop as any).sessions.map((session: any) => {
             const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
             return `${days[session.dayOfWeek]} ${session.timeStart}-${session.timeEnd}${session.room ? ` (${session.room})` : ''}`;
           }).join('; ');

@@ -496,7 +496,7 @@ export default function TenantsPage() {
                                     } else if (plan === 'ENTERPRISE') {
                                         limits = { maxUsers: 999999, maxResources: 999999, maxStorage: 999999 };
                                     }
-                                    setPlanFormData({ ...limits, plan });
+                                    setPlanFormData({ ...limits, plan, trialDays: 7 });
                                 }}
                                 required
                             >

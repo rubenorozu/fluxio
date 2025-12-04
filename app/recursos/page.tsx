@@ -79,7 +79,7 @@ export default async function ResourcesPage() {
   const resources: Resource[] = [
     ...spaces.map((s) => ({
       ...s,
-      images: s.images as Image[],
+      images: (s as any).images as Image[],
       type: 'space' as const,
       _count: { equipments: s.equipments.length },
       equipments: undefined,

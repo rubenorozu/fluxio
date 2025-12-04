@@ -45,8 +45,8 @@ export default async function RootLayout({
     name: 'Fluxio RSV',
   };
 
-  // Hide header/footer for landing page (localhost without subdomain or platform tenant)
-  const isLandingPage = !detectedTenant || !detectedTenant.slug || detectedTenant.slug === 'default' || detectedTenant.slug === 'platform';
+  // Hide header/footer for landing page (localhost without subdomain)
+  const isLandingPage = !detectedTenant || !detectedTenant.slug || detectedTenant.slug === 'default';
 
   return (
     <html lang="es" className={isLandingPage ? '' : 'h-100'}>

@@ -34,7 +34,7 @@ export function getTenantPrisma(tenantId: string) {
             create: (args: Prisma.EquipmentCreateArgs) =>
                 prisma.equipment.create({
                     ...args,
-                    data: { ...args.data, tenantId },
+                    data: { ...args.data, tenantId } as any,
                 }),
             count: (args?: Prisma.EquipmentCountArgs) =>
                 prisma.equipment.count({

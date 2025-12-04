@@ -126,7 +126,8 @@ export async function GET(request: Request, { params }: Params) {
         : {};
 
       let scheduleY = 60;
-      Object.entries(scheduleText).forEach(([time, { days, room }]) => {
+      Object.entries(scheduleText).forEach(([time, value]) => {
+        const { days, room } = value as any;
         const daysString = days.join(', ');
         const roomString = room ? ` (Salón: ${room})` : '';
         page.drawText(`${daysString} de ${time}${roomString}`, { x: 50, y: scheduleY, font: font, size: 9 });

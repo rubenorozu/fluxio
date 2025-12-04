@@ -30,7 +30,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       data: {
         title,
         description,
-        name,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         dayOfWeek: JSON.stringify(dayOfWeek),

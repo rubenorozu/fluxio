@@ -273,6 +273,16 @@ export default function PlatformLandingPage() {
                                             placeholder="Email corporativo *"
                                             required
                                         />
+                                        {!loading && (
+                                            <Button
+                                                href={user ? "/admin" : "/login"}
+                                                variant="outline-light"
+                                                className="rounded-pill px-4"
+                                                as="a"
+                                            >
+                                                {user ? "Ir al Dashboard" : "Iniciar Sesión"}
+                                            </Button>
+                                        )}
                                     </Col>
                                     <Col md={6}>
                                         <input

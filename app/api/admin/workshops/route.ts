@@ -70,8 +70,8 @@ export async function GET(request: Request) {
     if (search) {
       const normalizedSearch = normalizeText(search);
       filteredWorkshops = workshops.filter(workshop => {
-        const responsibleName = workshop.responsibleUser
-          ? `${workshop.responsibleUser.firstName} ${workshop.responsibleUser.lastName}`
+        const responsibleName = (workshop as any).responsibleUser
+          ? `${(workshop as any).responsibleUser.firstName} ${(workshop as any).responsibleUser.lastName}`
           : '';
         const searchableText = [
           workshop.name || '',
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
       csvRows.push('"ID del taller","Nombre del taller","Responsable","Maestro","Descripción","Fecha de inicio","Fecha de finalización","Sesiones"');
 
       for (const workshop of filteredWorkshops) { // Use filteredWorkshops for CSV export
-        const responsibleName = workshop.responsibleUser ? `${workshop.responsibleUser.firstName} ${workshop.responsibleUser.lastName}` : 'N/A';
+        const responsibleName = (workshop as any).responsibleUser ? `${(workshop as any).responsibleUser.firstName} ${(workshop as any).responsibleUser.lastName}` : 'N/A';
         const sessions = workshop.sessions.map(session => {
           const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
           return `${days[session.dayOfWeek]} ${session.timeStart}-${session.timeEnd}${session.room ? ` (${session.room})` : ''}`;

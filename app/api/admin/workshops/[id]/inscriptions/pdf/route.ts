@@ -192,34 +192,44 @@ export async function GET(request: Request, { params }: Params) {
         }
 
         const lineY = tableTop - rowHeight - ((i + 1) * rowHeight);
-        if (lineY >= tableBottom) {
-          page.drawLine({ start: { x: tableLeft, y: lineY }, end: { x: tableRight, y: lineY }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+        let currentInscriptionIndex = 0;
+        const numberOfRowsPerPage = 20; // Approx rows per page
+
+        for (const [index, inscription] of (workshop as any).inscriptions.entries()) {
+          const yPos = tableTop - rowHeight - (currentInscriptionIndex % numberOfRowsPerPage) * rowHeight;
+
+          if (currentInscriptionIndex > 0 && currentInscriptionIndex % numberOfRowsPerPage === 0) {
+            page = pdfDoc.addPage([792, 612]);
+            drawPageElements(page);
+          }
+
+          const matricula = (inscription as any).user.identifier || (inscription as any).user.email.split('@')[0];
+          const studentName = (inscription as any).user ? `${(inscription as any).user.firstName} ${(inscription as any).user.lastName}` : 'N/A';
+
+          page.drawText(`${index + 1}`, { x: tableLeft + 5, y: yPos - 12, font: font, size: 9 });
+          page.drawText(studentName.toUpperCase(), { x: tableLeft + 40, y: yPos - 12, font: font, size: 9 });
+          page.drawText(matricula, { x: 350, y: yPos - 12, font: font, size: 9 });
+
+          const lineY = tableTop - rowHeight - ((currentInscriptionIndex % numberOfRowsPerPage) + 1) * rowHeight;
+          if (lineY >= tableBottom) {
+            page.drawLine({ start: { x: tableLeft, y: lineY }, end: { x: tableRight, y: lineY }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+          }
+          currentInscriptionIndex++;
         }
-        if (inscription) {
-          inscriptionIndex++;
-        }
+
+        const pdfBytes = await pdfDoc.save();
+
+        const asciiName = workshop.name.replace(/\s/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return new Response(Buffer.from(pdfBytes), {
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="Inscritos_${asciiName}.pdf"`,
+          },
+        });
+
+      } catch (error) {
+        console.error('Error al generar el PDF:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
+        return NextResponse.json({ error: `No se pudo generar el PDF: ${errorMessage}` }, { status: 500 });
       }
-
-      if (inscriptionIndex < workshop.inscriptions.length) {
-        page = pdfDoc.addPage([792, 612]);
-        drawPageElements(page);
-      }
-    } while (inscriptionIndex < workshop.inscriptions.length);
-
-
-    const pdfBytes = await pdfDoc.save();
-
-    const asciiName = workshop.name.replace(/\s/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return new Response(Buffer.from(pdfBytes), {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="Inscritos_${asciiName}.pdf"`,
-      },
-    });
-
-  } catch (error) {
-    console.error('Error al generar el PDF:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
-    return NextResponse.json({ error: `No se pudo generar el PDF: ${errorMessage}` }, { status: 500 });
-  }
-}
+    }

@@ -71,21 +71,34 @@ export async function POST(request: NextRequest) {
         // Actualizar configuración del tenant platform
         const platformTenant = await prisma.tenant.findUnique({
             where: { slug: 'platform' },
-            select: { id: true, configId: true }
+            select: { id: true }
         });
 
         if (!platformTenant) {
             return NextResponse.json({ error: 'Tenant platform no encontrado' }, { status: 404 });
         }
 
-        await prisma.tenantConfig.update({
-            where: { id: platformTenant.configId },
+        await prisma.tenant.update({
+            where: { id: platformTenant.id },
             data: {
-                landingContactEmail: contactEmail,
-                landingDemoTrialDays: demoTrialDays,
-                landingFormFields: formFields,
-                landingAutoResponse: autoResponse,
-                landingAutoResponseMessage: autoResponseMessage
+                config: {
+                    upsert: {
+                        create: {
+                            landingContactEmail: contactEmail,
+                            landingDemoTrialDays: demoTrialDays,
+                            landingFormFields: formFields,
+                            landingAutoResponse: autoResponse,
+                            landingAutoResponseMessage: autoResponseMessage
+                        },
+                        update: {
+                            landingContactEmail: contactEmail,
+                            landingDemoTrialDays: demoTrialDays,
+                            landingFormFields: formFields,
+                            landingAutoResponse: autoResponse,
+                            landingAutoResponseMessage: autoResponseMessage
+                        }
+                    }
+                }
             }
         });
 

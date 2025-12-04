@@ -110,9 +110,9 @@ export async function detectTenant(): Promise<{
             return null;
         }
 
-        // 4. Fallback a tenant por defecto solo si hay subdomain
+        // 4. Fallback: Buscar tenant 'platform' (para superadmin)
         let defaultTenant = await prisma.tenant.findUnique({
-            where: { slug: 'default', isActive: true },
+            where: { slug: 'platform', isActive: true },
             select: {
                 id: true,
                 slug: true,
@@ -121,9 +121,22 @@ export async function detectTenant(): Promise<{
             },
         });
 
+        // Si no existe 'platform', buscar 'default'
+        if (!defaultTenant) {
+            defaultTenant = await prisma.tenant.findUnique({
+                where: { slug: 'default', isActive: true },
+                select: {
+                    id: true,
+                    slug: true,
+                    name: true,
+                    config: configSelect
+                },
+            });
+        }
+
         // Si no existe 'default', tomar el primer tenant activo (útil para dev/demo)
         if (!defaultTenant) {
-            console.log('Default tenant not found, looking for any active tenant...');
+            console.log('Platform and default tenant not found, looking for any active tenant...');
             defaultTenant = await prisma.tenant.findFirst({
                 where: { isActive: true },
                 select: {

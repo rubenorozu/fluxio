@@ -84,7 +84,7 @@ export async function GET(request: Request, { params }: Params) {
       // --- Encabezado ---
       page.drawImage(fluxioLogo2, { x: 50, y: height - 60, width: fluxioLogo2Dims.width, height: fluxioLogo2Dims.height });
 
-      const teacherName = workshop.teacher || (workshop.responsibleUser ? `${workshop.responsibleUser.firstName} ${workshop.responsibleUser.lastName}` : 'N/A');
+      const teacherName = workshop.teacher || ((workshop as any).responsibleUser ? `${(workshop as any).responsibleUser.firstName} ${(workshop as any).responsibleUser.lastName}` : 'N/A');
       const teacherText = `MAESTRO/A: ${teacherName}`.toUpperCase();
       const teacherTextWidth = boldFont.widthOfTextAtSize(teacherText, 10);
       page.drawText(teacherText, {

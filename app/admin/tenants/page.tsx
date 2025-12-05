@@ -355,8 +355,16 @@ export default function TenantsPage() {
                                                 {/* Detectar si estamos en producción o desarrollo */}
                                                 {(() => {
                                                     const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-                                                    const baseDomain = isProduction ? 'fluxiorsv.vercel.app' : 'localhost:3000';
-                                                    const tenantUrl = `http${isProduction ? 's' : ''}://${tenant.slug}.${baseDomain}`;
+                                                    let tenantUrl;
+
+                                                    if (isProduction) {
+                                                        // En producción, usar query parameter
+                                                        tenantUrl = `https://fluxiorsv.vercel.app?tenant=${tenant.slug}`;
+                                                    } else {
+                                                        // En desarrollo, usar subdominio
+                                                        tenantUrl = `http://${tenant.slug}.localhost:3000`;
+                                                    }
+
                                                     return (
                                                         <Button variant="outline-secondary" size="sm" href={tenantUrl} target="_blank">
                                                             Visitar

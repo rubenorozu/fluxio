@@ -55,6 +55,8 @@ export default async function RootLayout({
   const isRootPath = pathname === '/';
   const isLandingPage = isPlatformOrDefault && isRootPath;
 
+  console.log('[RootLayout] pathname:', pathname, 'isPlatformOrDefault:', isPlatformOrDefault, 'isRootPath:', isRootPath, 'isLandingPage:', isLandingPage);
+
   return (
     <html lang="es" className={isLandingPage ? '' : 'h-100'}>
       <body className={isLandingPage ? inter.className : `${inter.className} d-flex flex-column h-100`} style={isLandingPage ? { margin: 0, padding: 0 } : {}}>

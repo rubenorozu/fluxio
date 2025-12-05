@@ -195,6 +195,9 @@ export default function PlatformLandingPage() {
                         <Col>
                             <h2 className={styles.sectionTitle}>Planes Flexibles para tu Institución</h2>
                             <p className={styles.sectionSubtitle}>Elige el plan que mejor se adapte a tus necesidades</p>
+                            <p className="text-muted mt-2">
+                                <small>* Precios mostrados son mensuales con facturación anual. El cargo se realiza una vez al año.</small>
+                            </p>
                         </Col>
                     </Row>
                     <Row className="g-4 justify-content-center">
@@ -221,6 +224,11 @@ export default function PlatformLandingPage() {
                                         </div>
                                         {plan.billing && (
                                             <p className={styles.billingNote}>{plan.billing}</p>
+                                        )}
+                                        {plan.price !== 'Personalizado' && (
+                                            <p className="text-muted small mt-2">
+                                                Total anual: ${parseInt(plan.price) * 12} {plan.currency}
+                                            </p>
                                         )}
                                         <ul className={styles.featureList}>
                                             {plan.features.map((feature, idx) => (

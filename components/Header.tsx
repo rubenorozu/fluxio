@@ -142,9 +142,12 @@ const Header = () => {
               ) : (
                 <>
                   <li className="nav-item"><Link href="/login" className="nav-link">Login</Link></li>
-                  <li className="nav-item">
-                    <Link href="/register" className="btn btn-primary text-white">Registro</Link>
-                  </li>
+                  {/* Hide registration for platform tenant (main tenant) */}
+                  {tenant?.slug !== 'platform' && (
+                    <li className="nav-item">
+                      <Link href="/register" className="btn btn-primary text-white">Registro</Link>
+                    </li>
+                  )}
                 </>
               )}
             </ul>

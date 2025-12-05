@@ -352,9 +352,17 @@ export default function TenantsPage() {
                                         <td>{format(new Date(tenant.createdAt), 'dd MMM yyyy', { locale: es })}</td>
                                         <td>
                                             <div className="d-flex gap-2">
-                                                <Button variant="outline-secondary" size="sm" href={`http://${tenant.slug}.localhost:3000`} target="_blank">
-                                                    Visitar
-                                                </Button>
+                                                {/* Detectar si estamos en producción o desarrollo */}
+                                                {(() => {
+                                                    const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+                                                    const baseDomain = isProduction ? 'fluxiorsv.vercel.app' : 'localhost:3000';
+                                                    const tenantUrl = `http${isProduction ? 's' : ''}://${tenant.slug}.${baseDomain}`;
+                                                    return (
+                                                        <Button variant="outline-secondary" size="sm" href={tenantUrl} target="_blank">
+                                                            Visitar
+                                                        </Button>
+                                                    );
+                                                })()}
                                                 <Button variant="outline-primary" size="sm" onClick={() => handlePlanClick(tenant)}>
                                                     Plan
                                                 </Button>

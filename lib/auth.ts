@@ -47,8 +47,14 @@ export async function createSession(userId: string, role: Role, tenantId: string
 /**
  * Obtiene y verifica la sesión del usuario a partir de la cookie.
  * Diseñada para ser usada en API Routes y Server Components.
+ * 
+ * @param options.validateTenant - Si es true, valida que el usuario pertenece al tenant actual
+ * @param options.currentTenantId - ID del tenant actual para validación
  */
-export async function getServerSession(): Promise<{ user: { id: string; role: Role; tenantId: string } } | null> {
+export async function getServerSession(options?: {
+  validateTenant?: boolean;
+  currentTenantId?: string;
+}): Promise<{ user: { id: string; role: Role; tenantId: string } } | null> {
   // --- CAMBIO CLAVE AQUÍ ---
   const cookieStore = await cookies(); // Obtener el almacén de cookies de forma explícita y AWAIT
   let token = cookieStore.get('session')?.value;
@@ -75,6 +81,18 @@ export async function getServerSession(): Promise<{ user: { id: string; role: Ro
         tenantId: payload.tenantId as string,
       },
     };
+
+    // Validar que el usuario pertenece al tenant actual
+    if (options?.validateTenant && options?.currentTenantId) {
+      if (sessionData.user.tenantId !== options.currentTenantId) {
+        console.warn(
+          `[Auth] Tenant mismatch: User belongs to tenant ${sessionData.user.tenantId} but trying to access tenant ${options.currentTenantId}`
+        );
+        // Eliminar sesión inválida
+        await deleteSession();
+        return null;
+      }
+    }
 
     return sessionData;
   } catch (e) {

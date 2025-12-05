@@ -50,8 +50,11 @@ export default async function RootLayout({
   const headersList2 = headers();
   const pathname = headersList2.get('x-pathname') || '/';
 
-  // Check if user is logged in
-  const session = await getServerSession();
+  // Check if user is logged in and validate tenant
+  const session = await getServerSession({
+    validateTenant: true,
+    currentTenantId: detectedTenant?.id
+  });
 
   // Hide header/footer only for the root landing page of platform/default tenants WITHOUT session
   // If user is logged in, always show header (even on root path)

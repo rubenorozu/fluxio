@@ -50,8 +50,11 @@ export default async function Home() {
     return <PlatformLandingPage />;
   }
 
-  // Check if user is logged in
-  const session = await getServerSession();
+  // Check if user is logged in and validate tenant
+  const session = await getServerSession({
+    validateTenant: true,
+    currentTenantId: tenant.id
+  });
 
   // If default or platform tenant WITHOUT session, show landing
   // If user is logged in, show resources carousel

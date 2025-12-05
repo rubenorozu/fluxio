@@ -352,16 +352,17 @@ export default function TenantsPage() {
                                         <td>{format(new Date(tenant.createdAt), 'dd MMM yyyy', { locale: es })}</td>
                                         <td>
                                             <div className="d-flex gap-2">
-                                                {/* Detectar si estamos en producción o desarrollo */}
+                                                {/* Generar URL con subdominio */}
                                                 {(() => {
                                                     const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
                                                     let tenantUrl;
 
                                                     if (isProduction) {
-                                                        // En producción, usar query parameter
-                                                        tenantUrl = `https://fluxiorsv.vercel.app?tenant=${tenant.slug}`;
+                                                        // En producción, usar subdominio con dominio personalizado
+                                                        // TODO: Cambiar 'fluxiorsv.vercel.app' por tu dominio personalizado
+                                                        tenantUrl = `https://${tenant.slug}.fluxiorsv.vercel.app`;
                                                     } else {
-                                                        // En desarrollo, usar subdominio
+                                                        // En desarrollo, usar subdominio localhost
                                                         tenantUrl = `http://${tenant.slug}.localhost:3000`;
                                                     }
 

@@ -54,8 +54,10 @@ export default function LoginPage() {
         // Actualizamos el contexto de sesión en el frontend
         await login(data.user); // login ahora es asíncrono
 
-        // Redirigir al callbackUrl si existe, sino a /
-        const callbackUrl = searchParams.get('callbackUrl') || '/';
+        // Redirigir al callbackUrl si existe
+        // Para tenant platform, usar /admin como fallback en lugar de /
+        const defaultUrl = tenant?.slug === 'platform' ? '/admin' : '/';
+        const callbackUrl = searchParams.get('callbackUrl') || defaultUrl;
         console.log('[Login] Redirecting to:', callbackUrl);
 
         // Use window.location.href to force full page reload

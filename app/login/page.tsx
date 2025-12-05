@@ -48,6 +48,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password, tenantId: tenant.id }),
       });
 
+
       if (res.ok) {
         const data = await res.json();
         // Actualizamos el contexto de sesión en el frontend
@@ -55,7 +56,14 @@ export default function LoginPage() {
 
         // Redirigir al callbackUrl si existe, sino a /
         const callbackUrl = searchParams.get('callbackUrl') || '/';
-        router.push(callbackUrl);
+        console.log('[Login] Redirecting to:', callbackUrl);
+
+        // Para tenant platform, si callbackUrl es /, redirigir a /admin
+        if (tenant?.slug === 'platform' && callbackUrl === '/') {
+          router.push('/admin');
+        } else {
+          router.push(callbackUrl);
+        }
       } else {
         const data = await res.json();
         setError(data.message || 'Credenciales inválidas.');

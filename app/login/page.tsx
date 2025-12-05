@@ -100,10 +100,12 @@ export default function LoginPage() {
                   Iniciar Sesión
                 </button>
               </form>
-              <div className="mt-3 text-center">
-                <span>¿No tienes una cuenta? </span>
-                <Link href="/register" style={{ color: '#F28C00' }}>Regístrate</Link>
-              </div>
+              {tenant?.slug !== 'platform' && (
+                <div className="mt-3 text-center">
+                  <span>¿No tienes una cuenta? </span>
+                  <Link href="/register" style={{ color: '#F28C00' }}>Regístrate</Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

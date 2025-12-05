@@ -38,8 +38,21 @@ export async function middleware(request: NextRequest) {
     // (Removed) Do not set cookie to avoid sticky tenant behavior
   }
 
+  // Proteger rutas /superadmin
+  if (pathname.startsWith('/superadmin')) {
+    const token = request.cookies.get('session')?.value;
+    const session = token ? await verifyToken(token) : null;
+
+    if (!session) {
+      // No hay sesión, redirigir a login
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    // Si hay sesión, permitir que la página maneje la redirección
+  }
   // Proteger rutas /admin (excluyendo /api/admin)
-  if (pathname.startsWith('/admin') && !pathname.startsWith('/api/admin')) {
+  else if (pathname.startsWith('/admin') && !pathname.startsWith('/api/admin')) {
     const token = request.cookies.get('session')?.value;
     const session = token ? await verifyToken(token) : null;
 

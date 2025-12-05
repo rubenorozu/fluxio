@@ -1,7 +1,14 @@
+import { getServerSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
-export default function SuperAdminDashboard() {
-    // Redirect to the internal home page (Tenant Main View)
-    // The user wants to see the "Main Page" (Hero + Resources) not the Admin Dashboard.
-    redirect('/home');
+export default async function SuperAdminPage() {
+    const session = await getServerSession();
+
+    // If no session, redirect to login
+    if (!session) {
+        redirect('/login');
+    }
+
+    // If logged in, redirect to tenant main page
+    redirect('/');
 }

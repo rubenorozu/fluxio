@@ -19,6 +19,9 @@ const Header = () => {
 
   const isPlatformAdmin = tenant?.slug === 'platform';
 
+  // For platform tenant, redirect to /admin when logged in, otherwise to /
+  const homeUrl = (isPlatformAdmin && user) ? '/admin' : '/';
+
   useEffect(() => {
     // Logic to close Bootstrap navbar on link click
     const navbarCollapse = document.getElementById('main-nav');
@@ -73,7 +76,7 @@ const Header = () => {
     <header className="fixed-top bg-white shadow-sm">
       <nav className="navbar navbar-expand-lg navbar-light py-0 px-0">
         <div className="container-fluid px-0 pe-3 px-md-3">
-          <Link href="/" className="d-flex align-items-center text-decoration-none">
+          <Link href={homeUrl} className="d-flex align-items-center text-decoration-none">
             {tenant?.config?.topLogoUrl ? (
               <div style={{ position: 'relative', width: 'auto', height: `${tenant.config.topLogoHeight || 50}px`, marginRight: '10px' }}>
                 <img
@@ -91,7 +94,7 @@ const Header = () => {
           </button>
           <div className="collapse navbar-collapse w-100 w-md-auto" id="main-nav" ref={navbarRef}> {/* Added w-100 w-md-auto for stability */}
             <ul className="navbar-nav ms-auto align-items-center" style={{ minWidth: '150px' }}> {/* Added minWidth for stability */}
-              <li className="nav-item"><Link href="/" className="nav-link">Inicio</Link></li>
+              <li className="nav-item"><Link href={homeUrl} className="nav-link">Inicio</Link></li>
               <li className="nav-item"><Link href="/recursos" className="nav-link">Recursos</Link></li>
 
               {sessionLoading ? (

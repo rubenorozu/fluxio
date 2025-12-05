@@ -23,6 +23,8 @@ export async function middleware(request: NextRequest) {
   if (tenantSlug) {
     requestHeaders.set('x-tenant-slug', tenantSlug);
   }
+  // Agregar pathname para que el layout pueda detectar la landing page
+  requestHeaders.set('x-pathname', pathname);
 
   // Crear response pasando los headers modificados
   const response = NextResponse.next({
@@ -34,6 +36,7 @@ export async function middleware(request: NextRequest) {
   if (tenantSlug) {
     // También establecer en response para debug cliente
     response.headers.set('x-tenant-slug', tenantSlug);
+    response.headers.set('x-pathname', pathname);
 
     // (Removed) Do not set cookie to avoid sticky tenant behavior
   }

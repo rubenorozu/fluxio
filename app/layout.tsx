@@ -45,8 +45,15 @@ export default async function RootLayout({
     name: 'Fluxio RSV',
   };
 
-  // Hide header/footer for landing page (localhost without subdomain or platform tenant)
-  const isLandingPage = !detectedTenant || !detectedTenant.slug || detectedTenant.slug === 'default' || detectedTenant.slug === 'platform';
+  // Get current pathname from middleware
+  const headersList2 = headers();
+  const pathname = headersList2.get('x-pathname') || '/';
+
+  // Hide header/footer only for the root landing page of platform/default tenants
+  // Show header for all other routes, including /admin, /login, /register, etc.
+  const isPlatformOrDefault = !detectedTenant || !detectedTenant.slug || detectedTenant.slug === 'default' || detectedTenant.slug === 'platform';
+  const isRootPath = pathname === '/';
+  const isLandingPage = isPlatformOrDefault && isRootPath;
 
   return (
     <html lang="es" className={isLandingPage ? '' : 'h-100'}>

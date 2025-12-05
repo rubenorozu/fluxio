@@ -39,9 +39,9 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  if (tenantSlug) {
+  if (finalTenantSlug) {
     // También establecer en response para debug cliente
-    response.headers.set('x-tenant-slug', tenantSlug);
+    response.headers.set('x-tenant-slug', finalTenantSlug);
     response.headers.set('x-pathname', pathname);
 
     // (Removed) Do not set cookie to avoid sticky tenant behavior

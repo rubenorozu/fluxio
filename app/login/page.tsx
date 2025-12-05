@@ -52,7 +52,10 @@ export default function LoginPage() {
         const data = await res.json();
         // Actualizamos el contexto de sesión en el frontend
         await login(data.user); // login ahora es asíncrono
-        router.push('/');
+
+        // Redirigir al callbackUrl si existe, sino a /
+        const callbackUrl = searchParams.get('callbackUrl') || '/';
+        router.push(callbackUrl);
       } else {
         const data = await res.json();
         setError(data.message || 'Credenciales inválidas.');

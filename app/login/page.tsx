@@ -58,12 +58,9 @@ export default function LoginPage() {
         const callbackUrl = searchParams.get('callbackUrl') || '/';
         console.log('[Login] Redirecting to:', callbackUrl);
 
-        // Para tenant platform, si callbackUrl es /, redirigir a /admin
-        if (tenant?.slug === 'platform' && callbackUrl === '/') {
-          router.push('/admin');
-        } else {
-          router.push(callbackUrl);
-        }
+        // Use window.location.href to force full page reload
+        // This ensures the page correctly detects the session and shows carousel
+        window.location.href = callbackUrl;
       } else {
         const data = await res.json();
         setError(data.message || 'Credenciales inválidas.');

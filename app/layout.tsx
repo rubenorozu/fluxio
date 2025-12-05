@@ -10,6 +10,7 @@ import ClientWrapper from "@/components/ClientWrapper";
 import { TenantProvider } from "@/context/TenantContext";
 import { TenantStyles } from "@/components/TenantStyles";
 import { headers } from "next/headers";
+import { getServerSession } from "@/lib/auth";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,13 +50,16 @@ export default async function RootLayout({
   const headersList2 = headers();
   const pathname = headersList2.get('x-pathname') || '/';
 
-  // Hide header/footer only for the root landing page of platform/default tenants
-  // Show header for all other routes, including /admin, /login, /register, etc.
+  // Check if user is logged in
+  const session = await getServerSession();
+
+  // Hide header/footer only for the root landing page of platform/default tenants WITHOUT session
+  // If user is logged in, always show header (even on root path)
   const isPlatformOrDefault = !detectedTenant || !detectedTenant.slug || detectedTenant.slug === 'default' || detectedTenant.slug === 'platform';
   const isRootPath = pathname === '/';
-  const isLandingPage = isPlatformOrDefault && isRootPath;
+  const isLandingPage = isPlatformOrDefault && isRootPath && !session;
 
-  console.log('[RootLayout] pathname:', pathname, 'isPlatformOrDefault:', isPlatformOrDefault, 'isRootPath:', isRootPath, 'isLandingPage:', isLandingPage);
+  console.log('[RootLayout] pathname:', pathname, 'isPlatformOrDefault:', isPlatformOrDefault, 'hasSession:', !!session, 'isLandingPage:', isLandingPage);
 
   return (
     <html lang="es" className={isLandingPage ? '' : 'h-100'}>

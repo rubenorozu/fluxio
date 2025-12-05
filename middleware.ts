@@ -18,10 +18,16 @@ export async function middleware(request: NextRequest) {
   const tenantSlug = getTenantSlug(request);
   console.log(`[Middleware] Host: ${request.headers.get('host')}, Detected Slug: ${tenantSlug}`);
 
+  // Extraer tenant de query parameter si existe (para Vercel sin wildcard DNS)
+  const tenantParam = request.nextUrl.searchParams.get('tenant');
+  const finalTenantSlug = tenantParam || tenantSlug;
+
+  console.log(`[Middleware] Query param tenant: ${tenantParam}, Final slug: ${finalTenantSlug}`);
+
   // Preparar headers para el request downstream (Server Components)
   const requestHeaders = new Headers(request.headers);
-  if (tenantSlug) {
-    requestHeaders.set('x-tenant-slug', tenantSlug);
+  if (finalTenantSlug) {
+    requestHeaders.set('x-tenant-slug', finalTenantSlug);
   }
   // Agregar pathname para que el layout pueda detectar la landing page
   requestHeaders.set('x-pathname', pathname);

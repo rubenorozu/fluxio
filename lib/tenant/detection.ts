@@ -103,33 +103,6 @@ export async function detectTenant(): Promise<{
             }
         }
 
-        // 3. Intentar desde query parameter ?tenant=slug (útil para Vercel sin wildcard DNS)
-        const url = headersList.get('x-url') || '';
-        if (url) {
-            try {
-                const urlObj = new URL(url);
-                const tenantParam = urlObj.searchParams.get('tenant');
-                if (tenantParam) {
-                    console.log(`[detectTenant] Found tenant query param: ${tenantParam}`);
-                    const tenant = await prisma.tenant.findUnique({
-                        where: { slug: tenantParam, isActive: true },
-                        select: {
-                            id: true,
-                            slug: true,
-                            name: true,
-                            config: configSelect
-                        },
-                    });
-                    if (tenant) {
-                        console.log(`[detectTenant] Found by query param: ${tenant.slug}`);
-                        return tenant;
-                    }
-                }
-            } catch (e) {
-                console.log('[detectTenant] Error parsing URL for query param');
-            }
-        }
-
         // If no subdomain detected (accessing localhost:3000 directly), return null
         // This will trigger the landing page
         if (!subdomain) {

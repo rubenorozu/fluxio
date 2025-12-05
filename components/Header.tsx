@@ -19,8 +19,8 @@ const Header = () => {
 
   const isPlatformAdmin = tenant?.slug === 'platform';
 
-  // For platform tenant, redirect to /admin when logged in, otherwise to /
-  const homeUrl = (isPlatformAdmin && user) ? '/admin' : '/';
+  // Always redirect to / - the home page will show carousel if logged in, landing if not
+  const homeUrl = '/';
 
   useEffect(() => {
     // Logic to close Bootstrap navbar on link click

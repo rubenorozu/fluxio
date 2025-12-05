@@ -1,5 +1,6 @@
 import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { detectTenant } from '@/lib/tenant/detection';
+import { getServerSession } from '@/lib/auth';
 import HomeClient from '@/components/HomeClient';
 import PlatformLandingPage from '@/app/platform-landing/page';
 import { Metadata } from 'next';
@@ -49,8 +50,12 @@ export default async function Home() {
     return <PlatformLandingPage />;
   }
 
-  // If default or platform tenant, also show landing
-  if (tenant.slug === 'default' || tenant.slug === 'platform') {
+  // Check if user is logged in
+  const session = await getServerSession();
+
+  // If default or platform tenant WITHOUT session, show landing
+  // If user is logged in, show resources carousel
+  if ((tenant.slug === 'default' || tenant.slug === 'platform') && !session) {
     return <PlatformLandingPage />;
   }
 

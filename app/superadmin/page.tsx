@@ -9,6 +9,6 @@ export default async function SuperAdminPage() {
         redirect('/login');
     }
 
-    // If logged in, redirect to tenant main page
-    redirect('/');
+    // If logged in, redirect to admin dashboard
+    redirect('/admin');
 }

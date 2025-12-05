@@ -64,12 +64,9 @@ const Header = () => {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/');
-    // Add logic to close the navbar
-    const navbarToggler = document.querySelector('.navbar-toggler');
-    if (navbarToggler && navbarToggler.getAttribute('aria-expanded') === 'true') {
-      (navbarToggler as HTMLElement).click();
-    }
+    // Use window.location.href instead of router.push to force a full page reload
+    // This ensures the layout correctly detects we're on the landing page
+    window.location.href = '/';
   };
 
   return (

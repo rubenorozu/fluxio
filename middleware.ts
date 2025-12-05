@@ -18,17 +18,11 @@ export async function middleware(request: NextRequest) {
   const tenantSlug = getTenantSlug(request);
   console.log(`[Middleware] Host: ${request.headers.get('host')}, Detected Slug: ${tenantSlug}`);
 
-  // Extraer tenant de path /t/slug si existe (para Vercel sin wildcard DNS)
-  let tenantParam = null;
-  const pathMatch = pathname.match(/^\/t\/([^\/]+)/);
-  if (pathMatch) {
-    tenantParam = pathMatch[1];
-    console.log(`[Middleware] Found tenant in path: ${tenantParam}`);
-  }
-
+  // Extraer tenant de query parameter si existe (para Vercel sin wildcard DNS)
+  const tenantParam = request.nextUrl.searchParams.get('tenant');
   const finalTenantSlug = tenantParam || tenantSlug;
 
-  console.log(`[Middleware] Path tenant: ${tenantParam}, Final slug: ${finalTenantSlug}`);
+  console.log(`[Middleware] Query param tenant: ${tenantParam}, Final slug: ${finalTenantSlug}`);
 
   // Preparar headers para el request downstream (Server Components)
   const requestHeaders = new Headers(request.headers);

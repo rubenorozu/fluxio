@@ -358,8 +358,8 @@ export default function TenantsPage() {
                                                     let tenantUrl;
 
                                                     if (isProduction) {
-                                                        // En producción, usar path-based routing
-                                                        tenantUrl = `https://fluxiorsv.vercel.app/t/${tenant.slug}`;
+                                                        // En producción, usar query parameter
+                                                        tenantUrl = `https://fluxiorsv.vercel.app?tenant=${tenant.slug}`;
                                                     } else {
                                                         // En desarrollo, usar subdominio
                                                         tenantUrl = `http://${tenant.slug}.localhost:3000`;

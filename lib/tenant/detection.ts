@@ -29,6 +29,7 @@ export async function detectTenant(): Promise<{
         allowedDomains?: string | null;
         privacyPolicy?: string | null;
         howItWorks?: string | null;
+        carouselResourceLimit?: number | null;
     } | null;
 } | null> {
     try {

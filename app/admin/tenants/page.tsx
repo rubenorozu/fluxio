@@ -359,8 +359,7 @@ export default function TenantsPage() {
 
                                                     if (isProduction) {
                                                         // En producción, usar subdominio con dominio personalizado
-                                                        // TODO: Cambiar 'fluxiorsv.vercel.app' por tu dominio personalizado
-                                                        tenantUrl = `https://${tenant.slug}.fluxiorsv.vercel.app`;
+                                                        tenantUrl = `https://${tenant.slug}.fluxiorsv.com`;
                                                     } else {
                                                         // En desarrollo, usar subdominio localhost
                                                         tenantUrl = `http://${tenant.slug}.localhost:3000`;

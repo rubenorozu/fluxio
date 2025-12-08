@@ -32,6 +32,23 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'No se han subido archivos.' }, { status: 400 });
     }
 
+    // Validar que los archivos sean válidos
+    for (const file of files) {
+      if (!file.name || file.size === 0) {
+        return NextResponse.json({ error: 'Archivo inválido o vacío.' }, { status: 400 });
+      }
+      // Límite de 10MB por archivo
+      if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: `El archivo ${file.name} excede el límite de 10MB.` }, { status: 400 });
+      }
+    }
+
+    // Verificar que el token de Vercel Blob esté configurado
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN no está configurado');
+      return NextResponse.json({ error: 'Configuración de almacenamiento no disponible.' }, { status: 500 });
+    }
+
     const blobs = await Promise.all(
       files.map(async (file) => {
         const uniqueFilename = `${Date.now()}-${file.name}`;
@@ -49,7 +66,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (error instanceof Error) {
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
+      return NextResponse.json({ error: `Error al subir: ${error.message}` }, { status: 500 });
     }
-    return NextResponse.json({ error: 'Error al procesar la subida de archivos.' }, { status: 500 });
+    return NextResponse.json({ error: 'Error desconocido al procesar la subida de archivos.' }, { status: 500 });
   }
 }

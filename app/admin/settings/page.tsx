@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Container, Form, Button, Spinner, Alert, Row, Col } from 'react-bootstrap';
+import { Container, Form, Button, Spinner, Alert, Row, Col, Tabs, Tab, Table } from 'react-bootstrap';
 import { useSession } from '@/context/SessionContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -38,7 +38,11 @@ export default function AdminSettingsPage() {
   const [attachmentFormUrl, setAttachmentFormUrl] = useState('');
   const [attachmentFormFile, setAttachmentFormFile] = useState<File | null>(null);
 
-
+  // Import states
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -255,6 +259,59 @@ export default function AdminSettingsPage() {
       } else {
         setError('An unknown error occurred');
       }
+    }
+  };
+
+  const handleDownloadTemplate = async (type: 'spaces' | 'equipment' | 'workshops') => {
+    try {
+      const response = await fetch(`/api/admin/import/templates/${type}`);
+      if (!response.ok) throw new Error('Error al descargar plantilla');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `plantilla_${type === 'spaces' ? 'espacios' : type === 'equipment' ? 'equipos' : 'talleres'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      setImportError('Error al descargar la plantilla');
+    }
+  };
+
+  const handleImport = async (type: 'spaces' | 'equipment' | 'workshops') => {
+    if (!importFile) {
+      setImportError('Por favor selecciona un archivo');
+      return;
+    }
+
+    setImporting(true);
+    setImportError(null);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const response = await fetch(`/api/admin/import/${type}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al importar');
+      }
+
+      setImportResult(data);
+      setImportFile(null);
+    } catch (error: any) {
+      setImportError(error.message || 'Error al procesar la importación');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -629,6 +686,249 @@ export default function AdminSettingsPage() {
             placeholder="Introduce el tiempo en horas"
           />
         </Form.Group>
+
+        <hr className="my-5" />
+        <h4 className="mt-4">Importación Masiva de Recursos</h4>
+        <p className="text-muted">Importa múltiples espacios, equipos o talleres desde archivos Excel</p>
+
+        <Tabs defaultActiveKey="spaces" className="mb-3">
+          {/* Tab de Espacios */}
+          <Tab eventKey="spaces" title="Espacios">
+            <div className="p-3 border rounded">
+              <h5>Importar Espacios</h5>
+
+              <div className="mb-3">
+                <strong>📥 Paso 1: Descargar Plantilla</strong>
+                <p className="text-muted small">Descarga la plantilla Excel con el formato correcto</p>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => handleDownloadTemplate('spaces')}
+                >
+                  📄 Descargar Plantilla de Espacios
+                </Button>
+              </div>
+
+              <div className="mb-3">
+                <strong>📝 Paso 2: Llenar la Plantilla</strong>
+                <ul className="text-muted small">
+                  <li>Llena las columnas requeridas (nombre es obligatorio)</li>
+                  <li>No modifiques los nombres de las columnas</li>
+                  <li>Estado debe ser: AVAILABLE o IN_MAINTENANCE</li>
+                  <li>Requiere reserva espacio: SI o NO</li>
+                </ul>
+              </div>
+
+              <div className="mb-3">
+                <strong>📤 Paso 3: Subir Archivo</strong>
+                <Form.Control
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e: any) => setImportFile(e.target.files[0])}
+                  className="mb-2"
+                />
+                <Button
+                  variant="success"
+                  onClick={() => handleImport('spaces')}
+                  disabled={importing || !importFile}
+                >
+                  {importing ? 'Importando...' : 'Importar Espacios'}
+                </Button>
+              </div>
+
+              {importError && <Alert variant="danger">{importError}</Alert>}
+
+              {importResult && (
+                <Alert variant="success">
+                  <strong>✅ Importación Completada</strong>
+                  <p className="mb-1">Total: {importResult.summary.total} filas procesadas</p>
+                  <p className="mb-1">Creados: {importResult.summary.created} espacios</p>
+                  <p className="mb-0">Errores: {importResult.summary.errors}</p>
+
+                  {importResult.errors.length > 0 && (
+                    <div className="mt-3">
+                      <strong>Errores:</strong>
+                      <Table size="sm" className="mt-2">
+                        <thead>
+                          <tr>
+                            <th>Fila</th>
+                            <th>Error</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {importResult.errors.map((err: any, idx: number) => (
+                            <tr key={idx}>
+                              <td>{err.row}</td>
+                              <td>{err.error}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
+                </Alert>
+              )}
+            </div>
+          </Tab>
+
+          {/* Tab de Equipos */}
+          <Tab eventKey="equipment" title="Equipos">
+            <div className="p-3 border rounded">
+              <h5>Importar Equipos</h5>
+
+              <div className="mb-3">
+                <strong>📥 Paso 1: Descargar Plantilla</strong>
+                <p className="text-muted small">Descarga la plantilla Excel con el formato correcto</p>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => handleDownloadTemplate('equipment')}
+                >
+                  📄 Descargar Plantilla de Equipos
+                </Button>
+              </div>
+
+              <div className="mb-3">
+                <strong>📝 Paso 2: Llenar la Plantilla</strong>
+                <ul className="text-muted small">
+                  <li>Llena las columnas requeridas (nombre es obligatorio)</li>
+                  <li>El espacio asignado debe existir previamente</li>
+                  <li>Estado debe ser: AVAILABLE o IN_MAINTENANCE</li>
+                  <li>Fijo a espacio: SI o NO</li>
+                </ul>
+              </div>
+
+              <div className="mb-3">
+                <strong>📤 Paso 3: Subir Archivo</strong>
+                <Form.Control
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e: any) => setImportFile(e.target.files[0])}
+                  className="mb-2"
+                />
+                <Button
+                  variant="success"
+                  onClick={() => handleImport('equipment')}
+                  disabled={importing || !importFile}
+                >
+                  {importing ? 'Importando...' : 'Importar Equipos'}
+                </Button>
+              </div>
+
+              {importError && <Alert variant="danger">{importError}</Alert>}
+
+              {importResult && (
+                <Alert variant="success">
+                  <strong>✅ Importación Completada</strong>
+                  <p className="mb-1">Total: {importResult.summary.total} filas procesadas</p>
+                  <p className="mb-1">Creados: {importResult.summary.created} equipos</p>
+                  <p className="mb-0">Errores: {importResult.summary.errors}</p>
+
+                  {importResult.errors.length > 0 && (
+                    <div className="mt-3">
+                      <strong>Errores:</strong>
+                      <Table size="sm" className="mt-2">
+                        <thead>
+                          <tr>
+                            <th>Fila</th>
+                            <th>Error</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {importResult.errors.map((err: any, idx: number) => (
+                            <tr key={idx}>
+                              <td>{err.row}</td>
+                              <td>{err.error}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
+                </Alert>
+              )}
+            </div>
+          </Tab>
+
+          {/* Tab de Talleres */}
+          <Tab eventKey="workshops" title="Talleres">
+            <div className="p-3 border rounded">
+              <h5>Importar Talleres</h5>
+
+              <div className="mb-3">
+                <strong>📥 Paso 1: Descargar Plantilla</strong>
+                <p className="text-muted small">Descarga la plantilla Excel con el formato correcto</p>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => handleDownloadTemplate('workshops')}
+                >
+                  📄 Descargar Plantilla de Talleres
+                </Button>
+              </div>
+
+              <div className="mb-3">
+                <strong>📝 Paso 2: Llenar la Plantilla</strong>
+                <ul className="text-muted small">
+                  <li>Llena las columnas requeridas (nombre es obligatorio)</li>
+                  <li>Fechas en formato: YYYY-MM-DD (ej: 2025-01-15)</li>
+                  <li>Inscripciones abiertas: SI o NO</li>
+                  <li>Capacidad debe ser un número</li>
+                </ul>
+              </div>
+
+              <div className="mb-3">
+                <strong>📤 Paso 3: Subir Archivo</strong>
+                <Form.Control
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e: any) => setImportFile(e.target.files[0])}
+                  className="mb-2"
+                />
+                <Button
+                  variant="success"
+                  onClick={() => handleImport('workshops')}
+                  disabled={importing || !importFile}
+                >
+                  {importing ? 'Importando...' : 'Importar Talleres'}
+                </Button>
+              </div>
+
+              {importError && <Alert variant="danger">{importError}</Alert>}
+
+              {importResult && (
+                <Alert variant="success">
+                  <strong>✅ Importación Completada</strong>
+                  <p className="mb-1">Total: {importResult.summary.total} filas procesadas</p>
+                  <p className="mb-1">Creados: {importResult.summary.created} talleres</p>
+                  <p className="mb-0">Errores: {importResult.summary.errors}</p>
+
+                  {importResult.errors.length > 0 && (
+                    <div className="mt-3">
+                      <strong>Errores:</strong>
+                      <Table size="sm" className="mt-2">
+                        <thead>
+                          <tr>
+                            <th>Fila</th>
+                            <th>Error</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {importResult.errors.map((err: any, idx: number) => (
+                            <tr key={idx}>
+                              <td>{err.row}</td>
+                              <td>{err.error}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
+                </Alert>
+              )}
+            </div>
+          </Tab>
+        </Tabs>
 
         {success && <Alert variant="success">{success}</Alert>}
 

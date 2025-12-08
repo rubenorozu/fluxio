@@ -71,7 +71,8 @@ export async function POST(request: Request) {
       pdfTopLogoUrl,
       pdfBottomLogoUrl,
       regulationsUrl,
-      attachmentFormUrl
+      attachmentFormUrl,
+      carouselResourceLimit // Carousel configuration
     } = await request.json(); // Corrected from req.json() to request.json()
 
     // Update System Settings (Global)
@@ -120,7 +121,8 @@ export async function POST(request: Request) {
         pdfTopLogoUrl,
         pdfBottomLogoUrl,
         regulationsUrl,
-        attachmentFormUrl
+        attachmentFormUrl,
+        carouselResourceLimit: parseHeight(carouselResourceLimit) // Safe parse
       },
       create: {
         tenantId: tenant.id,
@@ -142,7 +144,8 @@ export async function POST(request: Request) {
         pdfTopLogoUrl,
         pdfBottomLogoUrl,
         regulationsUrl,
-        attachmentFormUrl
+        attachmentFormUrl,
+        carouselResourceLimit: parseHeight(carouselResourceLimit)
       }
     });
 

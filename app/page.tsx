@@ -64,7 +64,11 @@ export default async function Home() {
 
   const prisma = getTenantPrisma(tenant.id);
 
+  // Get carousel resource limit from config (default to 15)
+  const resourceLimit = tenant.config?.carouselResourceLimit || 15;
+
   // Fetch data directly from DB using tenant-aware prisma
+  // OPTIMIZATION: Limit resources to avoid loading hundreds of items
   const [spaces, equipment] = await Promise.all([
     prisma.space.findMany({
       where: {
@@ -86,6 +90,10 @@ export default async function Home() {
           },
         },
       },
+      take: resourceLimit,
+      orderBy: {
+        createdAt: 'desc', // Show newest first
+      },
     }),
     prisma.equipment.findMany({
       where: {
@@ -99,6 +107,10 @@ export default async function Home() {
         images: true,
         reservationLeadTime: true,
         isFixedToSpace: true,
+      },
+      take: resourceLimit,
+      orderBy: {
+        createdAt: 'desc', // Show newest first
       },
     }),
   ]);

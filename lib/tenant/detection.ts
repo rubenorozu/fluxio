@@ -53,7 +53,8 @@ export async function detectTenant(): Promise<{
                 contactEmail: true,
                 allowedDomains: true,
                 privacyPolicy: true,
-                howItWorks: true
+                howItWorks: true,
+                carouselResourceLimit: true, // Carousel configuration
             }
         };
 

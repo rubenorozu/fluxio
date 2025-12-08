@@ -37,6 +37,7 @@ export default function AdminSettingsPage() {
   const [regulationsFile, setRegulationsFile] = useState<File | null>(null);
   const [attachmentFormUrl, setAttachmentFormUrl] = useState('');
   const [attachmentFormFile, setAttachmentFormFile] = useState<File | null>(null);
+  const [carouselResourceLimit, setCarouselResourceLimit] = useState(15);
 
   // Import states
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -87,6 +88,7 @@ export default function AdminSettingsPage() {
         setPdfBottomLogoUrl(data.pdfBottomLogoUrl || '');
         setRegulationsUrl(data.regulationsUrl || '');
         setAttachmentFormUrl(data.attachmentFormUrl || '');
+        setCarouselResourceLimit(data.carouselResourceLimit || 15);
 
       } catch (err: unknown) {
         if (err instanceof Error) {
@@ -238,7 +240,8 @@ export default function AdminSettingsPage() {
           pdfTopLogoUrl: uploadedPdfTopLogoUrl,
           pdfBottomLogoUrl: uploadedPdfBottomLogoUrl,
           regulationsUrl: uploadedRegulationsUrl,
-          attachmentFormUrl: uploadedAttachmentFormUrl
+          attachmentFormUrl: uploadedAttachmentFormUrl,
+          carouselResourceLimit, // Carousel configuration
         }),
       });
 
@@ -685,6 +688,22 @@ export default function AdminSettingsPage() {
             onChange={(e) => setReservationLeadTime(e.target.value)}
             placeholder="Introduce el tiempo en horas"
           />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Límite de Recursos en Carrusel (Página de Inicio)</Form.Label>
+          <Form.Control
+            type="number"
+            min="5"
+            max="50"
+            value={carouselResourceLimit}
+            onChange={(e) => setCarouselResourceLimit(parseInt(e.target.value) || 15)}
+            placeholder="15"
+          />
+          <Form.Text className="text-muted">
+            Número máximo de espacios y equipos a mostrar en el carrusel de la página de inicio (por tipo).
+            Valor recomendado: 10-20. Menor número = carga más rápida.
+          </Form.Text>
         </Form.Group>
 
         <hr className="my-5" />

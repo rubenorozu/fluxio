@@ -75,6 +75,9 @@ model TenantConfig {
   landingAutoResponse         Boolean? @default(true)
   landingAutoResponseMessage  String?  @default("Gracias por tu interés en Fluxio RSV.")
   
+  // Home page carousel configuration
+  carouselResourceLimit       Int?     @default(15) // Number of resources to show per type in carousel
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

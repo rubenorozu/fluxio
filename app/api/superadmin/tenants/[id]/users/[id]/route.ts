@@ -3,12 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
 
 /**
- * PATCH /api/superadmin/tenants/[tenantId]/users/[userId]
+ * PATCH /api/superadmin/tenants/[id]/users/[id]
  * Editar un usuario existente
  */
 export async function PATCH(
     req: Request,
-    { params }: { params: { tenantId: string; userId: string } }
+    { params }: { params: { id: string } }
 ) {
     try {
         const session = await getServerSession();
@@ -23,7 +23,11 @@ export async function PATCH(
             return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
 
-        const { tenantId, userId } = params;
+        // Extraer tenantId de la URL manualmente
+        const url = new URL(req.url);
+        const pathParts = url.pathname.split('/');
+        const tenantId = pathParts[4]; // /api/superadmin/tenants/[tenantId]/users/[userId]
+        const userId = params.id;
         const { firstName, lastName, email, role } = await req.json();
 
         // Validar campos requeridos
@@ -89,12 +93,12 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/superadmin/tenants/[tenantId]/users/[userId]
+ * DELETE /api/superadmin/tenants/[id]/users/[id]
  * Eliminar un usuario
  */
 export async function DELETE(
     req: Request,
-    { params }: { params: { tenantId: string; userId: string } }
+    { params }: { params: { id: string } }
 ) {
     try {
         const session = await getServerSession();
@@ -109,7 +113,11 @@ export async function DELETE(
             return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
 
-        const { tenantId, userId } = params;
+        // Extraer tenantId de la URL manualmente
+        const url = new URL(req.url);
+        const pathParts = url.pathname.split('/');
+        const tenantId = pathParts[4]; // /api/superadmin/tenants/[tenantId]/users/[userId]
+        const userId = params.id;
 
         // Verificar que el usuario existe y pertenece al tenant correcto
         const user = await prisma.user.findFirst({

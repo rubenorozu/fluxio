@@ -5,12 +5,12 @@ import { hash } from 'bcryptjs';
 import crypto from 'crypto';
 
 /**
- * POST /api/superadmin/tenants/[id]/users/[id]/reset-password
+ * POST /api/superadmin/tenants/[id]/users/[userId]/reset-password
  * Generar una nueva contraseña temporal para un usuario
  */
 export async function POST(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: { id: string; userId: string } }
 ) {
     try {
         const session = await getServerSession();
@@ -25,11 +25,8 @@ export async function POST(
             return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
 
-        // Extraer tenantId de la URL manualmente
-        const url = new URL(req.url);
-        const pathParts = url.pathname.split('/');
-        const tenantId = pathParts[4]; // /api/superadmin/tenants/[tenantId]/users/[userId]/reset-password
-        const userId = params.id;
+        const tenantId = params.id;
+        const userId = params.userId;
 
         // Verificar que el usuario existe y pertenece al tenant correcto
         const user = await prisma.user.findFirst({

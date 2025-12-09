@@ -3,12 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
 
 /**
- * PATCH /api/superadmin/tenants/[id]/users/[id]
+ * PATCH /api/superadmin/tenants/[id]/users/[userId]
  * Editar un usuario existente
  */
 export async function PATCH(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: { id: string; userId: string } }
 ) {
     try {
         const session = await getServerSession();
@@ -23,11 +23,8 @@ export async function PATCH(
             return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
 
-        // Extraer tenantId de la URL manualmente
-        const url = new URL(req.url);
-        const pathParts = url.pathname.split('/');
-        const tenantId = pathParts[4]; // /api/superadmin/tenants/[tenantId]/users/[userId]
-        const userId = params.id;
+        const tenantId = params.id;
+        const userId = params.userId;
         const { firstName, lastName, email, role } = await req.json();
 
         // Validar campos requeridos
@@ -93,12 +90,12 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/superadmin/tenants/[id]/users/[id]
+ * DELETE /api/superadmin/tenants/[id]/users/[userId]
  * Eliminar un usuario
  */
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: { id: string; userId: string } }
 ) {
     try {
         const session = await getServerSession();
@@ -113,11 +110,8 @@ export async function DELETE(
             return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
 
-        // Extraer tenantId de la URL manualmente
-        const url = new URL(req.url);
-        const pathParts = url.pathname.split('/');
-        const tenantId = pathParts[4]; // /api/superadmin/tenants/[tenantId]/users/[userId]
-        const userId = params.id;
+        const tenantId = params.id;
+        const userId = params.userId;
 
         // Verificar que el usuario existe y pertenece al tenant correcto
         const user = await prisma.user.findFirst({

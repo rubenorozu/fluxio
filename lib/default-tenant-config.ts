@@ -1,7 +1,8 @@
 // Configuración por defecto para nuevos tenants
 
 export const DEFAULT_TENANT_CONFIG = {
-    topLogoUrl: '/assets/Fluxio RSV.svg',
+    topLogoUrl: '/assets/FluxioRSV.svg',
+    bottomLogoUrl: '/assets/FluxioRSV_TX.svg',
     topLogoHeight: 50,
     primaryColor: '#145775',
     secondaryColor: '#1F2937',

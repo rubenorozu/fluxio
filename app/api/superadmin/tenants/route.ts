@@ -82,8 +82,8 @@ export async function POST(req: Request) {
                 config: {
                     create: {
                         siteName: name, // Default site name
-                        topLogoUrl: '/assets/defaults/top_logo.svg',
-                        bottomLogoUrl: '/assets/defaults/bottom_logo.svg',
+                        topLogoUrl: '/assets/FluxioRSV.svg',
+                        bottomLogoUrl: '/assets/FluxioRSV_TX.svg',
                         faviconUrl: '/assets/defaults/favicon.svg',
                         topLogoHeight: 50
                     }

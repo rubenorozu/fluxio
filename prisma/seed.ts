@@ -23,7 +23,8 @@ async function main() {
   await prisma.tenantConfig.upsert({
     where: { tenantId: tenant.id },
     update: {
-      topLogoUrl: '/assets/Fluxio RSV.svg',
+      topLogoUrl: '/assets/FluxioRSV.svg',
+      bottomLogoUrl: '/assets/FluxioRSV_TX.svg',
       topLogoHeight: 50,
       primaryColor: '#145775',
       secondaryColor: '#1F2937',
@@ -34,7 +35,8 @@ async function main() {
     },
     create: {
       tenantId: tenant.id,
-      topLogoUrl: '/assets/Fluxio RSV.svg',
+      topLogoUrl: '/assets/FluxioRSV.svg',
+      bottomLogoUrl: '/assets/FluxioRSV_TX.svg',
       topLogoHeight: 50,
       primaryColor: '#145775',
       secondaryColor: '#1F2937',

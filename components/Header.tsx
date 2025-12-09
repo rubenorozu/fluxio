@@ -20,6 +20,13 @@ const Header = () => {
 
   const isPlatformAdmin = tenant?.slug === 'platform';
 
+  // Debug: Log tenant config
+  useEffect(() => {
+    console.log('[Header] Tenant:', tenant);
+    console.log('[Header] Tenant config:', tenant?.config);
+    console.log('[Header] Top logo URL:', tenant?.config?.topLogoUrl);
+  }, [tenant]);
+
   // Always redirect to / - the home page will show carousel if logged in, landing if not
   const homeUrl = '/';
 

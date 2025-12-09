@@ -35,6 +35,10 @@ async function seed() {
             create: {
                 tenantId: platformTenant.id,
                 siteName: 'Fluxio RSV',
+                topLogoUrl: '/assets/Fluxio RSV.svg',
+                topLogoHeight: 50,
+                bottomLogoUrl: '/assets/Fluxio RSV_bco.svg',
+                faviconUrl: '/assets/FaviconFluxioRSV.svg',
                 primaryColor: '#0076A8',
                 secondaryColor: '#1F2937',
                 tertiaryColor: '#ff9500',

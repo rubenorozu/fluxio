@@ -15,14 +15,18 @@ export async function POST(
     try {
         const session = await getServerSession();
 
+        // Debug: Log session info
+        console.log('[Reset Password] Session:', session ? { role: session.user.role, tenantId: session.user.tenantId } : 'No session');
+
         // Verificar que el usuario esté autenticado
         if (!session) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }
 
-        // Verificar que sea SUPERUSER del tenant 'platform'
-        if (session.user.role !== 'SUPERUSER' || session.user.tenantId !== 'platform') {
-            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        // Verificar que sea SUPERUSER (sin importar el tenant)
+        if (session.user.role !== 'SUPERUSER') {
+            console.log('[Reset Password] Authorization failed: role is', session.user.role);
+            return NextResponse.json({ error: 'No autorizado - Se requiere rol SUPERUSER' }, { status: 403 });
         }
 
         const tenantId = params.id;

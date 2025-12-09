@@ -18,7 +18,7 @@ export default function PlatformLandingPage() {
                 <Container>
                     <div className="d-flex justify-content-between align-items-center py-2">
                         <Image
-                            src="/assets/Fluxio RSV_bco.svg"
+                            src="/assets/FluxioRSV_bco.svg"
                             alt="Fluxio RSV"
                             width={300}
                             height={90}

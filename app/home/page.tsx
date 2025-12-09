@@ -55,7 +55,7 @@ export default async function HomePage() {
     const carouselLimit = tenant.config?.carouselResourceLimit || 15;
     console.log(`[HOME] Carousel limit to use: ${carouselLimit}`);
 
-    // Fetch data directly from DB using tenant-aware prisma
+    // Fetch ALL available resources (without limit) to shuffle them
     const [spaces, equipment] = await Promise.all([
         prisma.space.findMany({
             where: {
@@ -74,7 +74,6 @@ export default async function HomePage() {
                     },
                 },
             },
-            take: carouselLimit, // Aplicar límite
         }),
         prisma.equipment.findMany({
             where: {
@@ -90,12 +89,11 @@ export default async function HomePage() {
                 isFixedToSpace: true,
                 requiresSpaceReservationWithEquipment: true,
             },
-            take: carouselLimit, // Aplicar límite
         }),
     ]);
 
     // Combine and format resources
-    const initialResources: Resource[] = [
+    const allResources: Resource[] = [
         ...spaces.map((s: any) => ({
             ...s,
             type: 'space' as const,
@@ -108,11 +106,17 @@ export default async function HomePage() {
         })),
     ];
 
+    // Shuffle resources randomly
+    const shuffled = allResources.sort(() => Math.random() - 0.5);
+
+    // Take only the limit amount
+    const initialResources = shuffled.slice(0, carouselLimit);
+
     // Debug logging
-    console.log(`[HOME] Carousel limit: ${carouselLimit}`);
-    console.log(`[HOME] Spaces fetched: ${spaces.length}`);
-    console.log(`[HOME] Equipment fetched: ${equipment.length}`);
-    console.log(`[HOME] Total resources: ${initialResources.length}`);
+    console.log(`[HOME] Total spaces: ${spaces.length}`);
+    console.log(`[HOME] Total equipment: ${equipment.length}`);
+    console.log(`[HOME] Total resources before limit: ${allResources.length}`);
+    console.log(`[HOME] Resources shown in carousel: ${initialResources.length}`);
 
     return (
         <HomeClient

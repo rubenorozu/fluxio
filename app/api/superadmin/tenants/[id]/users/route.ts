@@ -49,7 +49,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         }
 
         // SECURITY FIX: Validar que el rol es válido
-        const validRoles = [Role.USER, Role.ADMIN_RESOURCE, Role.ADMIN_RESERVATION, Role.VIGILANCIA, Role.CALENDAR_VIEWER];
+        // Permitir SUPERUSER ya que este endpoint es solo para SUPERUSER del platform
+        const validRoles = [Role.USER, Role.ADMIN_RESOURCE, Role.ADMIN_RESERVATION, Role.VIGILANCIA, Role.CALENDAR_VIEWER, Role.SUPERUSER];
         if (role && !validRoles.includes(role)) {
             console.warn('[SECURITY] Attempted to create user with invalid role', {
                 tenantId,
@@ -59,17 +60,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             return NextResponse.json({
                 error: `Rol inválido. Roles permitidos: ${validRoles.join(', ')}`
             }, { status: 400 });
-        }
-
-        // SECURITY FIX: Prevenir creación de SUPERUSER
-        if (role === Role.SUPERUSER) {
-            console.warn('[SECURITY] Attempted to create SUPERUSER', {
-                tenantId,
-                timestamp: new Date().toISOString()
-            });
-            return NextResponse.json({
-                error: 'No se puede crear un SUPERUSER desde este endpoint'
-            }, { status: 403 });
         }
 
         const existingUser = await prisma.user.findFirst({

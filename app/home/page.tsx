@@ -67,8 +67,6 @@ export default async function HomePage() {
                 description: true,
                 images: true,
                 reservationLeadTime: true,
-                isFixedToSpace: true,
-                requiresSpaceReservationWithEquipment: true,
                 capacity: true,
                 _count: {
                     select: {

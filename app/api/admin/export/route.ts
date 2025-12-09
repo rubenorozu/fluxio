@@ -10,11 +10,13 @@ export async function GET(request: Request) {
   const session = await getServerSession();
   let userRole = session?.user.role;
 
-  // Fallback: Check for token in URL if no session
+  // SECURITY FIX: Solo permitir autenticación por cookie o Authorization header
+  // NO permitir token en URL (inseguro)
   if (!session) {
-    const { searchParams } = new URL(request.url);
-    const token = searchParams.get('token');
-    if (token) {
+    // Intentar con Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
       const { verifyToken } = await import('@/lib/auth');
       const payload = await verifyToken(token);
       if (payload) {

@@ -16,7 +16,30 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     // Optional: Validate that the role is a valid enum value
     if (!Object.values(Role).includes(role)) {
-        return NextResponse.json({ message: 'Rol inválido.' }, { status: 400 });
+      return NextResponse.json({ message: 'Rol inválido.' }, { status: 400 });
+    }
+
+    // SECURITY FIX: Verificar que el usuario pertenece al mismo tenant
+    const userToUpdate = await prisma.user.findUnique({
+      where: { id },
+      select: { tenantId: true },
+    });
+
+    if (!userToUpdate) {
+      return NextResponse.json({ message: 'Usuario no encontrado.' }, { status: 404 });
+    }
+
+    if (userToUpdate.tenantId !== session.user.tenantId) {
+      console.warn('[SECURITY] Attempted cross-tenant role modification', {
+        adminUserId: session.user.id,
+        adminTenantId: session.user.tenantId,
+        targetUserId: id,
+        targetTenantId: userToUpdate.tenantId,
+        timestamp: new Date().toISOString()
+      });
+      return NextResponse.json({
+        message: 'No puedes modificar usuarios de otros tenants.'
+      }, { status: 403 });
     }
 
     const updatedUser = await prisma.user.update({

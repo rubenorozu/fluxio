@@ -153,51 +153,64 @@ export async function POST(request: Request) {
       finalResponsibleUserId = session.user.id;
     }
 
-    let displayId: string;
-    let isUnique = false;
-    do {
-      const randomPart = generateRandomString(5);
-      displayId = `TA_${randomPart}`;
-      const existingWorkshop = await prisma.workshop.findUnique({
-        where: { displayId },
-      });
-      if (!existingWorkshop) {
-        isUnique = true;
-      }
-    } while (!isUnique);
-
+    // SECURITY FIX: Generación atómica de displayId con retry
     const parsedInscriptionsStartDate = inscriptionsStartDate ? new Date(inscriptionsStartDate) : null;
     const now = new Date();
     const calculatedInscriptionsOpen = parsedInscriptionsStartDate ? parsedInscriptionsStartDate <= now : true;
 
-    const newWorkshop = await prisma.workshop.create({
-      data: {
-        displayId,
-        name,
-        description,
-        capacity: capacity || 0,
-        teacher,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        inscriptionsStartDate: parsedInscriptionsStartDate,
-        inscriptionsOpen: calculatedInscriptionsOpen,
-        images: {
-          create: images, // Asume que images es un array de { url: string }
-        },
-        sessions: {
-          create: sessions.map((session: { dayOfWeek: number; timeStart: string; timeEnd: string; room?: string }) => ({
-            dayOfWeek: session.dayOfWeek,
-            timeStart: session.timeStart,
-            timeEnd: session.timeEnd,
-            room: session.room,
-            tenantId: tenant.id // Explicitly set tenantId for sessions if needed, though workshop relation handles it usually. But WorkshopSession might need it if it has tenantId column.
-          })),
-        },
-        responsibleUser: finalResponsibleUserId ? { connect: { id: finalResponsibleUserId } } : undefined,
-        // tenantId is automatically added by getTenantPrisma.create
-      },
-      include: { images: true, sessions: true },
-    });
+    let newWorkshop;
+    const maxRetries = 5;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const randomPart = generateRandomString(5);
+        const displayId = `TA_${randomPart}`;
+
+        // SECURITY FIX: Crear directamente, dejar que la constraint única maneje duplicados
+        newWorkshop = await prisma.workshop.create({
+          data: {
+            displayId,
+            name,
+            description,
+            capacity: capacity || 0,
+            teacher,
+            startDate: startDate ? new Date(startDate) : null,
+            endDate: endDate ? new Date(endDate) : null,
+            inscriptionsStartDate: parsedInscriptionsStartDate,
+            inscriptionsOpen: calculatedInscriptionsOpen,
+            images: {
+              create: images,
+            },
+            sessions: {
+              create: sessions.map((session: { dayOfWeek: number; timeStart: string; timeEnd: string; room?: string }) => ({
+                dayOfWeek: session.dayOfWeek,
+                timeStart: session.timeStart,
+                timeEnd: session.timeEnd,
+                room: session.room,
+                tenantId: tenant.id
+              })),
+            },
+            responsibleUser: finalResponsibleUserId ? { connect: { id: finalResponsibleUserId } } : undefined,
+          },
+          include: { images: true, sessions: true },
+        });
+
+        // Si llegamos aquí, la creación fue exitosa
+        break;
+      } catch (error: any) {
+        // Si es error de duplicate key y no es el último intento, reintentar
+        if (error.code === 'P2002' && attempt < maxRetries - 1) {
+          console.warn(`[SECURITY] DisplayID collision detected, retrying... (attempt ${attempt + 1}/${maxRetries})`);
+          continue;
+        }
+        // Si es otro error o último intento, lanzar
+        throw error;
+      }
+    }
+
+    if (!newWorkshop) {
+      throw new Error('No se pudo generar un displayId único después de múltiples intentos');
+    }
 
     return NextResponse.json(newWorkshop, { status: 201 });
   } catch (error) {

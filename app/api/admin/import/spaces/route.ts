@@ -12,6 +12,15 @@ interface ImportResult {
 
 export async function POST(request: Request) {
     try {
+        // SECURITY FIX: Verificar autenticación
+        const { getServerSession } = await import('@/lib/auth');
+        const { Role } = await import('@prisma/client');
+
+        const session = await getServerSession();
+        if (!session || (session.user.role !== Role.SUPERUSER && session.user.role !== Role.ADMIN_RESOURCE)) {
+            return NextResponse.json({ error: 'Acceso denegado. Se requieren privilegios de administrador.' }, { status: 403 });
+        }
+
         // Detectar tenant
         const tenant = await detectTenant();
         if (!tenant) {
@@ -24,6 +33,23 @@ export async function POST(request: Request) {
 
         if (!file) {
             return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 });
+        }
+
+        // SECURITY FIX: Validar tipo y extensión de archivo
+        const allowedExtensions = ['.xlsx', '.xls'];
+        const extension = file.name.toLowerCase().match(/\.[^.]+$/)?.[0];
+
+        if (!extension || !allowedExtensions.includes(extension)) {
+            return NextResponse.json({
+                error: 'Solo se permiten archivos Excel (.xlsx, .xls)'
+            }, { status: 400 });
+        }
+
+        // SECURITY FIX: Validar tamaño del archivo (máx 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            return NextResponse.json({
+                error: 'El archivo excede el límite de 5MB'
+            }, { status: 400 });
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());

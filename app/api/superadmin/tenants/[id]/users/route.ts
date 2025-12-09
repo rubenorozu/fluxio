@@ -48,6 +48,30 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
+        // SECURITY FIX: Validar que el rol es válido
+        const validRoles = [Role.USER, Role.ADMIN_RESOURCE, Role.ADMIN_RESERVATION, Role.VIGILANCIA, Role.CALENDAR_VIEWER];
+        if (role && !validRoles.includes(role)) {
+            console.warn('[SECURITY] Attempted to create user with invalid role', {
+                tenantId,
+                attemptedRole: role,
+                timestamp: new Date().toISOString()
+            });
+            return NextResponse.json({
+                error: `Rol inválido. Roles permitidos: ${validRoles.join(', ')}`
+            }, { status: 400 });
+        }
+
+        // SECURITY FIX: Prevenir creación de SUPERUSER
+        if (role === Role.SUPERUSER) {
+            console.warn('[SECURITY] Attempted to create SUPERUSER', {
+                tenantId,
+                timestamp: new Date().toISOString()
+            });
+            return NextResponse.json({
+                error: 'No se puede crear un SUPERUSER desde este endpoint'
+            }, { status: 403 });
+        }
+
         const existingUser = await prisma.user.findFirst({
             where: { email, tenantId },
         });
@@ -69,7 +93,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                 tenantId,
                 identifier,
                 displayId: `USR_${identifier}`, // Enforce naming convention
-                isVerified: true,
+                isVerified: false,  // SECURITY FIX: Requiere verificación
             },
         });
 

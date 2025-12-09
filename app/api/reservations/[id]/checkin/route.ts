@@ -20,9 +20,22 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   try {
-    // 2. Find the reservation
-    const reservation = await prisma.reservation.findUnique({
-      where: { id },
+    // SECURITY FIX: Verificar tenant
+    const { detectTenant } = await import('@/lib/tenant/detection');
+    const { getTenantPrisma } = await import('@/lib/tenant/prisma');
+
+    const tenant = await detectTenant();
+    if (!tenant) {
+      return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
+    }
+    const tenantPrisma = getTenantPrisma(tenant.id);
+
+    // 2. Find the reservation - SECURITY FIX: Verificar que pertenece al tenant
+    const reservation = await tenantPrisma.reservation.findFirst({
+      where: {
+        id,
+        tenantId: tenant.id
+      }
     });
 
     if (!reservation) {
@@ -39,7 +52,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     // 4. Update the reservation
-    const updatedReservation = await prisma.reservation.update({
+    const updatedReservation = await tenantPrisma.reservation.update({
       where: { id },
       data: {
         checkedInAt: new Date(),

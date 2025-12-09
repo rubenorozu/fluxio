@@ -1,10 +1,9 @@
-
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
 import { InscriptionStatus } from '@prisma/client';
 import { detectTenant } from '@/lib/tenant/detection';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
-import { prisma as globalPrisma } from '@/lib/prisma'; // Keep global prisma for SystemSettings if needed
+import { prisma as globalPrisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
   const tenant = await detectTenant();
@@ -12,6 +11,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
   }
   const prisma = getTenantPrisma(tenant.id);
+  // SECURITY FIX: Usar globalPrisma para transacciones
+  const transactionPrisma = globalPrisma;
 
   const session = await getServerSession();
   if (!session) {
@@ -36,92 +37,113 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Las inscripciones para este taller aún no han comenzado.' }, { status: 403 });
     }
 
-    // Verificar capacidad
-    if (workshop.capacity > 0 && (workshop as any)._count.inscriptions >= workshop.capacity) {
-      return NextResponse.json({ error: 'El taller ya ha alcanzado su capacidad máxima.' }, { status: 409 });
-    }
-
-    // Verificar si el usuario ya está inscrito
-    const existingInscription = await prisma.inscription.findUnique({
-      where: { workshopId_userId: { workshopId, userId } },
-    });
-
-    if (existingInscription) {
-      return NextResponse.json({ error: 'Ya estás inscrito en este taller.' }, { status: 409 });
-    }
-
-    // Verificar el límite de inscripciones activas
-    const activeInscriptions = await prisma.inscription.findMany({
-      where: {
-        userId,
-        status: {
-          in: [InscriptionStatus.PENDING, InscriptionStatus.APPROVED],
-        },
-      },
-      include: {
-        workshop: {
-          select: {
-            endDate: true,
-          },
-        },
-      },
-    });
-
-    const now = new Date();
-    const currentActiveInscriptionsCount = activeInscriptions.filter(inscription => {
-      // Si el estado es PENDING, siempre está activo.
-      if (inscription.status === InscriptionStatus.PENDING) {
-        return true;
-      }
-      // Si el estado es APPROVED, está activo solo si la fecha de fin del taller está en el futuro o es nula.
-      if (inscription.status === InscriptionStatus.APPROVED) {
-        return !(inscription as any).workshop.endDate || new Date((inscription as any).workshop.endDate) > now;
-      }
-      return false; // No debería ocurrir
-    }).length;
-
-    if (currentActiveInscriptionsCount >= 3) {
-      if (isExtraordinary) {
-        // Use globalPrisma for SystemSettings as it doesn't have tenantId
-        const limitSetting = await globalPrisma.systemSettings.findUnique({
-          where: { key: 'extraordinaryInscriptionLimit' },
-        });
-        const limit = limitSetting ? parseInt(limitSetting.value, 10) : 0;
-
-        const extraordinaryInscriptionsCount = await prisma.inscription.count({
-          where: {
-            userId,
-            status: InscriptionStatus.PENDING_EXTRAORDINARY,
-          },
+    // SECURITY FIX: Usar transacción para verificación atómica de capacidad
+    try {
+      const inscription = await transactionPrisma.$transaction(async (tx) => {
+        // Verificar si el usuario ya está inscrito (dentro de la transacción)
+        const existingInscription = await tx.inscription.findUnique({
+          where: { workshopId_userId: { workshopId, userId } },
         });
 
-        if (extraordinaryInscriptionsCount >= limit) {
-          return NextResponse.json({ error: `Ya has alcanzado el límite de ${limit} solicitudes de inscripción extraordinarias.` }, { status: 403 });
+        if (existingInscription) {
+          throw new Error('Ya estás inscrito en este taller.');
         }
 
-        const inscription = await prisma.inscription.create({
+        // Contar inscripciones actuales (dentro de la transacción)
+        const currentInscriptionsCount = await tx.inscription.count({
+          where: { workshopId },
+        });
+
+        // Verificar capacidad atómicamente
+        if (workshop.capacity > 0 && currentInscriptionsCount >= workshop.capacity) {
+          throw new Error('El taller ya ha alcanzado su capacidad máxima.');
+        }
+
+        // Verificar el límite de inscripciones activas (dentro de la transacción)
+        const activeInscriptions = await tx.inscription.findMany({
+          where: {
+            userId,
+            status: {
+              in: [InscriptionStatus.PENDING, InscriptionStatus.APPROVED],
+            },
+          },
+          include: {
+            workshop: {
+              select: {
+                endDate: true,
+              },
+            },
+          },
+        });
+
+        const now = new Date();
+        const currentActiveInscriptionsCount = activeInscriptions.filter(inscription => {
+          // Si el estado es PENDING, siempre está activo.
+          if (inscription.status === InscriptionStatus.PENDING) {
+            return true;
+          }
+          // Si el estado es APPROVED, está activo solo si la fecha de fin del taller está en el futuro o es nula.
+          if (inscription.status === InscriptionStatus.APPROVED) {
+            return !(inscription as any).workshop.endDate || new Date((inscription as any).workshop.endDate) > now;
+          }
+          return false; // No debería ocurrir
+        }).length;
+
+        if (currentActiveInscriptionsCount >= 3) {
+          if (isExtraordinary) {
+            // Use globalPrisma for SystemSettings as it doesn't have tenantId
+            const limitSetting = await globalPrisma.systemSettings.findUnique({
+              where: { key: 'extraordinaryInscriptionLimit' },
+            });
+            const limit = limitSetting ? parseInt(limitSetting.value, 10) : 0;
+
+            const extraordinaryInscriptionsCount = await tx.inscription.count({
+              where: {
+                userId,
+                status: InscriptionStatus.PENDING_EXTRAORDINARY,
+              },
+            });
+
+            if (extraordinaryInscriptionsCount >= limit) {
+              throw new Error(`Ya has alcanzado el límite de ${limit} solicitudes de inscripción extraordinarias.`);
+            }
+
+            return await tx.inscription.create({
+              data: {
+                workshopId,
+                userId,
+                status: InscriptionStatus.PENDING_EXTRAORDINARY,
+                tenantId: tenant.id,
+              },
+            });
+          }
+          throw new Error('Ya tienes el máximo de 3 inscripciones activas (pendientes o aprobadas). Por favor, espera a que se resuelvan las actuales.');
+        }
+
+        // Crear la inscripción atómicamente
+        return await tx.inscription.create({
           data: {
             workshopId,
             userId,
-            status: InscriptionStatus.PENDING_EXTRAORDINARY,
-            tenantId: tenant.id, // Explicitly set tenantId
+            tenantId: tenant.id,
           },
         });
-        return NextResponse.json(inscription, { status: 201 });
+      });
+
+      return NextResponse.json(inscription, { status: 201 });
+    } catch (error: any) {
+      // Manejar errores de la transacción
+      if (error.message.includes('Ya estás inscrito') ||
+        error.message.includes('capacidad máxima') ||
+        error.message.includes('inscripciones activas') ||
+        error.message.includes('límite de')) {
+        return NextResponse.json({
+          error: error.message,
+          limitReached: error.message.includes('inscripciones activas')
+        }, { status: 403 });
       }
-      return NextResponse.json({ error: 'Ya tienes el máximo de 3 inscripciones activas (pendientes o aprobadas). Por favor, espera a que se resuelvan las actuales.', limitReached: true }, { status: 403 });
+      throw error;
     }
-
-    // Crear la inscripción
-    const inscription = await prisma.inscription.create({
-      data: {
-        workshopId,
-        userId,
-        tenantId: tenant.id, // Explicitly set tenantId
-      },
-    });
-
-    return NextResponse.json(inscription, { status: 201 });
 
   } catch (error) {
     console.error('Error al crear la inscripción:', error);

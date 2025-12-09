@@ -3,15 +3,15 @@ import { Prisma } from '@prisma/client';
 import { detectTenant } from '@/lib/tenant/detection';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { normalizeText } from '@/lib/search-utils';
+import { getServerSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
-    const userRole = req.headers.get('x-user-role');
-
-    // Only SUPERUSER or ADMIN_RESOURCE should be able to fetch users for assignment
-    if (userRole !== 'SUPERUSER' && userRole !== 'ADMIN_RESOURCE') {
+    // SECURITY FIX: Usar getServerSession en lugar de headers falsificables
+    const session = await getServerSession();
+    if (!session || (session.user.role !== 'SUPERUSER' && session.user.role !== 'ADMIN_RESOURCE')) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 

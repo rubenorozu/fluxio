@@ -34,13 +34,21 @@ export async function POST(req: Request) {
       where: whereCondition,
     });
 
-    if (!user) {
-      return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
-    }
+    // SECURITY FIX: Timing-safe password comparison
+    // Siempre ejecutar bcrypt para evitar timing attack
+    const passwordToCompare = user?.password || '$2a$10$invalidhashtopreventtimingattack.invalidhashtopreventtimingattack';
+    const isPasswordValid = await bcrypt.compare(password, passwordToCompare);
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!user || !isPasswordValid) {
+      // SECURITY FIX: Logging de intento fallido
+      console.warn('[SECURITY] Failed login attempt', {
+        email: normalizedEmail,
+        tenantId,
+        ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        timestamp: new Date().toISOString(),
+        reason: !user ? 'user_not_found' : 'invalid_password'
+      });
 
-    if (!isPasswordValid) {
       return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
     }
 
@@ -53,6 +61,15 @@ export async function POST(req: Request) {
         }, { status: 403 });
       }
     }
+
+    // SECURITY FIX: Logging de login exitoso
+    console.info('[SECURITY] Successful login', {
+      userId: user.id,
+      email: normalizedEmail,
+      tenantId: user.tenantId,
+      ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+      timestamp: new Date().toISOString()
+    });
 
     // Create session using the centralized function with tenantId
     await createSession(user.id, user.role as any, user.tenantId!);

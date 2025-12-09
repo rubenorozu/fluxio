@@ -24,13 +24,14 @@ interface SessionPayload {
  * Encripta el payload de la sesión y lo establece como una cookie HTTPOnly.
  */
 export async function createSession(userId: string, role: Role, tenantId: string) {
-  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+  // SECURITY FIX: Reducir expiración de sesión a 1 hora
+  const expires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hora
   const sessionPayload: SessionPayload = { userId, role, tenantId };
 
   const token = await new SignJWT(sessionPayload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('1h')  // SECURITY FIX: 1 hora en lugar de 7 días
     .sign(key);
 
   // --- CAMBIO CLAVE AQUÍ ---

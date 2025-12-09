@@ -6,6 +6,12 @@ import { detectTenant } from '@/lib/tenant/detection';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 export async function GET() {
+  // SECURITY FIX: Agregar autenticación para prevenir acceso no autorizado
+  const session = await getServerSession();
+  if (!session || session.user.role !== Role.SUPERUSER) {
+    return NextResponse.json({ error: 'Acceso denegado.' }, { status: 403 });
+  }
+
   try {
     const tenant = await detectTenant();
     if (!tenant) {

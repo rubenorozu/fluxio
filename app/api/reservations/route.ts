@@ -110,6 +110,61 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const startTime = new Date(start);
+    const endTime = new Date(end);
+
+    // SECURITY FIX: Validar fechas lógicas
+    if (startTime >= endTime) {
+      return NextResponse.json({
+        error: 'La fecha de inicio debe ser anterior a la fecha de fin'
+      }, { status: 400 });
+    }
+
+    // SECURITY FIX: Verificar conflictos de horario
+    const whereConflict: any = {
+      status: { in: ['APPROVED', 'PENDING'] },
+      OR: [
+        // Nueva reservación empieza durante una existente
+        {
+          startTime: { lte: startTime },
+          endTime: { gt: startTime },
+        },
+        // Nueva reservación termina durante una existente
+        {
+          startTime: { lt: endTime },
+          endTime: { gte: endTime },
+        },
+        // Nueva reservación contiene una existente
+        {
+          startTime: { gte: startTime },
+          endTime: { lte: endTime },
+        },
+      ],
+    };
+
+    if (spaceId) {
+      whereConflict.spaceId = spaceId;
+    } else if (equipmentId) {
+      whereConflict.equipmentId = equipmentId;
+    }
+
+    const conflictingReservations = await prisma.reservation.findMany({
+      where: whereConflict,
+      select: {
+        id: true,
+        startTime: true,
+        endTime: true,
+        justification: true,
+      },
+    });
+
+    if (conflictingReservations.length > 0) {
+      return NextResponse.json({
+        error: 'Ya existe una reservación en este horario',
+        conflicts: conflictingReservations
+      }, { status: 409 });
+    }
+
     // import { generateDisplayId } from '@/lib/displayId'; // Removed from here
 
     // ... (inside POST function)

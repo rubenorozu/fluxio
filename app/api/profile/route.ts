@@ -91,6 +91,24 @@ export async function PUT(req: Request) {
 
   try {
     const formData = await req.formData();
+
+    // SECURITY FIX: Whitelist explícita de campos permitidos
+    const allowedFields = ['firstName', 'lastName', 'phoneNumber', 'alternativeEmail', 'profileImage'];
+
+    // SECURITY FIX: Validar que no se envíen campos no permitidos
+    for (const key of formData.keys()) {
+      if (!allowedFields.includes(key)) {
+        console.warn('[SECURITY] Attempted mass assignment', {
+          userId,
+          field: key,
+          timestamp: new Date().toISOString()
+        });
+        return NextResponse.json({
+          error: `Campo no permitido: ${key}. Solo se permiten: ${allowedFields.join(', ')}`
+        }, { status: 400 });
+      }
+    }
+
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
     const phoneNumber = formData.get('phoneNumber') as string;
@@ -111,6 +129,7 @@ export async function PUT(req: Request) {
       profileImageUrl = `/uploads/profile/${filename}`;
     }
 
+    // SECURITY FIX: Solo actualizar campos explícitamente permitidos
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
@@ -118,7 +137,7 @@ export async function PUT(req: Request) {
         lastName,
         phoneNumber,
         alternativeEmail,
-        profileImageUrl: profileImageUrl || undefined, // Only update if a new image was uploaded
+        profileImageUrl: profileImageUrl || undefined,
       },
       select: {
         id: true,

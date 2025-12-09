@@ -94,7 +94,9 @@ export async function detectTenant(): Promise<{
                     id: true,
                     slug: true,
                     name: true,
-                    config: configSelect
+                    config: {
+                        select: configSelect
+                    }
                 },
             });
             if (tenant) {
@@ -112,7 +114,9 @@ export async function detectTenant(): Promise<{
                     id: true,
                     slug: true,
                     name: true,
-                    config: configSelect
+                    config: {
+                        select: configSelect
+                    }
                 }
             });
 
@@ -137,7 +141,9 @@ export async function detectTenant(): Promise<{
                 id: true,
                 slug: true,
                 name: true,
-                config: configSelect
+                config: {
+                    select: configSelect
+                }
             },
         });
 

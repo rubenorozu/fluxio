@@ -62,7 +62,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             }, { status: 400 });
         }
 
-        // Normalizar email para verificación
+        // Normalizar email para verificación y creación
         const normalizedEmail = email.toLowerCase().trim();
 
         const existingUser = await prisma.user.findFirst({
@@ -75,8 +75,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Normalizar email a minúsculas (igual que en login)
-        const normalizedEmail = email.toLowerCase().trim();
         const identifier = normalizedEmail.split('@')[0];
 
         const newUser = await prisma.user.create({

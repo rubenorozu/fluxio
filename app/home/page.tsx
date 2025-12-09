@@ -49,8 +49,11 @@ export default async function HomePage() {
 
     const prisma = getTenantPrisma(tenant.id);
 
-    // Obtener el límite del carrusel desde la configuración del tenant (por defecto 15)
+    // Debug logging
+    console.log(`[HOME] Tenant config:`, tenant.config);
+    console.log(`[HOME] Carousel limit from config: ${tenant.config?.carouselResourceLimit}`);
     const carouselLimit = tenant.config?.carouselResourceLimit || 15;
+    console.log(`[HOME] Carousel limit to use: ${carouselLimit}`);
 
     // Fetch data directly from DB using tenant-aware prisma
     const [spaces, equipment] = await Promise.all([
@@ -106,6 +109,12 @@ export default async function HomePage() {
             images: e.images ? JSON.parse(e.images as string) : [],
         })),
     ];
+
+    // Debug logging
+    console.log(`[HOME] Carousel limit: ${carouselLimit}`);
+    console.log(`[HOME] Spaces fetched: ${spaces.length}`);
+    console.log(`[HOME] Equipment fetched: ${equipment.length}`);
+    console.log(`[HOME] Total resources: ${initialResources.length}`);
 
     return (
         <HomeClient

@@ -25,40 +25,40 @@ export const DEFAULT_FORM_CONFIG: ReservationFormConfig = {
     fields: [
         {
             id: 'subject',
-            label: 'Materia',
+            label: 'Área',
             type: 'text',
             enabled: true,
             required: true,
             order: 1,
-            placeholder: 'Ingrese la materia'
+            placeholder: 'Ingrese el área'
         },
         {
             id: 'teacher',
-            label: 'Maestro que solicita',
+            label: 'Proyecto',
             type: 'text',
             enabled: true,
             required: true,
             order: 2,
-            placeholder: 'Nombre del maestro'
+            placeholder: 'Nombre del proyecto'
         },
         {
             id: 'coordinator',
-            label: 'Coordinador que autoriza',
+            label: 'Supervisor',
             type: 'text',
             enabled: true,
             required: true,
             order: 3,
-            placeholder: 'Nombre del coordinador'
+            placeholder: 'Nombre del supervisor'
         },
         {
             id: 'justification',
-            label: 'Justificación del Proyecto',
+            label: 'Justificación',
             type: 'textarea',
             enabled: true,
             required: true,
             order: 4,
             rows: 4,
-            placeholder: 'Describa la justificación del proyecto'
+            placeholder: 'Describa la justificación'
         }
     ]
 };
@@ -80,13 +80,27 @@ export function getFieldLabel(fieldId: string, config?: ReservationFormConfig | 
  */
 function getDefaultLabel(fieldId: string): string {
     const defaults: Record<string, string> = {
-        subject: 'Materia',
-        teacher: 'Maestro que solicita',
-        coordinator: 'Coordinador que autoriza',
-        justification: 'Justificación del Proyecto',
+        subject: 'Área',
+        teacher: 'Proyecto',
+        coordinator: 'Supervisor',
+        justification: 'Justificación',
         attachments: 'Adjuntar Archivos'
     };
     return defaults[fieldId] || fieldId;
+}
+
+/**
+ * Obtiene el nombre amigable para mostrar en la UI de configuración
+ */
+export function getFieldDisplayName(fieldId: string): string {
+    const displayNames: Record<string, string> = {
+        subject: 'Área',
+        teacher: 'Proyecto',
+        coordinator: 'Supervisor',
+        justification: 'Justificación',
+        attachments: 'Adjuntar Archivos'
+    };
+    return displayNames[fieldId] || fieldId;
 }
 
 /**

@@ -5,6 +5,7 @@ import { Container, Card, Form, Button, Alert, Table, Spinner } from 'react-boot
 import { useSession } from '@/context/SessionContext';
 import { useRouter } from 'next/navigation';
 import type { ReservationFormField, ReservationFormConfig } from '@/lib/reservation-form-utils';
+import { getFieldDisplayName } from '@/lib/reservation-form-utils';
 
 export default function ReservationFormConfigPage() {
     const { user, loading: sessionLoading } = useSession();
@@ -148,7 +149,7 @@ export default function ReservationFormConfigPage() {
                                         />
                                     </td>
                                     <td>
-                                        <strong>{field.id}</strong>
+                                        <strong>{getFieldDisplayName(field.id)}</strong>
                                         <br />
                                         <small className="text-muted">{field.type}</small>
                                     </td>

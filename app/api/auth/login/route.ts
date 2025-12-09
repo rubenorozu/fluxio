@@ -16,10 +16,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'No se pudo detectar la organización.' }, { status: 400 });
     }
 
+    // Normalizar email a minúsculas para búsqueda case-insensitive
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Buscar usuario por email Y tenantId
     // Si tenantId es 'default', también buscar usuarios con tenantId null (Global Superusers)
     const whereCondition: any = {
-      email,
+      email: normalizedEmail,
       tenantId
     };
 

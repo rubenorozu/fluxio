@@ -16,6 +16,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'No se pudo detectar la organización.' }, { status: 400 });
     }
 
+    // Normalizar email a minúsculas para consistencia en la base de datos
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Password complexity validation
     if (password.length < 8) {
       return NextResponse.json({ message: 'La contraseña debe tener al menos 8 caracteres.' }, { status: 400 });
@@ -47,7 +50,7 @@ export async function POST(req: Request) {
 
     if (tenant?.config?.allowedDomains && tenant.config.allowedDomains.trim() !== '') {
       const allowedDomains = tenant.config.allowedDomains.split(',').map(d => d.trim().toLowerCase());
-      const emailDomain = email.split('@')[1]?.toLowerCase();
+      const emailDomain = normalizedEmail.split('@')[1];
 
       if (!emailDomain || !allowedDomains.includes(emailDomain)) {
         return NextResponse.json({
@@ -59,7 +62,7 @@ export async function POST(req: Request) {
     // Validar que email sea único POR TENANT
     const existingUser = await prisma.user.findFirst({
       where: {
-        email,
+        email: normalizedEmail,
         tenantId
       },
     });
@@ -89,7 +92,7 @@ export async function POST(req: Request) {
         firstName,
         lastName,
         identifier,
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         phoneNumber,
         verificationToken,

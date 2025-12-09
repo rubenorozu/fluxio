@@ -53,6 +53,20 @@ export default function TenantsPage() {
     const [userError, setUserError] = useState('');
     const [newUser, setNewUser] = useState({ firstName: '', lastName: '', email: '', password: '', role: 'USER' });
 
+    // Edit User State
+    const [showEditUserModal, setShowEditUserModal] = useState(false);
+    const [editingUser, setEditingUser] = useState<any>(null);
+    const [editUserData, setEditUserData] = useState({ firstName: '', lastName: '', email: '', role: 'USER' });
+
+    // Delete User State
+    const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
+    const [deletingUser, setDeletingUser] = useState<any>(null);
+
+    // Reset Password State
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+    const [resetPasswordUser, setResetPasswordUser] = useState<any>(null);
+    const [temporaryPassword, setTemporaryPassword] = useState('');
+
     // Plan Management State
     const [showPlanModal, setShowPlanModal] = useState(false);
     const [selectedTenantForPlan, setSelectedTenantForPlan] = useState<Tenant | null>(null);
@@ -124,6 +138,105 @@ export default function TenantsPage() {
             setShowNewUserForm(false);
         } catch (err: any) {
             setUserError(err.message);
+        } finally {
+            setUserSaving(false);
+        }
+    };
+
+    const handleEditUserClick = (user: any) => {
+        setEditingUser(user);
+        setEditUserData({
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role
+        });
+        setShowEditUserModal(true);
+        setUserError('');
+    };
+
+    const handleEditUserSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedTenant || !editingUser) return;
+
+        setUserSaving(true);
+        setUserError('');
+        try {
+            const res = await fetch(`/api/superadmin/tenants/${selectedTenant.id}/users/${editingUser.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editUserData)
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al actualizar usuario');
+            }
+
+            fetchUsers(selectedTenant.id);
+            setShowEditUserModal(false);
+            setEditingUser(null);
+        } catch (err: any) {
+            setUserError(err.message);
+        } finally {
+            setUserSaving(false);
+        }
+    };
+
+    const handleDeleteUserClick = (user: any) => {
+        setDeletingUser(user);
+        setShowDeleteUserModal(true);
+    };
+
+    const handleDeleteUserConfirm = async () => {
+        if (!selectedTenant || !deletingUser) return;
+
+        setUserSaving(true);
+        try {
+            const res = await fetch(`/api/superadmin/tenants/${selectedTenant.id}/users/${deletingUser.id}`, {
+                method: 'DELETE'
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al eliminar usuario');
+            }
+
+            fetchUsers(selectedTenant.id);
+            setShowDeleteUserModal(false);
+            setDeletingUser(null);
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setUserSaving(false);
+        }
+    };
+
+    const handleResetPasswordClick = (user: any) => {
+        setResetPasswordUser(user);
+        setTemporaryPassword('');
+        setShowResetPasswordModal(true);
+    };
+
+    const handleResetPasswordConfirm = async () => {
+        if (!selectedTenant || !resetPasswordUser) return;
+
+        setUserSaving(true);
+        try {
+            const res = await fetch(`/api/superadmin/tenants/${selectedTenant.id}/users/${resetPasswordUser.id}/reset-password`, {
+                method: 'POST'
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al resetear contraseña');
+            }
+
+            const data = await res.json();
+            setTemporaryPassword(data.temporaryPassword);
+        } catch (err: any) {
+            alert(err.message);
+            setShowResetPasswordModal(false);
         } finally {
             setUserSaving(false);
         }
@@ -662,17 +775,31 @@ export default function TenantsPage() {
                                         <th>Nombre</th>
                                         <th>Email</th>
                                         <th>Rol</th>
+                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {users.length === 0 ? (
-                                        <tr><td colSpan={3} className="text-center text-muted">No hay usuarios registrados</td></tr>
+                                        <tr><td colSpan={4} className="text-center text-muted">No hay usuarios registrados</td></tr>
                                     ) : (
                                         users.map((u: any) => (
                                             <tr key={u.id}>
                                                 <td>{u.firstName} {u.lastName}</td>
                                                 <td>{u.email}</td>
                                                 <td><Badge bg="secondary">{u.role}</Badge></td>
+                                                <td>
+                                                    <div className="d-flex gap-1">
+                                                        <Button variant="outline-primary" size="sm" onClick={() => handleEditUserClick(u)} title="Editar">
+                                                            ✏️
+                                                        </Button>
+                                                        <Button variant="outline-warning" size="sm" onClick={() => handleResetPasswordClick(u)} title="Resetear Contraseña">
+                                                            🔑
+                                                        </Button>
+                                                        <Button variant="outline-danger" size="sm" onClick={() => handleDeleteUserClick(u)} title="Eliminar">
+                                                            🗑️
+                                                        </Button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -681,6 +808,146 @@ export default function TenantsPage() {
                         </div>
                     )}
                 </Modal.Body>
+            </Modal>
+
+            {/* Edit User Modal */}
+            <Modal show={showEditUserModal} onHide={() => setShowEditUserModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Editar Usuario</Modal.Title>
+                </Modal.Header>
+                <Form onSubmit={handleEditUserSubmit}>
+                    <Modal.Body>
+                        {userError && <Alert variant="danger">{userError}</Alert>}
+                        <Form.Group className="mb-3">
+                            <Form.Label>Nombre</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={editUserData.firstName}
+                                onChange={(e) => setEditUserData({ ...editUserData, firstName: e.target.value })}
+                                required
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Apellido</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={editUserData.lastName}
+                                onChange={(e) => setEditUserData({ ...editUserData, lastName: e.target.value })}
+                                required
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Email</Form.Label>
+                            <Form.Control
+                                type="email"
+                                value={editUserData.email}
+                                onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
+                                required
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Rol</Form.Label>
+                            <Form.Select
+                                value={editUserData.role}
+                                onChange={(e) => setEditUserData({ ...editUserData, role: e.target.value })}
+                            >
+                                <option value="USER">Usuario Normal</option>
+                                <option value="SUPERUSER">Superusuario (Admin)</option>
+                                <option value="ADMIN_RESOURCE">Admin Recursos</option>
+                                <option value="ADMIN_RESERVATION">Admin Reservas</option>
+                                <option value="VIGILANCIA">Vigilancia</option>
+                            </Form.Select>
+                        </Form.Group>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowEditUserModal(false)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="primary" type="submit" disabled={userSaving}>
+                            {userSaving ? 'Guardando...' : 'Guardar Cambios'}
+                        </Button>
+                    </Modal.Footer>
+                </Form>
+            </Modal>
+
+            {/* Delete User Confirmation Modal */}
+            <Modal show={showDeleteUserModal} onHide={() => setShowDeleteUserModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Confirmar Eliminación</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p>¿Estás seguro de que deseas eliminar al usuario <strong>{deletingUser?.firstName} {deletingUser?.lastName}</strong>?</p>
+                    <p className="text-muted">Email: {deletingUser?.email}</p>
+                    <Alert variant="danger">
+                        <strong>⚠️ Advertencia:</strong> Esta acción no se puede deshacer.
+                    </Alert>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowDeleteUserModal(false)}>
+                        Cancelar
+                    </Button>
+                    <Button variant="danger" onClick={handleDeleteUserConfirm} disabled={userSaving}>
+                        {userSaving ? 'Eliminando...' : 'Eliminar Usuario'}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+            {/* Reset Password Modal */}
+            <Modal show={showResetPasswordModal} onHide={() => setShowResetPasswordModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Resetear Contraseña</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {!temporaryPassword ? (
+                        <>
+                            <p>¿Estás seguro de que deseas resetear la contraseña de <strong>{resetPasswordUser?.firstName} {resetPasswordUser?.lastName}</strong>?</p>
+                            <p className="text-muted">Email: {resetPasswordUser?.email}</p>
+                            <Alert variant="warning">
+                                Se generará una contraseña temporal que deberás comunicar al usuario.
+                            </Alert>
+                        </>
+                    ) : (
+                        <>
+                            <Alert variant="success">
+                                <strong>✅ Contraseña reseteada exitosamente</strong>
+                            </Alert>
+                            <p>Contraseña temporal generada:</p>
+                            <div className="p-3 bg-light border rounded">
+                                <code className="fs-5 text-primary">{temporaryPassword}</code>
+                                <Button
+                                    variant="outline-secondary"
+                                    size="sm"
+                                    className="ms-2"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(temporaryPassword);
+                                        alert('Contraseña copiada al portapapeles');
+                                    }}
+                                >
+                                    📋 Copiar
+                                </Button>
+                            </div>
+                            <Alert variant="info" className="mt-3">
+                                <strong>Importante:</strong> Comunica esta contraseña al usuario y recomiéndale cambiarla en su próximo inicio de sesión.
+                            </Alert>
+                        </>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    {!temporaryPassword ? (
+                        <>
+                            <Button variant="secondary" onClick={() => setShowResetPasswordModal(false)}>
+                                Cancelar
+                            </Button>
+                            <Button variant="warning" onClick={handleResetPasswordConfirm} disabled={userSaving}>
+                                {userSaving ? 'Generando...' : 'Resetear Contraseña'}
+                            </Button>
+                        </>
+                    ) : (
+                        <Button variant="primary" onClick={() => setShowResetPasswordModal(false)}>
+                            Cerrar
+                        </Button>
+                    )}
+                </Modal.Footer>
             </Modal>
         </div>
     );

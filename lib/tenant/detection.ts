@@ -49,7 +49,7 @@ export async function detectTenant(): Promise<{
                 inscriptionPendingColor: true, // Inscription colors
                 inscriptionApprovedColor: true, // Inscription colors
                 pdfTopLogoUrl: true,
-                pdfBottomLogoUrl: true, // Added field
+                pdfBottomLogoUrl: true,
                 siteName: true,
                 contactEmail: true,
                 allowedDomains: true,

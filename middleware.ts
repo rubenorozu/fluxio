@@ -81,8 +81,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // Verificar que el tenant del usuario esté activo
-    if (session.tenantId) {
+    // Verificar que el tenant del usuario esté activo (excepto platform)
+    if (session.tenantId && finalTenantSlug !== 'platform') {
       try {
         const checkUrl = new URL('/api/tenant/check-active', request.url);
         checkUrl.searchParams.set('tenantId', session.tenantId);
@@ -178,8 +178,8 @@ export async function middleware(request: NextRequest) {
           }
         }
 
-        if (tenant && !tenant.isActive) {
-          // Tenant is paused/inactive
+        if (tenant && !tenant.isActive && tenant.slug !== 'platform') {
+          // Tenant is paused/inactive (pero no el tenant platform de superadmin)
           if (!pathname.startsWith('/tenant-paused') && !pathname.startsWith('/api')) {
             const pausedUrl = new URL('/tenant-paused', request.url);
             return NextResponse.redirect(pausedUrl);

@@ -62,8 +62,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             }, { status: 400 });
         }
 
+        // Normalizar email para verificación
+        const normalizedEmail = email.toLowerCase().trim();
+
         const existingUser = await prisma.user.findFirst({
-            where: { email, tenantId },
+            where: { email: normalizedEmail, tenantId },
         });
 
         if (existingUser) {
@@ -72,17 +75,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const identifier = email.split('@')[0];
+        // Normalizar email a minúsculas (igual que en login)
+        const normalizedEmail = email.toLowerCase().trim();
+        const identifier = normalizedEmail.split('@')[0];
+
         const newUser = await prisma.user.create({
             data: {
-                email,
+                email: normalizedEmail,  // Usar email normalizado
                 firstName,
                 lastName,
                 password: hashedPassword,
                 role: role || Role.USER,
                 tenantId,
                 identifier,
-                displayId: `USR_${identifier}`, // Enforce naming convention
+                displayId: `USR_${identifier}`,
                 isVerified: false,  // SECURITY FIX: Requiere verificación
             },
         });

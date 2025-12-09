@@ -40,7 +40,7 @@ export async function GET(req: Request) {
             config = await prisma.tenantConfig.create({
                 data: {
                     tenantId: tenant.id,
-                    reservationFormConfig: DEFAULT_FORM_CONFIG
+                    reservationFormConfig: DEFAULT_FORM_CONFIG as any
                 },
                 select: { reservationFormConfig: true }
             });
@@ -120,10 +120,10 @@ export async function PUT(req: Request) {
         // Actualizar configuración
         const updatedConfig = await prisma.tenantConfig.upsert({
             where: { tenantId: tenant.id },
-            update: { reservationFormConfig: newConfig },
+            update: { reservationFormConfig: newConfig as any },
             create: {
                 tenantId: tenant.id,
-                reservationFormConfig: newConfig
+                reservationFormConfig: newConfig as any
             },
             select: { reservationFormConfig: true }
         });

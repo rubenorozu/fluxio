@@ -701,7 +701,7 @@ export default function AdminSettingsPage() {
             placeholder="15"
           />
           <Form.Text className="text-muted">
-            Número máximo de espacios y equipos a mostrar en el carrusel de la página de inicio (por tipo).
+            Número TOTAL de recursos (espacios + equipos combinados) a mostrar aleatoriamente en el carrusel.
             Valor recomendado: 10-20. Menor número = carga más rápida.
           </Form.Text>
         </Form.Group>

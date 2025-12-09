@@ -706,6 +706,18 @@ export default function AdminSettingsPage() {
           </Form.Text>
         </Form.Group>
 
+        <div className="mb-3 p-3 border rounded bg-light">
+          <h5 className="mb-2">📝 Configuración del Formulario de Reservaciones</h5>
+          <p className="text-muted mb-3">
+            Personaliza los campos del formulario de reservaciones: cambia etiquetas, habilita/deshabilita campos, y define cuáles son obligatorios.
+          </p>
+          <Link href="/admin/reservation-form-config">
+            <Button variant="primary">
+              Configurar Formulario de Reservaciones
+            </Button>
+          </Link>
+        </div>
+
         <hr className="my-5" />
         <h4 className="mt-4">Importación Masiva de Recursos</h4>
         <p className="text-muted">Importa múltiples espacios, equipos o talleres desde archivos Excel</p>

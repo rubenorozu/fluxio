@@ -15,7 +15,13 @@ export async function middleware(request: NextRequest) {
   }
 
   // Detectar tenant slug (sin consultar DB)
-  const tenantSlug = getTenantSlug(request);
+  let tenantSlug = getTenantSlug(request);
+
+  // Para rutas /api/superadmin, siempre usar 'platform' como tenant
+  if (pathname.startsWith('/api/superadmin')) {
+    tenantSlug = 'platform';
+  }
+
   console.log(`[Middleware] Host: ${request.headers.get('host')}, Detected Slug: ${tenantSlug}`);
 
   // Extraer tenant de query parameter si existe (para Vercel sin wildcard DNS)

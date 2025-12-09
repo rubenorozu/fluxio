@@ -178,7 +178,7 @@ export async function middleware(request: NextRequest) {
           }
         }
 
-        if (tenant && !tenant.isActive && tenant.slug !== 'platform') {
+        if (tenant && !tenant.isActive && finalTenantSlug !== 'platform') {
           // Tenant is paused/inactive (pero no el tenant platform de superadmin)
           if (!pathname.startsWith('/tenant-paused') && !pathname.startsWith('/api')) {
             const pausedUrl = new URL('/tenant-paused', request.url);

@@ -37,26 +37,24 @@ export async function detectTenant(): Promise<{
         console.log('[detectTenant] All Headers:', Array.from(headersList.keys()));
 
         const configSelect = {
-            select: {
-                topLogoUrl: true,
-                topLogoHeight: true, // Added field
-                bottomLogoUrl: true,
-                faviconUrl: true,
-                primaryColor: true, // Added field
-                secondaryColor: true, // Added field
-                tertiaryColor: true,
-                inscriptionDefaultColor: true, // Inscription colors
-                inscriptionPendingColor: true, // Inscription colors
-                inscriptionApprovedColor: true, // Inscription colors
-                pdfTopLogoUrl: true,
-                pdfBottomLogoUrl: true,
-                siteName: true,
-                contactEmail: true,
-                allowedDomains: true,
-                privacyPolicy: true,
-                howItWorks: true,
-                carouselResourceLimit: true, // Carousel configuration
-            }
+            topLogoUrl: true,
+            topLogoHeight: true, // Added field
+            bottomLogoUrl: true,
+            faviconUrl: true,
+            primaryColor: true, // Added field
+            secondaryColor: true, // Added field
+            tertiaryColor: true,
+            inscriptionDefaultColor: true, // Inscription colors
+            inscriptionPendingColor: true, // Inscription colors
+            inscriptionApprovedColor: true, // Inscription colors
+            pdfTopLogoUrl: true,
+            pdfBottomLogoUrl: true,
+            siteName: true,
+            contactEmail: true,
+            allowedDomains: true,
+            privacyPolicy: true,
+            howItWorks: true,
+            carouselResourceLimit: true, // Carousel configuration
         };
 
         // 1. Intentar desde header (útil para APIs)
@@ -69,7 +67,9 @@ export async function detectTenant(): Promise<{
                     id: true,
                     slug: true,
                     name: true,
-                    config: configSelect
+                    config: {
+                        select: configSelect
+                    }
                 },
             });
             if (tenant) {

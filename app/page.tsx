@@ -66,9 +66,9 @@ export default async function Home() {
 
   // Get carousel resource limit from config (default to 15)
   const resourceLimit = tenant.config?.carouselResourceLimit || 15;
+  console.log(`[HOME /] Carousel limit: ${resourceLimit}`);
 
-  // Fetch data directly from DB using tenant-aware prisma
-  // OPTIMIZATION: Limit resources to avoid loading hundreds of items
+  // Fetch ALL available resources (without limit) to shuffle them
   const [spaces, equipment] = await Promise.all([
     prisma.space.findMany({
       where: {
@@ -90,7 +90,6 @@ export default async function Home() {
           },
         },
       },
-      take: resourceLimit,
       orderBy: {
         createdAt: 'desc', // Show newest first
       },
@@ -108,7 +107,6 @@ export default async function Home() {
         reservationLeadTime: true,
         isFixedToSpace: true,
       },
-      take: resourceLimit,
       orderBy: {
         createdAt: 'desc', // Show newest first
       },
@@ -116,7 +114,7 @@ export default async function Home() {
   ]);
 
   // Transform to Resource type and add equipment count
-  const resources: Resource[] = [
+  const allResources: Resource[] = [
     ...(spaces as any[]).map((s) => ({
       ...s,
       images: s.images as Image[],
@@ -126,6 +124,17 @@ export default async function Home() {
     })),
     ...(equipment as any[]).map((e) => ({ ...e, images: e.images as Image[], type: 'equipment' as const })),
   ];
+
+  // Shuffle resources randomly
+  const shuffled = allResources.sort(() => Math.random() - 0.5);
+
+  // Take only the limit amount
+  const resources = shuffled.slice(0, resourceLimit);
+
+  console.log(`[HOME /] Total spaces: ${spaces.length}`);
+  console.log(`[HOME /] Total equipment: ${equipment.length}`);
+  console.log(`[HOME /] Total resources before limit: ${allResources.length}`);
+  console.log(`[HOME /] Resources shown in carousel: ${resources.length}`);
 
   return <HomeClient initialResources={resources} howItWorks={tenant.config?.howItWorks} siteName={tenant.config?.siteName || 'Fluxio RSV'} />;
 }

@@ -98,7 +98,7 @@ BEGIN
       'Fluxio RSV',
       '/assets/FluxioRSV.svg',
       50,
-      '/assets/FluxioRSV_bco.svg',
+      '/assets/FluxioRSV_TX.svg',
       '/assets/FaviconFluxioRSV.svg',
       '#0076A8',
       '#1F2937',

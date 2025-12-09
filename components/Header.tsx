@@ -9,6 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { useSession } from '@/context/SessionContext';
 import { useTenant } from '@/context/TenantContext';
 import styles from './Header.module.css';
+// Force rebuild - logo fix 2024-12-09
 
 const Header = () => {
   const router = useRouter();

@@ -37,7 +37,7 @@ async function seed() {
                 siteName: 'Fluxio RSV',
                 topLogoUrl: '/assets/FluxioRSV.svg',
                 topLogoHeight: 50,
-                bottomLogoUrl: '/assets/FluxioRSV_bco.svg',
+                bottomLogoUrl: '/assets/FluxioRSV_TX.svg',
                 faviconUrl: '/assets/FaviconFluxioRSV.svg',
                 primaryColor: '#0076A8',
                 secondaryColor: '#1F2937',

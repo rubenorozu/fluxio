@@ -63,13 +63,8 @@ export async function detectTenant(): Promise<{
             console.log(`[detectTenant] Found x-tenant-slug header: ${headerSlug}`);
             const tenant = await prisma.tenant.findUnique({
                 where: { slug: headerSlug, isActive: true },
-                select: {
-                    id: true,
-                    slug: true,
-                    name: true,
-                    config: {
-                        select: configSelect
-                    }
+                include: {
+                    config: true
                 },
             });
             if (tenant) {
@@ -90,13 +85,8 @@ export async function detectTenant(): Promise<{
         if (subdomain && subdomain !== 'www') {
             const tenant = await prisma.tenant.findUnique({
                 where: { slug: subdomain, isActive: true },
-                select: {
-                    id: true,
-                    slug: true,
-                    name: true,
-                    config: {
-                        select: configSelect
-                    }
+                include: {
+                    config: true
                 },
             });
             if (tenant) {
@@ -110,13 +100,8 @@ export async function detectTenant(): Promise<{
             console.log('[detectTenant] No subdomain detected, using platform tenant as default');
             const platformTenant = await prisma.tenant.findUnique({
                 where: { slug: 'platform', isActive: true },
-                select: {
-                    id: true,
-                    slug: true,
-                    name: true,
-                    config: {
-                        select: configSelect
-                    }
+                include: {
+                    config: true
                 }
             });
 
@@ -137,13 +122,8 @@ export async function detectTenant(): Promise<{
         // 4. Fallback: Buscar tenant 'platform' (para superadmin)
         let defaultTenant = await prisma.tenant.findUnique({
             where: { slug: 'platform', isActive: true },
-            select: {
-                id: true,
-                slug: true,
-                name: true,
-                config: {
-                    select: configSelect
-                }
+            include: {
+                config: true
             },
         });
 
@@ -151,13 +131,8 @@ export async function detectTenant(): Promise<{
         if (!defaultTenant) {
             defaultTenant = await prisma.tenant.findUnique({
                 where: { slug: 'default', isActive: true },
-                select: {
-                    id: true,
-                    slug: true,
-                    name: true,
-                    config: {
-                        select: configSelect
-                    }
+                include: {
+                    config: true
                 },
             });
         }
@@ -167,13 +142,8 @@ export async function detectTenant(): Promise<{
             console.log('Platform and default tenant not found, looking for any active tenant...');
             defaultTenant = await prisma.tenant.findFirst({
                 where: { isActive: true },
-                select: {
-                    id: true,
-                    slug: true,
-                    name: true,
-                    config: {
-                        select: configSelect
-                    }
+                include: {
+                    config: true
                 },
             });
         }

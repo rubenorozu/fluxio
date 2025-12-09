@@ -26,13 +26,19 @@ const Footer = () => {
       <div className="border-top py-3">
         <div className="container-fluid d-flex justify-content-between align-items-center">
           <div className="ps-3">
-            {tenant?.config?.bottomLogoUrl ? (
-              <div style={{ position: 'relative', width: '156px', height: '78px' }}>
-                <Image src={tenant.config.bottomLogoUrl} alt={tenant.name} fill style={{ objectFit: 'contain' }} />
-              </div>
-            ) : (
-              <Image src="/assets/Fluxio RSV TX.svg" alt="Fluxio" width={156} height={78} style={{ objectFit: 'contain' }} />
-            )}
+            <div className="text-center mb-3">
+              {tenant?.config?.bottomLogoUrl ? (
+                <Image
+                  src={tenant.config.bottomLogoUrl}
+                  alt={tenant.config.siteName || tenant.name || "Fluxio"}
+                  width={156}
+                  height={78}
+                  style={{ objectFit: 'contain' }}
+                />
+              ) : (
+                <span className="text-white">{tenant?.config?.siteName || tenant?.name || 'Fluxio RSV'}</span>
+              )}
+            </div>
           </div>
           <small className="text-muted text-end flex-grow-1 pe-3">
             <Link href="/aviso-de-privacidad" className="text-primary">Aviso de Privacidad</Link> | Copyright {new Date().getFullYear()}. {tenant?.config?.siteName || tenant?.name || 'Fluxio RSV'}. Todos los derechos Reservados.

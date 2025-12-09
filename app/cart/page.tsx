@@ -8,6 +8,8 @@ import { useSession } from '@/context/SessionContext';
 import { Spinner, Alert, Container, Form, Row, Col } from 'react-bootstrap';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { es } from 'date-fns/locale/es';
+import type { ReservationFormConfig } from '@/lib/reservation-form-utils';
+import { getEnabledFields, getRequiredFieldIds, getFieldLabel } from '@/lib/reservation-form-utils';
 
 registerLocale('es', es);
 
@@ -19,15 +21,13 @@ export default function CartPage() {
   // Form state
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
-  const [justification, setJustification] = useState('');
-  const [subject, setSubject] = useState('');
-  const [coordinator, setCoordinator] = useState('');
-  const [teacher, setTeacher] = useState('');
+  const [formData, setFormData] = useState<Record<string, any>>({});
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [reservationLeadTime, setReservationLeadTime] = useState<number>(24); // Default to 24 hours
+  const [reservationLeadTime, setReservationLeadTime] = useState<number>(24);
   const [recurringBlocks, setRecurringBlocks] = useState<any[]>([]);
+  const [formConfig, setFormConfig] = useState<ReservationFormConfig | null>(null);
 
   useEffect(() => {
     const fetchRecurringBlocks = async () => {
@@ -43,6 +43,22 @@ export default function CartPage() {
     };
 
     fetchRecurringBlocks();
+  }, []);
+
+  useEffect(() => {
+    const fetchFormConfig = async () => {
+      try {
+        const response = await fetch('/api/admin/reservation-form-config');
+        if (response.ok) {
+          const data = await response.json();
+          setFormConfig(data);
+        }
+      } catch (error) {
+        console.error('Error al cargar configuración del formulario:', error);
+      }
+    };
+
+    fetchFormConfig();
   }, []);
 
   useEffect(() => {
@@ -80,8 +96,18 @@ export default function CartPage() {
     setError(null);
     setSuccess(null);
 
-    if (!startTime || !endTime || !justification || !subject || !coordinator || !teacher) {
-      setError('Todos los campos del formulario son obligatorios.');
+    if (!startTime || !endTime) {
+      setError('Las fechas de inicio y fin son obligatorias.');
+      return;
+    }
+
+    // Validar campos obligatorios según configuración
+    const requiredFieldIds = getRequiredFieldIds(formConfig);
+    const missingFields = requiredFieldIds.filter(fieldId => !formData[fieldId]);
+
+    if (missingFields.length > 0) {
+      const missingLabels = missingFields.map(id => getFieldLabel(id, formConfig)).join(', ');
+      setError(`Por favor completa los siguientes campos obligatorios: ${missingLabels}`);
       return;
     }
 
@@ -90,7 +116,7 @@ export default function CartPage() {
     for (const item of cart) {
       const itemLeadTime = item.reservationLeadTime !== undefined && item.reservationLeadTime !== null
         ? item.reservationLeadTime
-        : reservationLeadTime; // Fallback to global if item-specific is not set
+        : reservationLeadTime;
 
       const leadTimeInMs = itemLeadTime * 60 * 60 * 1000;
       const minimumStartTime = new Date(now.getTime() + leadTimeInMs);
@@ -124,15 +150,12 @@ export default function CartPage() {
       setError('Debes iniciar sesión para hacer una reserva.');
       return;
     }
-    
+
     const payload = {
       items: cart.map(item => ({ id: item.id, type: item.type })),
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
-      justification,
-      subject,
-      coordinator,
-      teacher,
+      ...formData, // Incluir todos los campos del formulario dinámico
     };
 
     try {
@@ -239,26 +262,50 @@ export default function CartPage() {
                       />
                     </Form.Group>
                   </Row>
-                  <Form.Group className="mb-3" controlId="subject">
-                    <Form.Label>Materia</Form.Label>
-                    <Form.Control type="text" value={subject} onChange={(e) => setSubject(e.target.value)} />
-                  </Form.Group>
-                  <Form.Group className="mb-3" controlId="teacher">
-                    <Form.Label>Maestro que solicita</Form.Label>
-                    <Form.Control type="text" value={teacher} onChange={(e) => setTeacher(e.target.value)} />
-                  </Form.Group>
-                  <Form.Group className="mb-3" controlId="coordinator">
-                    <Form.Label>Coordinador que autoriza</Form.Label>
-                    <Form.Control type="text" value={coordinator} onChange={(e) => setCoordinator(e.target.value)} />
-                  </Form.Group>
-                  <Form.Group className="mb-3" controlId="justification">
-                    <Form.Label>Justificación del Proyecto</Form.Label>
-                    <Form.Control as="textarea" rows={4} value={justification} onChange={(e) => setJustification(e.target.value)} />
-                  </Form.Group>
-                  <Form.Group className="mb-3" controlId="file">
-                    <Form.Label>Adjuntar Guión o Formato</Form.Label>
-                    <Form.Control type="file" onChange={handleFileChange} multiple />
-                  </Form.Group>
+                  {/* Renderizar campos dinámicamente según configuración */}
+                  {formConfig && getEnabledFields(formConfig).map(field => {
+                    if (field.type === 'textarea') {
+                      return (
+                        <Form.Group key={field.id} className="mb-3" controlId={field.id}>
+                          <Form.Label>{field.label}{field.required && ' *'}</Form.Label>
+                          <Form.Control
+                            as="textarea"
+                            rows={field.rows || 4}
+                            value={formData[field.id] || ''}
+                            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                            placeholder={field.placeholder}
+                            required={field.required}
+                          />
+                        </Form.Group>
+                      );
+                    } else if (field.type === 'text') {
+                      return (
+                        <Form.Group key={field.id} className="mb-3" controlId={field.id}>
+                          <Form.Label>{field.label}{field.required && ' *'}</Form.Label>
+                          <Form.Control
+                            type="text"
+                            value={formData[field.id] || ''}
+                            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                            placeholder={field.placeholder}
+                            required={field.required}
+                          />
+                        </Form.Group>
+                      );
+                    } else if (field.type === 'file') {
+                      return (
+                        <Form.Group key={field.id} className="mb-3" controlId={field.id}>
+                          <Form.Label>{field.label}{field.required && ' *'}</Form.Label>
+                          <Form.Control
+                            type="file"
+                            onChange={handleFileChange}
+                            multiple={field.multiple}
+                            required={field.required}
+                          />
+                        </Form.Group>
+                      );
+                    }
+                    return null;
+                  })}
                   <button type="submit" className="btn btn-primary w-100" style={{ backgroundColor: '#0076A8', borderColor: '#0076A8' }}>
                     Enviar Solicitud de Reserva
                   </button>

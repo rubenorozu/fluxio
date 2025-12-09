@@ -78,6 +78,9 @@ model TenantConfig {
   // Home page carousel configuration
   carouselResourceLimit       Int?     @default(15) // Number of resources to show per type in carousel
   
+  // Reservation form configuration
+  reservationFormConfig       Json?    // Custom configuration for reservation form fields
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

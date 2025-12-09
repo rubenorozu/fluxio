@@ -103,12 +103,30 @@ export async function detectTenant(): Promise<{
             } else {
                 console.log(`[detectTenant] Subdomain '${subdomain}' not found in DB or inactive.`);
             }
-        }
+        } else {
+            // No subdomain detected - use platform tenant as default
+            console.log('[detectTenant] No subdomain detected, using platform tenant as default');
+            const platformTenant = await prisma.tenant.findUnique({
+                where: { slug: 'platform', isActive: true },
+                select: {
+                    id: true,
+                    slug: true,
+                    name: true,
+                    config: configSelect
+                }
+            });
 
-        // If no subdomain detected (accessing localhost:3000 directly), return null
-        // This will trigger the landing page
-        if (!subdomain) {
-            console.log('[detectTenant] No subdomain detected, returning null for landing page');
+            if (platformTenant) {
+                console.log(`[detectTenant] Using platform tenant: ${platformTenant.slug} (${platformTenant.id})`);
+                return {
+                    id: platformTenant.id,
+                    slug: platformTenant.slug,
+                    name: platformTenant.name,
+                    config: platformTenant.config
+                };
+            }
+
+            console.log('[detectTenant] Platform tenant not found, returning null');
             return null;
         }
 

@@ -142,41 +142,22 @@ export default function CustomDomainPage() {
                 <div className="p-6 max-w-4xl mx-auto">
                     <h1 className="text-3xl font-bold mb-6">Dominio Personalizado</h1>
                     <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded">
-                        <div className="flex items-start">
-                            <div className="flex-shrink-0">
-                                <svg
-                                    className="h-4 w-4 text-yellow-400"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="ml-3">
-                                <h3 className="text-lg font-medium text-yellow-800">
-                                    Actualiza tu plan para usar dominios personalizados
-                                </h3>
-                                <p className="mt-2 text-yellow-700">
-                                    Esta funcionalidad requiere un plan <strong>PROFESSIONAL</strong> o{' '}
-                                    <strong>ENTERPRISE</strong>.
-                                </p>
-                                <p className="mt-2 text-sm text-yellow-600">
-                                    Tu plan actual: <strong>{config.plan}</strong>
-                                </p>
-                                <a
-                                    href="/admin/settings"
-                                    className="mt-4 inline-block px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition"
-                                >
-                                    Ver planes disponibles →
-                                </a>
-                            </div>
-                        </div>
+                        <h3 className="text-lg font-medium text-yellow-800">
+                            Actualiza tu plan para usar dominios personalizados
+                        </h3>
+                        <p className="mt-2 text-yellow-700">
+                            Esta funcionalidad requiere un plan <strong>PROFESSIONAL</strong> o{' '}
+                            <strong>ENTERPRISE</strong>.
+                        </p>
+                        <p className="mt-2 text-sm text-yellow-600">
+                            Tu plan actual: <strong>{config.plan}</strong>
+                        </p>
+                        <a
+                            href="/admin/settings"
+                            className="mt-4 inline-block px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition"
+                        >
+                            Ver planes disponibles →
+                        </a>
                     </div>
                 </div>
             </div>

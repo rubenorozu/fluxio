@@ -718,6 +718,21 @@ export default function AdminSettingsPage() {
           </Link>
         </div>
 
+        <div className="mb-3 p-3 border rounded bg-light">
+          <h5 className="mb-2">🌐 Dominio Personalizado</h5>
+          <p className="text-muted mb-3">
+            Configura tu propio dominio o subdominio personalizado para que tus usuarios accedan a la plataforma con tu marca (ej: tudominio.com o app.tudominio.com en lugar de tudominio.fluxiorsv.com).
+          </p>
+          <Link href="/admin/custom-domain">
+            <Button variant="primary">
+              Configurar Dominio Personalizado
+            </Button>
+          </Link>
+          <p className="text-muted small mt-2 mb-0">
+            <strong>Disponible en planes:</strong> PROFESSIONAL y ENTERPRISE
+          </p>
+        </div>
+
         <hr className="my-5" />
         <h4 className="mt-4">Importación Masiva de Recursos</h4>
         <p className="text-muted">Importa múltiples espacios, equipos o talleres desde archivos Excel</p>

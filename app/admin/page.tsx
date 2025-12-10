@@ -109,6 +109,7 @@ export default function AdminDashboardPage() {
     settings: '/images/admin-cards/Config.png',
     reports: '/images/admin-cards/Reportes.jpg', // NEW: Reports image
     recurringBlocks: '/images/admin-cards/RecurringBlocks.png', // NEW: Recurring Blocks image
+    customDomain: '/images/admin-cards/Config.png', // Custom Domain (using Config image)
   };
 
   if (sessionLoading || !user || user.role === Role.CALENDAR_VIEWER) {

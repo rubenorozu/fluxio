@@ -100,6 +100,18 @@ export default function ReservationFormConfigPage() {
 
     return (
         <Container style={{ paddingTop: '100px', paddingBottom: '50px' }}>
+            <div className="mb-3">
+                <button
+                    onClick={() => router.push('/admin/settings')}
+                    className="text-blue-600 hover:text-blue-800 d-flex align-items-center gap-2 mb-3"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '20px', height: '20px' }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Volver a Configuración
+                </button>
+            </div>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 style={{ color: '#0076A8' }}>Configuración del Formulario de Reservaciones</h2>
                 <div>

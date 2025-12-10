@@ -24,6 +24,12 @@ model Tenant {
   trialDays       Int?     @default(7) // Days of trial period
   trialExpiresAt  DateTime? // When trial expires
   
+  // Custom Domain fields
+  customDomain    String?  @unique // Custom domain (e.g., universidad.com)
+  domainStatus    DomainStatus @default(NOT_CONFIGURED)
+  domainVerifiedAt DateTime?
+  sslEnabled      Boolean  @default(false)
+  
   users           User[]
   spaces          Space[]
   equipment       Equipment[]
@@ -41,6 +47,7 @@ model Tenant {
   updatedAt       DateTime @updatedAt
   
   @@index([slug])
+  @@index([customDomain])
 }
 
 model TenantConfig {
@@ -471,4 +478,13 @@ model ReportCounter {
   tenantId           String
   
   @@unique([date, tenantId])
+}
+
+enum DomainStatus {
+  NOT_CONFIGURED
+  PENDING_DNS
+  DNS_VERIFIED
+  SSL_PENDING
+  ACTIVE
+  FAILED
 }

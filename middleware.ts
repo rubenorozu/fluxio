@@ -14,8 +14,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Detectar tenant slug (sin consultar DB)
-  let tenantSlug = getTenantSlug(request);
+  // Detectar tenant slug (ahora async para soportar custom domains)
+  let tenantSlug = await getTenantSlug(request);
 
   // Para rutas /api/superadmin, siempre usar 'platform' como tenant
   if (pathname.startsWith('/api/superadmin')) {
@@ -195,27 +195,75 @@ export async function middleware(request: NextRequest) {
 }
 
 /**
- * Detecta el slug del tenant desde headers, subdomain o cookies
- * NO consulta la base de datos para ser compatible con Edge Runtime
+ * Detecta el slug del tenant desde custom domain, headers, subdomain o cookies
+ * Prioriza custom domains para mejor UX
  */
-function getTenantSlug(request: NextRequest): string | null {
-  // 1. Intentar desde header
+async function getTenantSlug(request: NextRequest): Promise<string | null> {
+  const host = request.headers.get('host') || '';
+
+  // 1. Intentar desde header (para requests internos)
   const headerSlug = request.headers.get('x-tenant-slug');
   if (headerSlug) return headerSlug;
 
-  // 2. Intentar desde subdomain
-  const host = request.headers.get('host') || '';
+  // 2. Verificar si es un custom domain (con caché)
+  const customDomainSlug = await checkCustomDomain(host);
+  if (customDomainSlug) {
+    return customDomainSlug;
+  }
+
+  // 3. Intentar desde subdomain (lógica existente)
   const subdomain = getSubdomain(host);
   if (subdomain && subdomain !== 'www') {
     return subdomain;
   }
 
-  // 3. (Removed) Cookie detection removed to enforce URL-based tenancy.
-
-  // 4. Fallback a tenant por defecto (opcional, o dejar que la app lo maneje)
-  // Por ahora retornamos 'default' para mantener comportamiento anterior
+  // 4. Fallback a tenant por defecto
   return 'default';
 }
+
+/**
+ * Verifica si un host es un custom domain configurado
+ * Usa caché en memoria para optimizar performance
+ */
+async function checkCustomDomain(host: string): Promise<string | null> {
+  try {
+    const hostname = host.split(':')[0]; // Remover puerto si existe
+
+    // Importar caché dinámicamente
+    const { domainCache } = await import('./lib/domain-cache');
+
+    // 1. Verificar caché primero
+    const cachedSlug = domainCache.get(hostname);
+    if (cachedSlug) {
+      console.log(`[Middleware] Custom domain cache HIT: ${hostname} -> ${cachedSlug}`);
+      return cachedSlug;
+    }
+
+    // 2. Si no está en caché, consultar base de datos
+    const { prisma } = await import('./lib/prisma');
+    const tenant = await prisma.tenant.findFirst({
+      where: {
+        customDomain: hostname,
+        domainStatus: 'ACTIVE',
+        isActive: true,
+      },
+      select: { slug: true },
+    });
+
+    if (tenant) {
+      // Guardar en caché para futuras requests
+      domainCache.set(hostname, tenant.slug);
+      console.log(`[Middleware] Custom domain found: ${hostname} -> ${tenant.slug}`);
+      return tenant.slug;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[Middleware] Error checking custom domain:', error);
+    return null;
+  }
+}
+
 
 function getSubdomain(host: string): string | null {
   const hostname = host.split(':')[0];

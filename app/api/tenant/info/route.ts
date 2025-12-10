@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
         }
 
         const tenant = await prisma.tenant.findUnique({
-            where: { id: session.tenantId },
+            where: { id: session.user.tenantId },
             select: {
                 id: true,
                 name: true,

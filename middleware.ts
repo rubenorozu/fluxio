@@ -223,9 +223,15 @@ async function getTenantSlug(request: NextRequest): Promise<string | null> {
 
 /**
  * Verifica si un host es un custom domain configurado
- * Usa caché en memoria para optimizar performance
+ * NOTA: Deshabilitado temporalmente porque Prisma no funciona en Edge Runtime
+ * Los custom domains se manejarán a nivel de aplicación
  */
 async function checkCustomDomain(host: string): Promise<string | null> {
+  // Edge Runtime no soporta Prisma Client
+  // Los custom domains se detectarán en la aplicación, no en middleware
+  return null;
+
+  /* CÓDIGO ORIGINAL - DESHABILITADO POR EDGE RUNTIME
   try {
     const hostname = host.split(':')[0]; // Remover puerto si existe
 
@@ -262,6 +268,7 @@ async function checkCustomDomain(host: string): Promise<string | null> {
     console.error('[Middleware] Error checking custom domain:', error);
     return null;
   }
+  */
 }
 
 

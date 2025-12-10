@@ -28,6 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { detectTenant } from "@/lib/tenant/detection";
+import CustomDomainResolver from "@/components/CustomDomainResolver";
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +68,7 @@ export default async function RootLayout({
   return (
     <html lang="es" className={isLandingPage ? '' : 'h-100'}>
       <body className={isLandingPage ? inter.className : `${inter.className} d-flex flex-column h-100`} style={isLandingPage ? { margin: 0, padding: 0 } : {}}>
+        <CustomDomainResolver />
         <TenantProvider tenant={tenant}>
           <TenantStyles />
           <ClientWrapper>

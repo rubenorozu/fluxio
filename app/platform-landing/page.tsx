@@ -38,7 +38,7 @@ export default function PlatformLandingPage() {
     useEffect(() => {
         async function fetchPlans() {
             try {
-                const response = await fetch('/api/admin/pricing-plans');
+                const response = await fetch('/api/public/pricing-plans');
                 if (response.ok) {
                     const data = await response.json();
                     if (data.plans && Array.isArray(data.plans)) {

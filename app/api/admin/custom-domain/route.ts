@@ -125,52 +125,39 @@ export async function POST(request: NextRequest) {
         // Invalidar caché
         domainCache.invalidate(customDomain);
 
-        // 5. Enviar notificación al administrador de Fluxio
+        // 5. Notificar al administrador de Fluxio (por consola)
         try {
-            // Obtener información del tenant para el email
+            // Obtener información del tenant para el log
             const tenantInfo = await prisma.tenant.findUnique({
                 where: { id: session.user.tenantId },
                 select: { name: true, slug: true },
             });
 
-            // Email de notificación al admin
+            // Log de notificación al admin
             const adminEmail = process.env.ADMIN_EMAIL || 'admin@fluxiorsv.com';
-            const subject = `🌐 Nuevo Custom Domain: ${customDomain}`;
             const message = `
-Un tenant ha configurado un custom domain y necesita ser agregado en Vercel:
+🌐 NUEVO CUSTOM DOMAIN CONFIGURADO
 
 📋 Detalles:
 - Tenant: ${tenantInfo?.name} (${tenantInfo?.slug})
 - Custom Domain: ${customDomain}
 - CNAME apunta a: ${tenant.slug}.fluxiorsv.com
 
-🔧 Acción Requerida:
-1. Ve a Vercel Dashboard: https://vercel.com/dashboard
+🔧 Acción Requerida en Vercel:
+1. Ve a: https://vercel.com/dashboard
 2. Selecciona el proyecto "fluxio"
 3. Settings → Domains → Add Domain
 4. Agrega: ${customDomain}
 5. Espera 5-30 min para SSL
 
-Una vez agregado, el tenant podrá verificar el DNS desde su panel.
+Notificar a: ${adminEmail}
             `.trim();
 
-            // Enviar email (si tienes configurado un servicio de email)
-            if (process.env.SMTP_HOST) {
-                const { sendEmail } = await import('@/lib/email');
-                await sendEmail({
-                    to: adminEmail,
-                    subject,
-                    text: message,
-                });
-                console.log(`[Custom Domain] Notification sent to ${adminEmail}`);
-            } else {
-                // Si no hay SMTP configurado, solo log en consola
-                console.log('[Custom Domain] New domain configured (email not sent - SMTP not configured):');
-                console.log(message);
-            }
-        } catch (emailError) {
-            // No fallar si el email falla
-            console.error('[Custom Domain] Failed to send notification email:', emailError);
+            console.log('[Custom Domain] ========================================');
+            console.log(message);
+            console.log('[Custom Domain] ========================================');
+        } catch (error) {
+            console.error('[Custom Domain] Failed to log notification:', error);
         }
 
         return NextResponse.json({

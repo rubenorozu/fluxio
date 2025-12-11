@@ -125,39 +125,37 @@ export async function POST(request: NextRequest) {
         // Invalidar caché
         domainCache.invalidate(customDomain);
 
-        // 5. Notificar al administrador de Fluxio (por consola)
+        // 5. Notificar al administrador y al tenant
         try {
-            // Obtener información del tenant para el log
+            // Obtener información completa del tenant
             const tenantInfo = await prisma.tenant.findUnique({
                 where: { id: session.user.tenantId },
-                select: { name: true, slug: true },
+                select: {
+                    name: true,
+                    slug: true,
+                    config: {
+                        select: {
+                            contactEmail: true,
+                        }
+                    }
+                },
             });
 
-            // Log de notificación al admin
-            const adminEmail = process.env.ADMIN_EMAIL || 'admin@fluxiorsv.com';
-            const message = `
-🌐 NUEVO CUSTOM DOMAIN CONFIGURADO
+            // Importar funciones de email
+            const { notifyAdminNewCustomDomain } = await import('@/lib/email');
 
-📋 Detalles:
-- Tenant: ${tenantInfo?.name} (${tenantInfo?.slug})
-- Custom Domain: ${customDomain}
-- CNAME apunta a: ${tenant.slug}.fluxiorsv.com
+            // Enviar email al admin
+            await notifyAdminNewCustomDomain({
+                tenantName: tenantInfo?.name || 'Unknown',
+                tenantSlug: tenantInfo?.slug || tenant.slug,
+                customDomain,
+                tenantEmail: tenantInfo?.config?.contactEmail || undefined,
+            });
 
-🔧 Acción Requerida en Vercel:
-1. Ve a: https://vercel.com/dashboard
-2. Selecciona el proyecto "fluxio"
-3. Settings → Domains → Add Domain
-4. Agrega: ${customDomain}
-5. Espera 5-30 min para SSL
-
-Notificar a: ${adminEmail}
-            `.trim();
-
-            console.log('[Custom Domain] ========================================');
-            console.log(message);
-            console.log('[Custom Domain] ========================================');
+            console.log('[Custom Domain] Admin notification sent');
         } catch (error) {
-            console.error('[Custom Domain] Failed to log notification:', error);
+            console.error('[Custom Domain] Failed to send notification:', error);
+            // No fallar si el email falla
         }
 
         return NextResponse.json({
@@ -218,6 +216,33 @@ export async function PUT(request: NextRequest) {
 
             // Actualizar caché
             domainCache.set(tenant.customDomain, tenant.slug);
+
+            // Enviar notificación al tenant
+            try {
+                const tenantInfo = await prisma.tenant.findUnique({
+                    where: { id: session.user.tenantId },
+                    select: {
+                        name: true,
+                        config: {
+                            select: {
+                                contactEmail: true,
+                            }
+                        }
+                    },
+                });
+
+                if (tenantInfo?.config?.contactEmail) {
+                    const { notifyTenantDomainActive } = await import('@/lib/email');
+                    await notifyTenantDomainActive({
+                        tenantEmail: tenantInfo.config.contactEmail,
+                        customDomain: tenant.customDomain,
+                        tenantName: tenantInfo.name,
+                    });
+                    console.log('[Custom Domain] Tenant notification sent');
+                }
+            } catch (error) {
+                console.error('[Custom Domain] Failed to send tenant notification:', error);
+            }
 
             return NextResponse.json({
                 success: true,

@@ -64,6 +64,25 @@ export default function LandingConfigPage() {
                         </Alert>
                     )}
 
+                    {/* Botón destacado para Pricing Plans */}
+                    <Card className="mb-4 border-primary">
+                        <Card.Body className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 className="mb-1">💰 Planes de Pricing</h5>
+                                <p className="text-muted mb-0">
+                                    Configura los precios y características de los planes que se muestran en la landing page
+                                </p>
+                            </div>
+                            <Button
+                                variant="primary"
+                                size="lg"
+                                onClick={() => window.location.href = '/admin/pricing-plans'}
+                            >
+                                Editar Planes →
+                            </Button>
+                        </Card.Body>
+                    </Card>
+
                     <form onSubmit={handleSave}>
                         <Card className="mb-4">
                             <Card.Header>

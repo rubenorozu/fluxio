@@ -153,6 +153,41 @@ export async function POST(request: NextRequest) {
             });
 
             console.log('[Custom Domain] Admin notification sent');
+
+            // Crear notificación en el sistema para usuarios admin del tenant platform
+            try {
+                const platformTenant = await prisma.tenant.findFirst({
+                    where: { slug: 'platform', isActive: true },
+                    select: { id: true }
+                });
+
+                if (platformTenant) {
+                    const adminUsers = await prisma.user.findMany({
+                        where: {
+                            tenantId: platformTenant.id,
+                            role: { in: ['SUPERUSER', 'ADMIN'] }
+                        },
+                        select: { id: true }
+                    });
+
+                    // Crear notificación para cada admin
+                    await Promise.all(
+                        adminUsers.map(admin =>
+                            prisma.notification.create({
+                                data: {
+                                    recipientId: admin.id,
+                                    message: `🌐 Nuevo custom domain configurado: ${customDomain} por ${tenantInfo?.name} (${tenantInfo?.slug})`,
+                                    read: false,
+                                }
+                            })
+                        )
+                    );
+
+                    console.log(`[Custom Domain] Created ${adminUsers.length} in-app notifications`);
+                }
+            } catch (notifError) {
+                console.error('[Custom Domain] Failed to create in-app notifications:', notifError);
+            }
         } catch (error) {
             console.error('[Custom Domain] Failed to send notification:', error);
             // No fallar si el email falla

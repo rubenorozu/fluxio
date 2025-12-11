@@ -312,6 +312,13 @@ export default function CustomDomainPage() {
                             rápido (10-30 minutos).
                         </p>
 
+                        {/* Info sobre notificación al admin */}
+                        <div className="mb-4 p-3 bg-green-50 border-l-4 border-green-400 rounded">
+                            <p className="text-sm text-green-800">
+                                <strong>✅ Administrador notificado:</strong> Hemos enviado una notificación al equipo de Fluxio para configurar el certificado SSL en Vercel. Una vez completado (5-30 minutos), podrás verificar tu dominio.
+                            </p>
+                        </div>
+
                         <button
                             onClick={handleVerify}
                             disabled={loading}

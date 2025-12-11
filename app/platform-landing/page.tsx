@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Card } from 'react-bootstrap';
 import Image from 'next/image';
 import styles './LandingPage.module.css';
@@ -483,7 +483,7 @@ const pricingPlans = [
             'Soporte prioritario',
             'Reportes avanzados',
             'Personalización completa',
-            'Custom domain',
+            'Dominio personalizado',
             'API access',
             'Talleres ilimitados'
         ]
@@ -500,7 +500,8 @@ const pricingPlans = [
             'Usuarios ilimitados',
             'Recursos ilimitados',
             'Almacenamiento ilimitado',
-            'Soporte dedicado 24/7',
+            'Soporte prioritario',
+            'Dominio personalizado',
             'Onboarding personalizado',
             'SLA garantizado',
             'Servidor dedicado (opcional)',

@@ -11,6 +11,8 @@ export default function PlatformLandingPage() {
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     const [userCountry, setUserCountry] = useState<string>('US');
     const [isLoadingCountry, setIsLoadingCountry] = useState(true);
+    const [pricingPlans, setPricingPlans] = useState<any[]>([]);
+    const [isLoadingPlans, setIsLoadingPlans] = useState(true);
     const { user, loading } = useSession();
 
     // Detectar país del usuario al cargar
@@ -30,6 +32,32 @@ export default function PlatformLandingPage() {
             }
         }
         detectCountry();
+    }, []);
+
+    // Cargar planes de pricing
+    useEffect(() => {
+        async function fetchPlans() {
+            try {
+                const response = await fetch('/api/admin/pricing-plans');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.plans && Array.isArray(data.plans)) {
+                        setPricingPlans(data.plans);
+                    } else {
+                        // Usar planes por defecto si no hay configurados
+                        setPricingPlans(defaultPricingPlans);
+                    }
+                } else {
+                    setPricingPlans(defaultPricingPlans);
+                }
+            } catch (error) {
+                console.error('Error fetching plans:', error);
+                setPricingPlans(defaultPricingPlans);
+            } finally {
+                setIsLoadingPlans(false);
+            }
+        }
+        fetchPlans();
     }, []);
 
     // Función para convertir precios
@@ -450,7 +478,7 @@ const screenshots = [
     }
 ];
 
-const pricingPlans = [
+const defaultPricingPlans = [
     {
         name: 'Básico',
         price: '49',

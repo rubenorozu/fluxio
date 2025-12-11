@@ -88,6 +88,9 @@ model TenantConfig {
   // Reservation form configuration
   reservationFormConfig       Json?    // Custom configuration for reservation form fields
   
+  // Pricing plans configuration (for platform tenant landing page)
+  pricingPlans                Json?    // Array of pricing plans with features
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

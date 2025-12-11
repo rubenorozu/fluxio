@@ -344,42 +344,23 @@ export default function CustomDomainPage() {
                 )}
 
                 {/* Dominio activo */}
-                {config?.domainStatus === 'ACTIVE' && config.customDomain && (
-                    <div className="bg-green-50 border-l-4 border-green-400 p-6 rounded mb-6">
-                        <div className="flex items-start">
-                            <div className="flex-shrink-0">
-                                <svg
-                                    className="h-4 w-4 text-green-400"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="ml-3">
-                                <h3 className="text-lg font-medium text-green-800">¡Dominio activo!</h3>
-                                <p className="mt-2 text-green-700">
-                                    Tu plataforma está disponible en:{' '}
-                                    <a
-                                        href={`https://${config.customDomain}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="font-semibold underline"
-                                    >
-                                        {config.customDomain}
-                                    </a>
-                                </p>
-                                {config.sslEnabled && (
-                                    <p className="mt-1 text-sm text-green-600">🔒 SSL habilitado (HTTPS)</p>
-                                )}
-                            </div>
-                        </div>
+                {config?.domainStatus === 'ACTIVE' && (
+                    <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-400 rounded">
+                        <h3 className="text-lg font-medium text-green-800">
+                            ¡Dominio verificado correctamente!
+                        </h3>
+                        <p className="mt-2 text-green-700">
+                            Tu dominio personalizado está activo y funcionando. Los usuarios pueden acceder a tu
+                            plataforma desde <strong>{config.customDomain}</strong>
+                        </p>
+                        {config.domainVerifiedAt && (
+                            <p className="mt-2 text-sm text-green-600">
+                                Verificado el: {new Date(config.domainVerifiedAt).toLocaleString('es-MX')}
+                            </p>
+                        )}
+                        {config.sslEnabled && (
+                            <p className="mt-1 text-sm text-green-600">🔒 SSL habilitado (HTTPS)</p>
+                        )}
                     </div>
                 )}
 

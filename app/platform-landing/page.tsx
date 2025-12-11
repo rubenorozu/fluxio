@@ -406,56 +406,59 @@ const screenshots = [
 const pricingPlans = [
     {
         name: 'Básico',
-        price: '99',
-        currency: 'MXN',
+        price: '49',
+        currency: 'USD',
         period: '/mes',
         billing: 'Facturación anual',
         featured: false,
         cta: 'Comenzar',
         features: [
             'Hasta 100 usuarios',
-            '50 recursos (espacios + equipos)',
+            '25 recursos (espacios + equipos)',
             '10GB almacenamiento',
             'Soporte por email',
-            'Personalización de marca'
+            'Personalización de marca',
+            'Reportes básicos'
         ]
     },
     {
         name: 'Profesional',
-        price: '199',
-        currency: 'MXN',
+        price: '149',
+        currency: 'USD',
         period: '/mes',
         billing: 'Facturación anual',
         featured: true,
         cta: 'Más Popular',
         features: [
             'Hasta 500 usuarios',
-            'Recursos ilimitados',
+            '100 recursos (espacios + equipos)',
             '50GB almacenamiento',
             'Soporte prioritario',
             'Reportes avanzados',
             'Personalización completa',
+            'Custom domain',
             'API access',
-            'Integraciones'
+            'Talleres ilimitados'
         ]
     },
     {
         name: 'Enterprise',
-        price: 'Personalizado',
-        currency: '',
-        period: '',
-        billing: 'Contrato anual',
+        price: '299',
+        currency: 'USD',
+        period: '/mes',
+        billing: 'Facturación anual',
         featured: false,
         cta: 'Contactar',
         features: [
             'Usuarios ilimitados',
             'Recursos ilimitados',
             'Almacenamiento ilimitado',
-            'Soporte prioritario',
-            'Onboarding dedicado',
+            'Soporte dedicado 24/7',
+            'Onboarding personalizado',
             'SLA garantizado',
             'Servidor dedicado (opcional)',
-            'Desarrollo a medida'
+            'Desarrollo a medida',
+            'Integraciones personalizadas'
         ]
     }
 ];

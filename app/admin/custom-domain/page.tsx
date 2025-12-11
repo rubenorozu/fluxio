@@ -247,19 +247,52 @@ export default function CustomDomainPage() {
 
                         <div className="bg-white border rounded p-4 mb-4">
                             <p className="text-sm font-medium mb-2">Agrega este registro en tu proveedor de DNS:</p>
-                            <div className="bg-gray-100 p-3 rounded font-mono text-sm space-y-1">
+                            <div className="space-y-2">
                                 <div>
                                     <span className="text-gray-600">Tipo:</span>{' '}
                                     <strong className="text-blue-600">CNAME</strong>
                                 </div>
                                 <div>
                                     <span className="text-gray-600">Nombre:</span>{' '}
-                                    <strong className="text-blue-600">@</strong> (o tu dominio completo)
+                                    {customDomain?.includes('.') && customDomain.split('.').length > 2 ? (
+                                        <>
+                                            <strong className="text-blue-600">{customDomain.split('.')[0]}</strong>
+                                            <span className="text-xs text-gray-500 ml-2">
+                                                (solo el subdominio, sin el dominio principal)
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <strong className="text-blue-600">@</strong>
+                                            <span className="text-xs text-gray-500 ml-2">
+                                                (o {customDomain} completo, según tu proveedor)
+                                            </span>
+                                        </>
+                                    )}
                                 </div>
                                 <div>
                                     <span className="text-gray-600">Valor:</span>{' '}
                                     <strong className="text-blue-600">{config?.slug}.fluxiorsv.com</strong>
                                 </div>
+                            </div>
+
+                            {/* Explicación detallada */}
+                            <div className="mt-4 p-3 bg-blue-50 rounded text-sm">
+                                <p className="font-medium text-blue-900 mb-2">💡 Explicación del campo "Nombre":</p>
+                                {customDomain?.includes('.') && customDomain.split('.').length > 2 ? (
+                                    <div className="text-blue-800 space-y-1">
+                                        <p>Como estás usando un <strong>subdominio</strong> ({customDomain}):</p>
+                                        <p className="ml-4">✅ Escribe solo: <code className="bg-blue-100 px-2 py-1 rounded">{customDomain.split('.')[0]}</code></p>
+                                        <p className="ml-4">❌ NO escribas: <code className="bg-red-100 px-2 py-1 rounded line-through">{customDomain}</code></p>
+                                        <p className="mt-2 text-xs">Ejemplo: Para "app.tudominio.com", solo pon "app"</p>
+                                    </div>
+                                ) : (
+                                    <div className="text-blue-800 space-y-1">
+                                        <p>Como estás usando el <strong>dominio raíz</strong> ({customDomain}):</p>
+                                        <p className="ml-4">✅ Escribe: <code className="bg-blue-100 px-2 py-1 rounded">@</code> o <code className="bg-blue-100 px-2 py-1 rounded">{customDomain}</code></p>
+                                        <p className="mt-2 text-xs">(Depende de tu proveedor: GoDaddy usa "@", otros usan el dominio completo)</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

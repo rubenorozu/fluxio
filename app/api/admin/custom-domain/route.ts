@@ -171,12 +171,25 @@ export async function POST(request: NextRequest) {
                     });
 
                     // Crear notificación para cada admin
+                    const notificationMessage = `🌐 NUEVO CUSTOM DOMAIN
+
+Tenant: ${tenantInfo?.name} (${tenantInfo?.slug})
+Dominio: ${customDomain}
+
+📋 ACCIÓN REQUERIDA:
+1. Ve a Vercel Dashboard
+2. Settings → Domains → Add Domain
+3. Agrega: ${customDomain}
+4. Espera 5-30 min para SSL
+
+El tenant ya configuró el CNAME apuntando a cname.vercel-dns.com`;
+
                     await Promise.all(
                         adminUsers.map(admin =>
                             prisma.notification.create({
                                 data: {
                                     recipientId: admin.id,
-                                    message: `🌐 Nuevo custom domain configurado: ${customDomain} por ${tenantInfo?.name} (${tenantInfo?.slug})`,
+                                    message: notificationMessage,
                                     read: false,
                                 }
                             })

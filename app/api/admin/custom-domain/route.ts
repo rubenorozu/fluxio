@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
                     const adminUsers = await prisma.user.findMany({
                         where: {
                             tenantId: platformTenant.id,
-                            role: { in: ['SUPERUSER', 'ADMIN'] }
+                            role: 'SUPERUSER'
                         },
                         select: { id: true }
                     });

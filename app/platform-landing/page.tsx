@@ -3,13 +3,47 @@
 import { useState } from 'react';
 import { Container, Row, Col, Button, Card } from 'react-bootstrap';
 import Image from 'next/image';
-import styles from './LandingPage.module.css';
+import styles './LandingPage.module.css';
 
 import { useSession } from '@/context/SessionContext';
 
 export default function PlatformLandingPage() {
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+    const [userCountry, setUserCountry] = useState<string>('US');
+    const [isLoadingCountry, setIsLoadingCountry] = useState(true);
     const { user, loading } = useSession();
+
+    // Detectar país del usuario al cargar
+    useEffect(() => {
+        async function detectCountry() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                if (response.ok) {
+                    const data = await response.json();
+                    setUserCountry(data.country_code || 'US');
+                }
+            } catch (error) {
+                console.error('Error detecting country:', error);
+                setUserCountry('US');
+            } finally {
+                setIsLoadingCountry(false);
+            }
+        }
+        detectCountry();
+    }, []);
+
+    // Función para convertir precios
+    const convertPrice = (usdPrice: number) => {
+        if (userCountry === 'MX') {
+            return Math.round(usdPrice * 18); // 1 USD ≈ 18 MXN
+        }
+        return usdPrice;
+    };
+
+    // Función para obtener símbolo de moneda
+    const getCurrency = () => {
+        return userCountry === 'MX' ? 'MXN' : 'USD';
+    };
 
     return (
         <div className={styles.landingPage}>
@@ -195,9 +229,14 @@ export default function PlatformLandingPage() {
                         <Col>
                             <h2 className={styles.sectionTitle}>Planes Flexibles para tu Institución</h2>
                             <p className={styles.sectionSubtitle}>Elige el plan que mejor se adapte a tus necesidades</p>
-                            <p className="text-muted mt-2">
-                                <small>* Precios mostrados son mensuales con facturación anual. El cargo se realiza una vez al año.</small>
-                            </p>
+                            {!isLoadingCountry && (
+                                <p className="text-muted mt-2">
+                                    <small>
+                                        * Precios mostrados en {getCurrency()}. Facturación anual, cargo una vez al año.
+                                        {userCountry === 'MX' && ' (Tipo de cambio: 1 USD = 18 MXN aprox.)'}
+                                    </small>
+                                </p>
+                            )}
                         </Col>
                     </Row>
                     <Row className="g-4 justify-content-center">
@@ -215,19 +254,27 @@ export default function PlatformLandingPage() {
                                                 <span className={styles.customPrice}>{plan.price}</span>
                                             ) : (
                                                 <>
-                                                    <span className={styles.currency}>$</span>
-                                                    <span className={styles.amount}>{plan.price}</span>
-                                                    <span className={styles.currency}> {plan.currency}</span>
-                                                    <span className={styles.period}>{plan.period}</span>
+                                                    {isLoadingCountry ? (
+                                                        <span className={styles.amount}>...</span>
+                                                    ) : (
+                                                        <>
+                                                            <span className={styles.currency}>$</span>
+                                                            <span className={styles.amount}>
+                                                                {convertPrice(parseInt(plan.price))}
+                                                            </span>
+                                                            <span className={styles.currency}> {getCurrency()}</span>
+                                                            <span className={styles.period}>{plan.period}</span>
+                                                        </>
+                                                    )}
                                                 </>
                                             )}
                                         </div>
                                         {plan.billing && (
                                             <p className={styles.billingNote}>{plan.billing}</p>
                                         )}
-                                        {plan.price !== 'Personalizado' && (
+                                        {!isLoadingCountry && plan.price !== 'Personalizado' && (
                                             <p className={`${styles.billingNote} mt-2`}>
-                                                Total anual: ${parseInt(plan.price) * 12} {plan.currency}
+                                                Total anual: ${convertPrice(parseInt(plan.price)) * 12} {getCurrency()}
                                             </p>
                                         )}
                                         <ul className={styles.featureList}>

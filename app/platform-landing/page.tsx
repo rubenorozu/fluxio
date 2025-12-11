@@ -226,7 +226,7 @@ export default function PlatformLandingPage() {
                                             <p className={styles.billingNote}>{plan.billing}</p>
                                         )}
                                         {plan.price !== 'Personalizado' && (
-                                            <p className="text-muted small mt-2">
+                                            <p className={`${styles.billingNote} mt-2`}>
                                                 Total anual: ${parseInt(plan.price) * 12} {plan.currency}
                                             </p>
                                         )}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Card } from 'react-bootstrap';
 import Image from 'next/image';
-import styles './LandingPage.module.css';
+import styles from './LandingPage.module.css';
 
 import { useSession } from '@/context/SessionContext';
 

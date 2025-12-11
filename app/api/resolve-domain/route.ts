@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
         console.log(`[Resolve Domain API] Checking: ${normalizedHostname}`);
 
         // Buscar tenant con este custom domain
+        // NOTA: Temporalmente sin filtrar por domainStatus hasta que Prisma Client se regenere
         const tenant = await prisma.tenant.findFirst({
             where: {
                 customDomain: normalizedHostname,
-                domainStatus: 'ACTIVE',
                 isActive: true,
             },
             select: {

@@ -11,8 +11,19 @@ export async function GET() {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
+        // Obtener configuración del tenant 'platform', no del usuario actual
+        // Esto asegura consistencia con lo que la landing page muestra
+        const platformTenant = await prisma.tenant.findFirst({
+            where: { slug: 'platform' },
+            select: { id: true }
+        });
+
+        if (!platformTenant) {
+            return NextResponse.json({ error: 'Tenant platform no encontrado' }, { status: 404 });
+        }
+
         const config = await prisma.tenantConfig.findUnique({
-            where: { tenantId: session.user.tenantId },
+            where: { tenantId: platformTenant.id },
             select: {
                 landingContactEmail: true,
                 landingDemoTrialDays: true,

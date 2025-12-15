@@ -19,7 +19,9 @@ export async function GET(request: Request) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const search = searchParams.get('search');
 
-    const whereClause: Prisma.ReservationWhereInput = {};
+    const whereClause: Prisma.ReservationWhereInput = {
+      tenantId: session.user.tenantId
+    };
 
     if (statusFilter && statusFilter !== 'all' && statusFilter.toUpperCase() !== 'PARTIALLY_APPROVED') {
       const filterValue = statusFilter.toUpperCase();

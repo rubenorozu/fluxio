@@ -10,15 +10,6 @@ interface UserPayload {
   exp: number;
 }
 
-// Configuración para permitir archivos más grandes
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb', // Límite de 10MB
-    },
-  },
-};
-
 // Manejar OPTIONS para CORS
 export async function OPTIONS(request: Request): Promise<NextResponse> {
   return new NextResponse(null, {

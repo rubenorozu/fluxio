@@ -32,6 +32,10 @@ export async function GET() {
                 landingScreenshot2: '',
                 landingScreenshot3: '',
                 landingScreenshot4: '',
+            }, {
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+                }
             });
         }
 
@@ -44,6 +48,12 @@ export async function GET() {
             landingScreenshot2: config.landingScreenshot2 || '',
             landingScreenshot3: config.landingScreenshot3 || '',
             landingScreenshot4: config.landingScreenshot4 || '',
+        }, {
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+            }
         });
     } catch (error) {
         console.error('Error fetching landing images:', error);
@@ -56,6 +66,10 @@ export async function GET() {
             landingScreenshot2: '',
             landingScreenshot3: '',
             landingScreenshot4: '',
+        }, {
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+            }
         });
     }
 }

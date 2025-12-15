@@ -110,10 +110,28 @@ export default function AdminSettingsPage() {
     if (!e.target.files || e.target.files.length === 0) return;
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('files', e.target.files[0]);
 
     try {
+      // Comprimir imagen antes de subir
+      const { compressImage, isImageFile, getFileSizeMB } = await import('@/lib/image-utils');
+      const originalFile = e.target.files[0];
+
+      let fileToUpload = originalFile;
+
+      // Solo comprimir si es una imagen y es mayor a 1MB
+      if (isImageFile(originalFile) && getFileSizeMB(originalFile) > 1) {
+        console.log(`Comprimiendo imagen: ${originalFile.name} (${getFileSizeMB(originalFile).toFixed(2)}MB)`);
+        fileToUpload = await compressImage(originalFile, {
+          maxWidth: 1920,
+          maxHeight: 1080,
+          quality: 0.85,
+          maxSizeMB: 4,
+        });
+      }
+
+      const formData = new FormData();
+      formData.append('files', fileToUpload);
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,

@@ -119,6 +119,9 @@ export default function LandingConfigPage() {
 
             if (data.urls && data.urls.length > 0) {
                 setConfig({ ...config, [fieldName]: data.urls[0] });
+                // Mostrar mensaje de éxito temporal
+                setSuccess(true);
+                setTimeout(() => setSuccess(false), 3000);
             }
         } catch (err) {
             console.error('Error en handleImageUpload:', err);
@@ -143,8 +146,13 @@ export default function LandingConfigPage() {
                     <h1 className="mb-4">Configuración de Landing Page</h1>
 
                     {success && (
-                        <Alert variant="success" dismissible onClose={() => setSuccess(false)}>
-                            Configuración guardada exitosamente
+                        <Alert variant="success" dismissible onClose={() => setSuccess(false)} className="d-flex align-items-center">
+                            <div className="me-2">✅</div>
+                            <div>
+                                <strong>¡Cambios guardados exitosamente!</strong>
+                                <br />
+                                <small>Los cambios se reflejarán en la landing page en 1-2 minutos.</small>
+                            </div>
                         </Alert>
                     )}
 
@@ -579,9 +587,18 @@ export default function LandingConfigPage() {
                             </Card.Body>
                         </Card>
 
-                        <div className="d-flex gap-2">
-                            <Button type="submit" variant="primary" disabled={loading}>
-                                {loading ? 'Guardando...' : 'Guardar Configuración'}
+                        <div className="d-flex gap-2 align-items-center">
+                            <Button type="submit" variant="primary" disabled={loading} size="lg">
+                                {loading ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        Guardando cambios...
+                                    </>
+                                ) : (
+                                    <>
+                                        💾 Guardar Configuración
+                                    </>
+                                )}
                             </Button>
                             <Button
                                 type="button"

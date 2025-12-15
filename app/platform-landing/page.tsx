@@ -76,7 +76,14 @@ export default function PlatformLandingPage() {
     useEffect(() => {
         async function fetchImages() {
             try {
-                const response = await fetch('/api/public/landing-images');
+                // Add timestamp to prevent caching
+                const response = await fetch(`/api/public/landing-images?t=${Date.now()}`, {
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
                 if (response.ok) {
                     const data = await response.json();
                     setLandingImages({

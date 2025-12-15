@@ -370,6 +370,7 @@ export default function AdminWorkshopsPage() {
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
           body: imageFormData,
+          credentials: 'include',
         });
 
         const contentType = uploadResponse.headers.get('content-type');

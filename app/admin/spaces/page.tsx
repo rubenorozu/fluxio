@@ -312,6 +312,7 @@ export default function AdminSpacesPage() {
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
+          credentials: 'include',
         });
 
         const contentType = uploadResponse.headers.get('content-type');

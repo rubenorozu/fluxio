@@ -135,6 +135,7 @@ export default function AdminSettingsPage() {
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
 
       // Check if response is JSON before parsing

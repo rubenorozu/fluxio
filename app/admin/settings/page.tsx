@@ -31,6 +31,8 @@ export default function AdminSettingsPage() {
   const [inscriptionApprovedColor, setInscriptionApprovedColor] = useState('#28A745');
   const [pdfTopLogoUrl, setPdfTopLogoUrl] = useState('');
   const [pdfBottomLogoUrl, setPdfBottomLogoUrl] = useState('');
+  const [pdfSignatureTitle, setPdfSignatureTitle] = useState('');
+  const [pdfSignatureName, setPdfSignatureName] = useState('');
   const [pdfTopLogoFile, setPdfTopLogoFile] = useState<File | null>(null);
   const [pdfBottomLogoFile, setPdfBottomLogoFile] = useState<File | null>(null);
   const [regulationsUrl, setRegulationsUrl] = useState('');
@@ -86,6 +88,8 @@ export default function AdminSettingsPage() {
         setInscriptionApprovedColor(data.inscriptionApprovedColor || '#28A745');
         setPdfTopLogoUrl(data.pdfTopLogoUrl || '');
         setPdfBottomLogoUrl(data.pdfBottomLogoUrl || '');
+        setPdfSignatureTitle(data.pdfSignatureTitle || '');
+        setPdfSignatureName(data.pdfSignatureName || '');
         setRegulationsUrl(data.regulationsUrl || '');
         setAttachmentFormUrl(data.attachmentFormUrl || '');
         setCarouselResourceLimit(data.carouselResourceLimit || 15);
@@ -282,7 +286,11 @@ export default function AdminSettingsPage() {
       topLogoUrl,
       bottomLogoUrl,
       pdfTopLogoUrl: uploadedPdfTopLogoUrl,
-      pdfBottomLogoUrl: uploadedPdfBottomLogoUrl
+      pdfBottomLogoUrl: uploadedPdfBottomLogoUrl,
+      pdfSignatureTitle,
+      pdfSignatureName,
+      regulationsUrl: uploadedRegulationsUrl,
+      attachmentFormUrl: uploadedAttachmentFormUrl,
     });
 
     try {
@@ -309,6 +317,8 @@ export default function AdminSettingsPage() {
           inscriptionApprovedColor,
           pdfTopLogoUrl: uploadedPdfTopLogoUrl,
           pdfBottomLogoUrl: uploadedPdfBottomLogoUrl,
+          pdfSignatureTitle,
+          pdfSignatureName,
           regulationsUrl: uploadedRegulationsUrl,
           attachmentFormUrl: uploadedAttachmentFormUrl,
           carouselResourceLimit, // Carousel configuration
@@ -498,6 +508,38 @@ export default function AdminSettingsPage() {
               />
               <Form.Text className="text-muted">
                 Aparecerá en la esquina inferior derecha de los documentos.
+              </Form.Text>
+            </Form.Group>
+          </Col>
+        </Row>
+
+        <h5 className="mt-4">Firma PDF (Hoja de Salida/Entrada)</h5>
+        <Row>
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Título de la Firma (Izquierda)</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Ej: Coordinación de Ceproa"
+                value={pdfSignatureTitle}
+                onChange={(e) => setPdfSignatureTitle(e.target.value)}
+              />
+              <Form.Text className="text-muted">
+                Título del primer bloque de firma (izquierda). Por defecto: Coordinación de Ceproa.
+              </Form.Text>
+            </Form.Group>
+          </Col>
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Nombre de la Firma (Izquierda)</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Ej: Germán Medina"
+                value={pdfSignatureName}
+                onChange={(e) => setPdfSignatureName(e.target.value)}
+              />
+              <Form.Text className="text-muted">
+                Nombre del firmante en el primer bloque. Por defecto: Germán Medina.
               </Form.Text>
             </Form.Group>
           </Col>

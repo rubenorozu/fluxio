@@ -78,8 +78,10 @@ export async function POST(request: Request) {
       pdfBottomLogoUrl,
       regulationsUrl,
       attachmentFormUrl,
-      carouselResourceLimit // Carousel configuration
-    } = await request.json(); // Corrected from req.json() to request.json()
+      carouselResourceLimit,
+      pdfSignatureTitle,
+      pdfSignatureName
+    } = await request.json();
 
     // Update System Settings (Global)
     if (extraordinaryInscriptionLimit !== undefined) { // Kept original !== undefined check
@@ -126,6 +128,8 @@ export async function POST(request: Request) {
         inscriptionApprovedColor,
         pdfTopLogoUrl,
         pdfBottomLogoUrl,
+        pdfSignatureTitle,
+        pdfSignatureName,
         regulationsUrl,
         attachmentFormUrl,
         carouselResourceLimit: parseHeight(carouselResourceLimit) // Safe parse
@@ -149,6 +153,8 @@ export async function POST(request: Request) {
         inscriptionApprovedColor,
         pdfTopLogoUrl,
         pdfBottomLogoUrl,
+        pdfSignatureTitle,
+        pdfSignatureName,
         regulationsUrl,
         attachmentFormUrl,
         carouselResourceLimit: parseHeight(carouselResourceLimit)

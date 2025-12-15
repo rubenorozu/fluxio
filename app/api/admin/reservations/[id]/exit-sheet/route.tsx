@@ -311,7 +311,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
       const signatureLineLengthAdjusted = (width - 2 * margin - 20) / 4; // Adjusted for padding
 
-      drawSignatureBlock(margin + 5, 'Coordinación de Ceproa', 'Germán Medina');
+      const signatureTitle = tenant?.config?.pdfSignatureTitle || 'Coordinación de Ceproa';
+      const signatureName = tenant?.config?.pdfSignatureName || 'Germán Medina';
+      drawSignatureBlock(margin + 5, signatureTitle, signatureName);
       drawSignatureBlock(margin + 5 + signatureLineLengthAdjusted + 5, 'Encargado Responsable del Equipo');
 
       const checkoutText1 = data.checkedOutAt ? data.checkedOutByUserName : 'Vigilancia (Salida)';

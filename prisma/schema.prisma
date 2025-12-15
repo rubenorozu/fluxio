@@ -67,6 +67,8 @@ model TenantConfig {
   inscriptionApprovedColor String? @default("#28A745") // Success green for approved inscriptions
   pdfTopLogoUrl            String? // URL for PDF top logo (PNG)
   pdfBottomLogoUrl         String? // URL for PDF bottom logo (PNG)
+  pdfSignatureTitle        String? // Title for the signature block (e.g., Coordinación de Ceproa)
+  pdfSignatureName         String? // Name for the signature block (e.g., Germán Medina)
   siteName                 String?
   contactEmail             String?
   allowedDomains           String? // Comma separated list of allowed domains

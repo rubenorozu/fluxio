@@ -15,6 +15,18 @@ export default function PlatformLandingPage() {
     const [isLoadingPlans, setIsLoadingPlans] = useState(true);
     const { user, loading } = useSession();
 
+    // Landing page images
+    const [landingImages, setLandingImages] = useState({
+        heroImage: '/screenshots/Imagen_S.png',
+        heroImageA: '/screenshots/Imagen_A.png',
+        heroImageB: '/screenshots/Imagen_B.png',
+        heroImageC: '/screenshots/Imagen_C.png',
+        screenshot1: '/screenshots/Imagen_1.png',
+        screenshot2: '/screenshots/Imagen_2.png',
+        screenshot3: '/screenshots/Imagen_3.png',
+        screenshot4: '/screenshots/Imagen_4.png',
+    });
+
     // Detectar país del usuario al cargar
     useEffect(() => {
         async function detectCountry() {
@@ -60,6 +72,32 @@ export default function PlatformLandingPage() {
         fetchPlans();
     }, []);
 
+    // Cargar imágenes configuradas
+    useEffect(() => {
+        async function fetchImages() {
+            try {
+                const response = await fetch('/api/public/landing-images');
+                if (response.ok) {
+                    const data = await response.json();
+                    setLandingImages({
+                        heroImage: data.landingHeroImage || '/screenshots/Imagen_S.png',
+                        heroImageA: data.landingHeroImageA || '/screenshots/Imagen_A.png',
+                        heroImageB: data.landingHeroImageB || '/screenshots/Imagen_B.png',
+                        heroImageC: data.landingHeroImageC || '/screenshots/Imagen_C.png',
+                        screenshot1: data.landingScreenshot1 || '/screenshots/Imagen_1.png',
+                        screenshot2: data.landingScreenshot2 || '/screenshots/Imagen_2.png',
+                        screenshot3: data.landingScreenshot3 || '/screenshots/Imagen_3.png',
+                        screenshot4: data.landingScreenshot4 || '/screenshots/Imagen_4.png',
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching landing images:', error);
+                // Keep default images on error
+            }
+        }
+        fetchImages();
+    }, []);
+
     // Función para convertir precios
     const convertPrice = (usdPrice: number) => {
         if (userCountry === 'MX') {
@@ -72,6 +110,30 @@ export default function PlatformLandingPage() {
     const getCurrency = () => {
         return userCountry === 'MX' ? 'MXN' : 'USD';
     };
+
+    // Screenshots usando imágenes configuradas
+    const screenshots = [
+        {
+            title: 'Dashboard Administrativo',
+            description: 'Vista completa de todas las operaciones en tiempo real',
+            image: landingImages.screenshot1
+        },
+        {
+            title: 'Gestión de Recursos',
+            description: 'Interfaz intuitiva para administrar espacios y equipos',
+            image: landingImages.screenshot2
+        },
+        {
+            title: 'Calendario de Reservas',
+            description: 'Visualiza y gestiona todas las reservas en un solo lugar',
+            image: landingImages.screenshot3
+        },
+        {
+            title: 'Reportes Detallados',
+            description: 'Genera informes profesionales con un solo clic',
+            image: landingImages.screenshot4
+        }
+    ];
 
     return (
         <div className={styles.landingPage}>
@@ -135,7 +197,7 @@ export default function PlatformLandingPage() {
                         <Col lg={6} className="mt-5 mt-lg-0">
                             <div className={styles.heroImage}>
                                 <Image
-                                    src="/screenshots/Imagen_S.png"
+                                    src={landingImages.heroImage}
                                     alt="Dashboard Preview"
                                     width={1542}
                                     height={1048}
@@ -152,7 +214,7 @@ export default function PlatformLandingPage() {
                         <Col md={4}>
                             <div className={styles.heroImagePlaceholder}>
                                 <Image
-                                    src="/screenshots/Imagen_A.png"
+                                    src={landingImages.heroImageA}
                                     alt="Característica A"
                                     width={600}
                                     height={350}
@@ -163,7 +225,7 @@ export default function PlatformLandingPage() {
                         <Col md={4}>
                             <div className={styles.heroImagePlaceholder}>
                                 <Image
-                                    src="/screenshots/Imagen_B.png"
+                                    src={landingImages.heroImageB}
                                     alt="Característica B"
                                     width={600}
                                     height={350}
@@ -174,7 +236,7 @@ export default function PlatformLandingPage() {
                         <Col md={4}>
                             <div className={styles.heroImagePlaceholder}>
                                 <Image
-                                    src="/screenshots/Imagen_C.png"
+                                    src={landingImages.heroImageC}
                                     alt="Característica C"
                                     width={600}
                                     height={350}
@@ -452,29 +514,6 @@ const features = [
         icon: '🎨',
         title: 'Personalización Total',
         description: 'Colores, logos y configuraciones adaptadas a tu marca'
-    }
-];
-
-const screenshots = [
-    {
-        title: 'Dashboard Administrativo',
-        description: 'Vista completa de todas las operaciones en tiempo real',
-        image: '/screenshots/Imagen_1.png'
-    },
-    {
-        title: 'Gestión de Recursos',
-        description: 'Interfaz intuitiva para administrar espacios y equipos',
-        image: '/screenshots/Imagen_2.png'
-    },
-    {
-        title: 'Calendario de Reservas',
-        description: 'Visualiza y gestiona todas las reservas en un solo lugar',
-        image: '/screenshots/Imagen_3.png'
-    },
-    {
-        title: 'Reportes Detallados',
-        description: 'Genera informes profesionales con un solo clic',
-        image: '/screenshots/Imagen_4.png'
     }
 ];
 

@@ -293,12 +293,22 @@ export default function AdminSpacesPage() {
     let uploadedImageUrls: { url: string }[] = existingImages.map(img => ({ url: img.url })); // Asegurarse de que sea un array de objetos { url: string }
 
     if (selectedFiles && selectedFiles.length > 0) {
-      const formData = new FormData();
-      for (let i = 0; i < selectedFiles.length; i++) {
-        formData.append('files', selectedFiles[i]);
-      }
-
       try {
+        // Comprimir imágenes antes de subir
+        const { compressImages } = await import('@/lib/image-utils');
+        const filesToUpload = Array.from(selectedFiles);
+        const compressedFiles = await compressImages(filesToUpload, {
+          maxWidth: 1920,
+          maxHeight: 1080,
+          quality: 0.85,
+          maxSizeMB: 4,
+        });
+
+        const formData = new FormData();
+        for (const file of compressedFiles) {
+          formData.append('files', file);
+        }
+
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
           body: formData,

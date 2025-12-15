@@ -257,11 +257,22 @@ export default function AdminEquipmentPage() {
     setIsSubmitting(true);
     let uploadedImageUrls: { url: string }[] = existingImages.map(img => ({ url: img.url }));
     if (selectedFiles && selectedFiles.length > 0) {
-      const formData = new FormData();
-      for (let i = 0; i < selectedFiles.length; i++) {
-        formData.append('files', selectedFiles[i]);
-      }
       try {
+        // Comprimir imágenes antes de subir
+        const { compressImages } = await import('@/lib/image-utils');
+        const filesToUpload = Array.from(selectedFiles);
+        const compressedFiles = await compressImages(filesToUpload, {
+          maxWidth: 1920,
+          maxHeight: 1080,
+          quality: 0.85,
+          maxSizeMB: 4,
+        });
+
+        const formData = new FormData();
+        for (const file of compressedFiles) {
+          formData.append('files', file);
+        }
+
         const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
 
         const contentType = uploadResponse.headers.get('content-type');
@@ -316,11 +327,22 @@ export default function AdminEquipmentPage() {
 
     let uploadedImageUrls: { url: string }[] = existingImages.map(img => ({ url: img.url }));
     if (selectedFiles && selectedFiles.length > 0) {
-      const formData = new FormData();
-      for (let i = 0; i < selectedFiles.length; i++) {
-        formData.append('files', selectedFiles[i]);
-      }
       try {
+        // Comprimir imágenes antes de subir
+        const { compressImages } = await import('@/lib/image-utils');
+        const filesToUpload = Array.from(selectedFiles);
+        const compressedFiles = await compressImages(filesToUpload, {
+          maxWidth: 1920,
+          maxHeight: 1080,
+          quality: 0.85,
+          maxSizeMB: 4,
+        });
+
+        const formData = new FormData();
+        for (const file of compressedFiles) {
+          formData.append('files', file);
+        }
+
         const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
 
         const contentType = uploadResponse.headers.get('content-type');

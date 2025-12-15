@@ -351,12 +351,22 @@ export default function AdminWorkshopsPage() {
     let uploadedImageUrls: { url: string }[] = existingImages.map(img => ({ url: img.url }));
 
     if (selectedFiles && selectedFiles.length > 0) {
-      const imageFormData = new FormData();
-      for (let i = 0; i < selectedFiles.length; i++) {
-        imageFormData.append('files', selectedFiles[i]);
-      }
-
       try {
+        // Comprimir imágenes antes de subir
+        const { compressImages } = await import('@/lib/image-utils');
+        const filesToUpload = Array.from(selectedFiles);
+        const compressedFiles = await compressImages(filesToUpload, {
+          maxWidth: 1920,
+          maxHeight: 1080,
+          quality: 0.85,
+          maxSizeMB: 4,
+        });
+
+        const imageFormData = new FormData();
+        for (const file of compressedFiles) {
+          imageFormData.append('files', file);
+        }
+
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
           body: imageFormData,

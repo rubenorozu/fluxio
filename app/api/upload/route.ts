@@ -80,8 +80,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     // Verificar que el token de Vercel Blob esté configurado
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('BLOB_READ_WRITE_TOKEN no está configurado');
-      return NextResponse.json({ error: 'Configuración de almacenamiento no disponible.' }, { status: 500 });
+      console.error('BLOB_READ_WRITE_TOKEN no está configurado en las variables de entorno');
+      return NextResponse.json({
+        error: 'El servicio de almacenamiento de archivos no está configurado correctamente. Por favor contacta al administrador del sistema.'
+      }, { status: 500 });
     }
 
     const blobs = await Promise.all(

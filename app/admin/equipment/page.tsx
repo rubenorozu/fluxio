@@ -263,14 +263,21 @@ export default function AdminEquipmentPage() {
       }
       try {
         const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json();
-          throw new Error(errorData.error || 'Error al subir las imágenes.');
+
+        const contentType = uploadResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('El servidor no está disponible. Por favor contacta al administrador.');
         }
+
         const uploadData = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadData.error || 'Error al subir las imágenes.');
+        }
+
         uploadedImageUrls = [...uploadedImageUrls, ...uploadData.urls.map((url: string) => ({ url }))];
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred during upload');
+        setError(err instanceof Error ? err.message : 'Error desconocido al subir las imágenes');
         setIsSubmitting(false);
         return;
       }
@@ -315,14 +322,21 @@ export default function AdminEquipmentPage() {
       }
       try {
         const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json();
-          throw new Error(errorData.error || 'Error al subir las imágenes.');
+
+        const contentType = uploadResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('El servidor no está disponible. Por favor contacta al administrador.');
         }
+
         const uploadData = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadData.error || 'Error al subir las imágenes.');
+        }
+
         uploadedImageUrls = [...uploadedImageUrls, ...uploadData.urls.map((url: string) => ({ url }))];
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred during upload');
+        setError(err instanceof Error ? err.message : 'Error desconocido al subir las imágenes');
         setIsSubmitting(false);
         return;
       }

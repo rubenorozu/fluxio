@@ -304,20 +304,22 @@ export default function AdminSpacesPage() {
           body: formData,
         });
 
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json();
-          throw new Error(errorData.error || 'Error al subir las imágenes.');
+        const contentType = uploadResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('El servidor no está disponible. Por favor contacta al administrador.');
         }
+
         const uploadData = await uploadResponse.json();
-        uploadedImageUrls = [...uploadedImageUrls, ...uploadData.urls.map((url: string) => ({ url }))]; // Asumiendo que la API de upload devuelve { urls: ['...'] }
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError('An unknown error occurred');
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadData.error || 'Error al subir las imágenes.');
         }
-        setIsSubmitting(false); // Habilitar botón en caso de error de subida
-        return; // Detener el proceso si la subida de imagen falla
+
+        uploadedImageUrls = [...uploadedImageUrls, ...uploadData.urls.map((url: string) => ({ url }))];
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Error desconocido al subir las imágenes');
+        setIsSubmitting(false);
+        return;
       }
     }
 

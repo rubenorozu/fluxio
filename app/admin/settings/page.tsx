@@ -119,15 +119,28 @@ export default function AdminSettingsPage() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Error uploading image');
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('El servidor no está disponible. Por favor contacta al administrador.');
+      }
 
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al subir la imagen');
+      }
+
       if (data.urls && data.urls.length > 0) {
         setUrl(data.urls[0]);
       }
     } catch (err) {
-      console.error(err);
-      setError('Error al subir la imagen');
+      console.error('Error en handleImageUpload:', err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error desconocido al subir la imagen');
+      }
     } finally {
       setUploading(false);
     }
@@ -146,12 +159,21 @@ export default function AdminSettingsPage() {
       formData.append('files', pdfTopLogoFile);
       try {
         const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (!uploadResponse.ok) throw new Error('Error al subir logo superior PDF');
+
+        const contentType = uploadResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('El servidor no está disponible. Por favor contacta al administrador.');
+        }
+
         const uploadData = await uploadResponse.json();
-        uploadedPdfTopLogoUrl = uploadData.urls[0]; // Also accessing urls[0] since API returns { urls: [...] }
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadData.error || 'Error al subir logo superior PDF');
+        }
+
+        uploadedPdfTopLogoUrl = uploadData.urls[0];
       } catch (err) {
-        setError('Error al subir logo superior PDF');
-        // setIsSubmitting(false); // Removed as it's not defined
+        setError(err instanceof Error ? err.message : 'Error al subir logo superior PDF');
         return;
       }
     }
@@ -161,12 +183,21 @@ export default function AdminSettingsPage() {
       formData.append('files', pdfBottomLogoFile);
       try {
         const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (!uploadResponse.ok) throw new Error('Error al subir logo inferior PDF');
+
+        const contentType = uploadResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('El servidor no está disponible. Por favor contacta al administrador.');
+        }
+
         const uploadData = await uploadResponse.json();
-        uploadedPdfBottomLogoUrl = uploadData.urls[0]; // Also accessing urls[0] since API returns { urls: [...] }
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadData.error || 'Error al subir logo inferior PDF');
+        }
+
+        uploadedPdfBottomLogoUrl = uploadData.urls[0];
       } catch (err) {
-        setError('Error al subir logo inferior PDF');
-        // setIsSubmitting(false); // Removed as it's not defined
+        setError(err instanceof Error ? err.message : 'Error al subir logo inferior PDF');
         return;
       }
     }
@@ -180,11 +211,21 @@ export default function AdminSettingsPage() {
       formData.append('type', 'regulations');
       try {
         const uploadResponse = await fetch('/api/upload/config', { method: 'POST', body: formData });
-        if (!uploadResponse.ok) throw new Error('Error al subir reglamento');
+
+        const contentType = uploadResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('El servidor no está disponible. Por favor contacta al administrador.');
+        }
+
         const uploadData = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadData.error || 'Error al subir reglamento');
+        }
+
         uploadedRegulationsUrl = uploadData.url;
       } catch (err) {
-        setError('Error al subir reglamento');
+        setError(err instanceof Error ? err.message : 'Error al subir reglamento');
         return;
       }
     }
@@ -195,11 +236,21 @@ export default function AdminSettingsPage() {
       formData.append('type', 'attachmentForm');
       try {
         const uploadResponse = await fetch('/api/upload/config', { method: 'POST', body: formData });
-        if (!uploadResponse.ok) throw new Error('Error al subir formato de adjunto');
+
+        const contentType = uploadResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('El servidor no está disponible. Por favor contacta al administrador.');
+        }
+
         const uploadData = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadData.error || 'Error al subir formato de adjunto');
+        }
+
         uploadedAttachmentFormUrl = uploadData.url;
       } catch (err) {
-        setError('Error al subir formato de adjunto');
+        setError(err instanceof Error ? err.message : 'Error al subir formato de adjunto');
         return;
       }
     }

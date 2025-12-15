@@ -76,6 +76,8 @@ export async function POST(request: Request) {
                     create: {
                         ...DEFAULT_TENANT_CONFIG,
                         siteName: name,
+                        pdfSignatureTitle: `Coordinación de ${name}`,
+                        pdfSignatureName: 'Administrador'
                     }
                 }
             },

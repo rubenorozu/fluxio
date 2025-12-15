@@ -43,6 +43,8 @@ async function seed() {
                 secondaryColor: '#1F2937',
                 tertiaryColor: '#ff9500',
                 carouselResourceLimit: 15,
+                pdfSignatureTitle: 'Coordinación de Platform',
+                pdfSignatureName: 'Super Admin',
                 reservationFormConfig: {
                     fields: [
                         {

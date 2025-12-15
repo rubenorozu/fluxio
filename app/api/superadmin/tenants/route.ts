@@ -85,7 +85,9 @@ export async function POST(req: Request) {
                         topLogoUrl: '/assets/FluxioRSV.svg',
                         bottomLogoUrl: '/assets/FluxioRSV_TX.svg',
                         faviconUrl: '/assets/defaults/favicon.svg',
-                        topLogoHeight: 50
+                        topLogoHeight: 50,
+                        pdfSignatureTitle: `Coordinación de ${name}`,
+                        pdfSignatureName: adminName || 'Administrador'
                     }
                 },
                 users: userData // Create the admin user linked to this tenant

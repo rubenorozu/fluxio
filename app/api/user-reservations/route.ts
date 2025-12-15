@@ -4,6 +4,7 @@ import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { detectTenant } from '@/lib/tenant/detection';
 import { generateDisplayId } from '@/lib/displayId';
+import { DEFAULT_FORM_CONFIG, isFieldRequired } from '@/lib/reservation-form-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,10 +96,48 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { items, startTime, endTime, justification, subject, coordinator, teacher } = body;
+    const { items, startTime, endTime, justification, subject, coordinator, teacher, ...otherFields } = body;
 
-    if (!items || items.length === 0 || !startTime || !endTime || !justification || !subject || !coordinator || !teacher) {
-      return NextResponse.json({ message: 'Faltan campos requeridos o el carrito está vacío.' }, { status: 400 });
+    if (!items || items.length === 0) {
+      return NextResponse.json({ message: 'El carrito está vacío.' }, { status: 400 });
+    }
+
+    if (!startTime || !endTime) {
+      return NextResponse.json({ message: 'Las fechas son obligatorias.' }, { status: 400 });
+    }
+
+    // Obtener configuración del tenant
+    const tenantConfig = await prisma.tenantConfig.findUnique({
+      where: { tenantId: tenant.id },
+      select: { reservationFormConfig: true }
+    });
+
+    // Typesafe cast for json
+    const formConfig = (tenantConfig?.reservationFormConfig || DEFAULT_FORM_CONFIG) as any;
+
+    // Validar campos requeridos dinámicamente
+    // Si formConfig tiene campos marcados como required, debemos asegurar que vengan
+    // Si la BD requiere justification pero el config no (raro), ponemos un default
+
+    // Lista de campos que sabemos manejar explícitamente y mapear al modelo Prisma
+    // Otros campos dinámicos (si hubiera futuramente) se manejarían diferente
+
+    // Verificamos si los campos 'core' son requeridos en la configuración
+    const isSubjectReq = isFieldRequired('subject', formConfig);
+    const isTeacherReq = isFieldRequired('teacher', formConfig);
+    const isCoordinatorReq = isFieldRequired('coordinator', formConfig);
+    const isJustificationReq = isFieldRequired('justification', formConfig);
+
+    const missingFields = [];
+    if (isSubjectReq && !subject) missingFields.push('Área');
+    if (isTeacherReq && !teacher) missingFields.push('Proyecto');
+    if (isCoordinatorReq && !coordinator) missingFields.push('Supervisor');
+    if (isJustificationReq && !justification) missingFields.push('Justificación');
+
+    if (missingFields.length > 0) {
+      return NextResponse.json({
+        message: `Faltan campos requeridos: ${missingFields.join(', ')}`
+      }, { status: 400 });
     }
 
     const createdReservations = await prisma.$transaction(async (tx) => {
@@ -112,10 +151,11 @@ export async function POST(request: Request) {
           cartSubmissionId,
           startTime: new Date(startTime),
           endTime: new Date(endTime),
-          justification,
-          subject,
-          coordinator,
-          teacher,
+          // Usar valores del body o defaults seguros si el campo estaba deshabilitado
+          justification: justification || 'N/A', // Required in DB
+          subject: subject || null,              // Optional in DB
+          coordinator: coordinator || null,      // Optional in DB
+          teacher: teacher || null,              // Optional in DB
           status: 'PENDING',
           userId: userId,
           tenantId: tenant.id, // Explicitly set tenantId

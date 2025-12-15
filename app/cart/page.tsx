@@ -48,7 +48,8 @@ export default function CartPage() {
   useEffect(() => {
     const fetchFormConfig = async () => {
       try {
-        const response = await fetch('/api/admin/reservation-form-config');
+        // Usar endpoint público accesible para todos los usuarios autenticados
+        const response = await fetch('/api/reservation-form-config');
         if (response.ok) {
           const data = await response.json();
           setFormConfig(data);
@@ -263,7 +264,8 @@ export default function CartPage() {
                     </Form.Group>
                   </Row>
                   {/* Renderizar campos dinámicamente según configuración */}
-                  {formConfig && getEnabledFields(formConfig).map(field => {
+                  {/* getEnabledFields maneja formConfig nulo devolviendo la configuración por defecto */}
+                  {getEnabledFields(formConfig).map(field => {
                     if (field.type === 'textarea') {
                       return (
                         <Form.Group key={field.id} className="mb-3" controlId={field.id}>

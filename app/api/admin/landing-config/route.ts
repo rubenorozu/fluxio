@@ -106,10 +106,23 @@ export async function POST(request: Request) {
             landingScreenshot4,
         } = body;
 
+        // Obtener el ID del tenant platform para asegurar que actualizamos la configuración correcta
+        // La landing page siempre lee del tenant 'platform'
+        const platformTenant = await prisma.tenant.findFirst({
+            where: { slug: 'platform' },
+            select: { id: true }
+        });
+
+        if (!platformTenant) {
+            return NextResponse.json({ error: 'Tenant platform no encontrado' }, { status: 404 });
+        }
+
+        const targetTenantId = platformTenant.id;
+
         await prisma.tenantConfig.upsert({
-            where: { tenantId: session.user.tenantId },
+            where: { tenantId: targetTenantId },
             create: {
-                tenantId: session.user.tenantId,
+                tenantId: targetTenantId,
                 landingContactEmail: contactEmail,
                 landingDemoTrialDays: demoTrialDays,
                 landingFormFields: formFields,

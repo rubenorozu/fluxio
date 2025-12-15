@@ -294,7 +294,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - api/admin (admin API routes)
+     * - api/upload (file upload routes)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/admin).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/admin|api/upload).*)',
   ],
 };

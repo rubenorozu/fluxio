@@ -10,6 +10,27 @@ interface UserPayload {
   exp: number;
 }
 
+// Configuración para permitir archivos más grandes
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb', // Límite de 10MB
+    },
+  },
+};
+
+// Manejar OPTIONS para CORS
+export async function OPTIONS(request: Request): Promise<NextResponse> {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function POST(request: Request): Promise<NextResponse> {
   console.log('[UPLOAD] Inicio de petición de subida');
   console.log('[UPLOAD] BLOB_READ_WRITE_TOKEN exists:', !!process.env.BLOB_READ_WRITE_TOKEN);

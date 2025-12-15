@@ -273,7 +273,7 @@ export default function AdminEquipmentPage() {
           formData.append('files', file);
         }
 
-        const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
+        const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
 
         const contentType = uploadResponse.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
@@ -343,7 +343,7 @@ export default function AdminEquipmentPage() {
           formData.append('files', file);
         }
 
-        const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
+        const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
 
         const contentType = uploadResponse.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {

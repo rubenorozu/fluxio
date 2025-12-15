@@ -123,52 +123,70 @@ export async function GET(request: Request, { params }: { params: { id: string }
       include: { config: true }
     }) as any;
 
+    // Base64 of a 1x1 transparent PNG for fallback
+    const BLANK_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+    const BLANK_PNG_BUFFER = Buffer.from(BLANK_PNG, 'base64');
+
     const loadLogo = async (url: string | null | undefined, defaultPath: string): Promise<Uint8Array> => {
+      // 1. Try to load configured URL
       if (url) {
         try {
-          // Si es una URL remota (http/https)
           if (url.startsWith('http')) {
             const response = await fetch(url);
             if (response.ok) {
-              return new Uint8Array(await response.arrayBuffer());
+              const arrayBuffer = await response.arrayBuffer();
+              if (arrayBuffer.byteLength > 0) {
+                return new Uint8Array(arrayBuffer);
+              }
             }
           } else {
-            // Si es una ruta local (empieza con /)
             const localPath = path.join(process.cwd(), 'public', url);
-            return await fs.readFile(localPath);
+            // Check if file exists before reading to avoid throwing
+            try {
+              await fs.access(localPath);
+              return await fs.readFile(localPath);
+            } catch {
+              console.warn(`Local file not found: ${localPath}`);
+            }
           }
         } catch (e) {
-          console.error(`Error loading logo from ${url}, falling back to default.`, e);
+          console.error(`Error loading logo from ${url}, trying default.`, e);
         }
       }
-      // Fallback
-      return await fs.readFile(path.join(process.cwd(), 'public', defaultPath));
+
+      // 2. Try to load default path
+      try {
+        const defaultLocalPath = path.join(process.cwd(), 'public', defaultPath);
+        try {
+          await fs.access(defaultLocalPath);
+          return await fs.readFile(defaultLocalPath);
+        } catch {
+          console.warn(`Default local file not found: ${defaultLocalPath}`);
+        }
+      } catch (e) {
+        console.error(`Error loading default logo from ${defaultPath}`, e);
+      }
+
+      // 3. Fallback to blank PNG to prevent crash
+      return new Uint8Array(BLANK_PNG_BUFFER);
     };
 
-    const univaLogoBytes = await loadLogo(tenant?.config?.pdfTopLogoUrl, '/assets/defaults/top_logo.png'); // Fallback to default PNG if exists, or handle error
+    const univaLogoBytes = await loadLogo(tenant?.config?.pdfTopLogoUrl, '/assets/defaults/top_logo.png');
     const ceproaLogoBytes = await loadLogo(tenant?.config?.pdfBottomLogoUrl, '/assets/defaults/bottom_logo.png');
-
-    // NOTE: We need to ensure defaults exist as PNGs or handle that. 
-    // For now, assuming defaults might be missing PNGs, let's try to load specific defaults if configured ones fail.
-    // If defaults are SVGs, this will fail. We need PNGs.
-    // User promised to upload PNGs.
 
     let univaLogo, ceproaLogo;
     try {
       univaLogo = await pdfDoc.embedPng(univaLogoBytes);
     } catch (e) {
-      console.error('Error embedding top logo (likely not PNG):', e);
-      // Create a blank 1x1 PNG as fallback to prevent crash
-      const blankPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
-      univaLogo = await pdfDoc.embedPng(Buffer.from(blankPng, 'base64'));
+      console.error('Error embedding top logo (likely not PNG), using blank:', e);
+      univaLogo = await pdfDoc.embedPng(BLANK_PNG_BUFFER);
     }
 
     try {
       ceproaLogo = await pdfDoc.embedPng(ceproaLogoBytes);
     } catch (e) {
-      console.error('Error embedding bottom logo (likely not PNG):', e);
-      const blankPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
-      ceproaLogo = await pdfDoc.embedPng(Buffer.from(blankPng, 'base64'));
+      console.error('Error embedding bottom logo (likely not PNG), using blank:', e);
+      ceproaLogo = await pdfDoc.embedPng(BLANK_PNG_BUFFER);
     }
 
     const drawHalfSheet = (page: PDFPage, data: any, isTopHalf: boolean) => {

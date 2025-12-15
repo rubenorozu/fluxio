@@ -135,6 +135,13 @@ export default function PlatformLandingPage() {
         }
     ];
 
+    // Helper para agregar cache busting a las URLs de imágenes
+    const addCacheBuster = (url: string) => {
+        if (!url) return url;
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}v=${Date.now()}`;
+    };
+
     return (
         <div className={styles.landingPage}>
             {/* Header con Logo */}
@@ -197,7 +204,7 @@ export default function PlatformLandingPage() {
                         <Col lg={6} className="mt-5 mt-lg-0">
                             <div className={styles.heroImage}>
                                 <Image
-                                    src={landingImages.heroImage}
+                                    src={addCacheBuster(landingImages.heroImage)}
                                     alt="Dashboard Preview"
                                     width={1542}
                                     height={1048}
@@ -214,7 +221,7 @@ export default function PlatformLandingPage() {
                         <Col md={4}>
                             <div className={styles.heroImagePlaceholder}>
                                 <Image
-                                    src={landingImages.heroImageA}
+                                    src={addCacheBuster(landingImages.heroImageA)}
                                     alt="Característica A"
                                     width={600}
                                     height={350}
@@ -225,7 +232,7 @@ export default function PlatformLandingPage() {
                         <Col md={4}>
                             <div className={styles.heroImagePlaceholder}>
                                 <Image
-                                    src={landingImages.heroImageB}
+                                    src={addCacheBuster(landingImages.heroImageB)}
                                     alt="Característica B"
                                     width={600}
                                     height={350}
@@ -236,7 +243,7 @@ export default function PlatformLandingPage() {
                         <Col md={4}>
                             <div className={styles.heroImagePlaceholder}>
                                 <Image
-                                    src={landingImages.heroImageC}
+                                    src={addCacheBuster(landingImages.heroImageC)}
                                     alt="Característica C"
                                     width={600}
                                     height={350}
@@ -299,7 +306,7 @@ export default function PlatformLandingPage() {
                         {screenshots.map((screenshot, index) => (
                             <div key={index} className={styles.screenshotCard}>
                                 <Image
-                                    src={screenshot.image}
+                                    src={addCacheBuster(screenshot.image)}
                                     alt={screenshot.title}
                                     width={1170}
                                     height={720}

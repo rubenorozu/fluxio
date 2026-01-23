@@ -1,7 +1,8 @@
-const { Client } = require('pg');
+import pg from 'pg';
+const { Client } = pg;
 
 async function runKeepAlive() {
-  console.log('--- Starting KeepAlive Script ---');
+  console.log('--- Starting KeepAlive Script (ESM) ---');
 
   if (!process.env.DATABASE_URL) {
     console.error('Error: DATABASE_URL environment variable is missing.');
@@ -53,7 +54,7 @@ async function runKeepAlive() {
       console.log('Constraint met: More than 48 hours since last run. FORCING EXECUTION.');
       shouldRun = true;
     } else {
-      // Random decision with 50% chance if < 48h
+      // Random decision
       const randomValue = Math.random();
       console.log(`Random decision value: ${randomValue}`);
       

@@ -57,7 +57,7 @@ async function runKeepAlive() {
       // Random decision
       const randomValue = Math.random();
       console.log(`Random decision value: ${randomValue}`);
-      
+
       if (randomValue > 0.5) {
         console.log('Random decision: EXECUTE.');
         shouldRun = true;

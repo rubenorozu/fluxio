@@ -170,6 +170,7 @@ model Space {
   responsibleUser                       User?            @relation(fields: [responsibleUserId], references: [id])
   requiresSpaceReservationWithEquipment Boolean          @default(false)
   reservationLeadTime                   Int?
+  maxReservationDuration                Int?             // Duración máxima en minutos
   reservations                          Reservation[]
   equipments                            Equipment[]
   recurringBlocks                       RecurringBlock[]
@@ -210,6 +211,7 @@ model Equipment {
   responsibleUserId   String?
   responsibleUser     User?                       @relation(fields: [responsibleUserId], references: [id])
   reservationLeadTime Int?
+  maxReservationDuration Int?             // Duración máxima en minutos
   isFixedToSpace      Boolean                     @default(false)
   reservations        Reservation[]
   recurringBlocks     RecurringBlockOnEquipment[]

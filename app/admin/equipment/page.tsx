@@ -22,6 +22,7 @@ interface Equipment {
   spaceId: string | null;
   responsibleUser: { firstName: string; lastName: string; } | null;
   reservationLeadTime: number | null;
+  maxReservationDuration: number | null; // NEW: Add maxReservationDuration to Equipment interface
   isFixedToSpace: boolean; // NEW: Add isFixedToSpace to Equipment interface
   createdAt: string;
   updatedAt: string;
@@ -46,7 +47,7 @@ export default function AdminEquipmentPage() {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [duplicateCount, setDuplicateCount] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserId: '', spaceId: '', reservationLeadTime: '', isFixedToSpace: false });
+  const [form, setForm] = useState({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserId: '', spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false });
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [existingImages, setExistingImages] = useState<Image[]>([]);
   const [responsibleUsers, setResponsibleUsers] = useState<ResponsibleUser[]>([]);
@@ -153,6 +154,7 @@ export default function AdminEquipmentPage() {
       responsibleUserId: (user && user.role === 'ADMIN_RESOURCE' && !item) ? user.id : item?.responsibleUserId || '',
       spaceId: item?.spaceId || '',
       reservationLeadTime: item?.reservationLeadTime?.toString() || '', // Initialize reservationLeadTime
+      maxReservationDuration: item?.maxReservationDuration ? (item.maxReservationDuration / 60).toString() : '', // Convert minutes to hours
       isFixedToSpace: item?.isFixedToSpace || false, // Initialize isFixedToSpace
     });
     setExistingImages(item?.images || []);
@@ -174,6 +176,7 @@ export default function AdminEquipmentPage() {
       responsibleUserId: item.responsibleUserId || '',
       spaceId: item.spaceId || '',
       reservationLeadTime: item.reservationLeadTime?.toString() || '', // Duplicate reservationLeadTime
+      maxReservationDuration: item.maxReservationDuration ? (item.maxReservationDuration / 60).toString() : '',
       isFixedToSpace: item.isFixedToSpace || false, // Duplicate isFixedToSpace
     });
     setExistingImages(item.images || []);
@@ -187,7 +190,7 @@ export default function AdminEquipmentPage() {
     setShowModal(false);
     setCurrentEquipment(null);
     setIsDuplicating(false);
-    setForm({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserId: '', spaceId: '', reservationLeadTime: '', isFixedToSpace: false });
+    setForm({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserId: '', spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false });
     setExistingImages([]);
     setSelectedFiles(null);
     setError(null);
@@ -302,6 +305,7 @@ export default function AdminEquipmentPage() {
         body: JSON.stringify({
           ...form,
           reservationLeadTime: form.reservationLeadTime ? parseInt(form.reservationLeadTime, 10) : null,
+          maxReservationDuration: (form.maxReservationDuration && !isNaN(parseFloat(form.maxReservationDuration))) ? parseFloat(form.maxReservationDuration) * 60 : null,
           isFixedToSpace: form.isFixedToSpace,
           images: uploadedImageUrls
         }),
@@ -376,6 +380,7 @@ export default function AdminEquipmentPage() {
             serialNumber: '',
             fixedAssetId: '',
             reservationLeadTime: form.reservationLeadTime ? parseInt(form.reservationLeadTime, 10) : null,
+            maxReservationDuration: (form.maxReservationDuration && !isNaN(parseFloat(form.maxReservationDuration))) ? parseFloat(form.maxReservationDuration) * 60 : null,
             isFixedToSpace: form.isFixedToSpace,
             images: uploadedImageUrls
           }),
@@ -709,6 +714,21 @@ export default function AdminEquipmentPage() {
               />
               <Form.Text className="text-muted">
                 Tiempo mínimo de antelación (en horas) para reservar este equipo. Deja vacío para usar el valor global.
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Duración Máxima de Reserva (horas)</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.5"
+                name="maxReservationDuration"
+                value={form.maxReservationDuration || ''}
+                onChange={handleChange}
+                min="0"
+                placeholder="Ej: 4 (dejar vacío para sin límite)"
+              />
+              <Form.Text className="text-muted">
+                Si se deja vacío o en 0, no habrá límite de tiempo para este equipo.
               </Form.Text>
             </Form.Group>
             <Form.Group className="mb-3">

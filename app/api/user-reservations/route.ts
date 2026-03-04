@@ -170,7 +170,22 @@ export async function POST(request: Request) {
         return tx.reservation.create({ data });
       });
 
-      return Promise.all(reservationPromises);
+      const resList = await Promise.all(reservationPromises);
+
+      // Si hay archivos adjuntos, crearlos para cada reservación del lote
+      if (otherFields.attachments && Array.isArray(otherFields.attachments) && otherFields.attachments.length > 0) {
+        for (const res of resList) {
+          await tx.document.createMany({
+            data: otherFields.attachments.map((file: { fileName: string, filePath: string }) => ({
+              fileName: file.fileName,
+              filePath: file.filePath,
+              reservationId: res.id
+            }))
+          });
+        }
+      }
+
+      return resList;
     });
 
     return NextResponse.json(createdReservations, { status: 201 });

@@ -23,11 +23,15 @@ export async function POST(req: Request) {
     // Si tenantId es 'default', también buscar usuarios con tenantId null (Global Superusers)
     const whereCondition: any = {
       email: normalizedEmail,
-      tenantId
     };
 
-    if (tenantId === 'default') {
-      whereCondition.tenantId = { in: ['default', null] };
+    if (tenantId === 'dev-tenant-id') {
+      // In development fallback, look for the user among all tenants or just the first one
+      console.log('[Login] [DEV] Using dev-tenant-id fallback for user search');
+    } else if (tenantId === 'default' || tenantId === 'platform') {
+      whereCondition.tenantId = { in: ['default', 'platform', null] };
+    } else {
+      whereCondition.tenantId = tenantId;
     }
 
     const user = await prisma.user.findFirst({
@@ -72,7 +76,9 @@ export async function POST(req: Request) {
     });
 
     // Create session using the centralized function with tenantId
-    await createSession(user.id, user.role as any, user.tenantId!);
+    // If tenantId is null (global user), use 'platform' or 'default' as fallback for session
+    const sessionTenantId = user.tenantId || tenantId || 'default';
+    await createSession(user.id, user.role as any, sessionTenantId);
 
     // Remove password from the user object before sending it back
     const { password: _, ...userWithoutPassword } = user;
@@ -80,7 +86,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Inicio de sesión exitoso', user: userWithoutPassword }, { status: 200 });
 
   } catch (error: any) {
-    console.error('Error en el inicio de sesión:', error);
+    console.error('--- LOGIN ERROR ---');
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+
+    // Check for Prisma connection errors specifically
+    if (error.message?.includes('Prisma') || error.code?.startsWith('P')) {
+      return NextResponse.json({
+        message: 'Error de conexión con la base de datos. Verifica tus credenciales en .env.local',
+        error: error.message
+      }, { status: 500 });
+    }
+
     return NextResponse.json({ message: 'Algo salió mal en el servidor.', error: error.message }, { status: 500 });
   }
 }

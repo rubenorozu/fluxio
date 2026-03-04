@@ -10,6 +10,7 @@ interface Space {
   description: string | null;
   imageUrl: string | null;
   responsibleUserId: string | null;
+  maxReservationDuration: number | null;
 }
 
 export default function EditSpacePage() {
@@ -18,6 +19,7 @@ export default function EditSpacePage() {
   const [imageUrl, setImageUrl] = useState('');
   const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
   const [responsibleUserId, setResponsibleUserId] = useState('');
+  const [maxReservationDuration, setMaxReservationDuration] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -70,11 +72,17 @@ export default function EditSpacePage() {
         setDescription(data.description || '');
         setImageUrl(data.imageUrl || '');
         setResponsibleUserId(data.responsibleUserId || '');
+        // Convert minutes to hours for the UI
+        if (data.maxReservationDuration) {
+          setMaxReservationDuration((data.maxReservationDuration / 60).toString());
+        } else {
+          setMaxReservationDuration('');
+        }
       } catch (err: unknown) {
         if (err instanceof Error) {
-            setError(err.message);
+          setError(err.message);
         } else {
-            setError('An unknown error occurred');
+          setError('An unknown error occurred');
         }
       } finally {
         setLoading(false);
@@ -102,6 +110,14 @@ export default function EditSpacePage() {
     formData.append('name', name);
     formData.append('description', description);
     formData.append('responsibleUserId', responsibleUserId);
+
+    // Convert hours to minutes for the database
+    if (maxReservationDuration && !isNaN(parseFloat(maxReservationDuration))) {
+      formData.append('maxReservationDuration', (parseFloat(maxReservationDuration) * 60).toString());
+    } else {
+      formData.append('maxReservationDuration', '');
+    }
+
     if (imageFile) {
       formData.append('imageFile', imageFile);
     }
@@ -125,11 +141,11 @@ export default function EditSpacePage() {
       setSuccess('Espacio actualizado con éxito!');
       router.push('/admin/spaces'); // Redirect to spaces list
     } catch (err: unknown) {
-        if (err instanceof Error) {
-            setError(err.message);
-        } else {
-            setError('An unknown error occurred');
-        }
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
     }
   };
 
@@ -182,6 +198,20 @@ export default function EditSpacePage() {
               <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
             ))}
           </select>
+        </div>
+        <div className="mb-3">
+          <label htmlFor="maxReservationDuration" className="form-label">Duración Máxima de Reserva (horas)</label>
+          <input
+            type="number"
+            step="0.5"
+            min="0"
+            className="form-control"
+            id="maxReservationDuration"
+            placeholder="Ej: 4 (dejar vacío para sin límite)"
+            value={maxReservationDuration}
+            onChange={(e) => setMaxReservationDuration(e.target.value)}
+          />
+          <small className="text-muted">Si se deja vacío o en 0, no habrá límite de tiempo para este espacio.</small>
         </div>
         <div className="mb-3">
           <label htmlFor="imageFile" className="form-label">Imagen del Espacio (opcional)</label>

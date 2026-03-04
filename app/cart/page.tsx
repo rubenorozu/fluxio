@@ -8,7 +8,8 @@ import { useSession } from '@/context/SessionContext';
 import { Spinner, Alert, Container, Form, Row, Col } from 'react-bootstrap';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { es } from 'date-fns/locale/es';
-import type { ReservationFormConfig } from '@/lib/reservation-form-utils';
+import { Paperclip } from 'lucide-react';
+import { type ReservationFormConfig } from '@/lib/reservation-form-utils';
 import { getEnabledFields, getRequiredFieldIds, getFieldLabel } from '@/lib/reservation-form-utils';
 
 registerLocale('es', es);
@@ -28,6 +29,7 @@ export default function CartPage() {
   const [reservationLeadTime, setReservationLeadTime] = useState<number>(24);
   const [recurringBlocks, setRecurringBlocks] = useState<any[]>([]);
   const [formConfig, setFormConfig] = useState<ReservationFormConfig | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchRecurringBlocks = async () => {
@@ -126,6 +128,15 @@ export default function CartPage() {
         setError(`La reserva para "${item.name}" debe hacerse con al menos ${itemLeadTime} horas de antelación.`);
         return;
       }
+
+      // Validar duración máxima si está configurada
+      if (item.maxReservationDuration && item.maxReservationDuration > 0) {
+        const durationInMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+        if (durationInMinutes > item.maxReservationDuration) {
+          setError(`La duración de la reserva para "${item.name}" excede el límite permitido de ${item.maxReservationDuration / 60} horas.`);
+          return;
+        }
+      }
     }
 
     // Check for conflicts with recurring blocks
@@ -134,12 +145,12 @@ export default function CartPage() {
     const requestedEndTime = `${endTime.getHours().toString().padStart(2, '0')}:${endTime.getMinutes().toString().padStart(2, '0')}`;
 
     for (const block of recurringBlocks) {
-      const item = cart.find(item => item.id === block.spaceId || item.id === block.equipmentId);
-      if (item) {
+      const itemInCart = cart.find(item => item.id === block.spaceId || item.id === block.equipmentId);
+      if (itemInCart) {
         if (requestedDay === block.dayOfWeek) {
           if (startTime >= new Date(block.startDate) && startTime <= new Date(block.endDate)) {
             if (requestedStartTime < block.endTime && requestedEndTime > block.startTime) {
-              setError(`El recurso no está disponible en este horario debido a un bloqueo recurrente: ${block.title}`);
+              setError(`El recurso "${itemInCart.name}" no está disponible en este horario debido a un bloqueo recurrente: ${block.title}`);
               return;
             }
           }
@@ -152,10 +163,46 @@ export default function CartPage() {
       return;
     }
 
+    setSubmitting(true);
+    let uploadedAttachments = [];
+
+    // Subir archivos a Supabase
+    if (files.length > 0) {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+
+        for (const file of files) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+          const filePath = `${user.id}/${fileName}`;
+
+          const { error: uploadError, data } = await supabase.storage
+            .from('reservations')
+            .upload(filePath, file);
+
+          if (uploadError) {
+            console.error('Error uploading file:', uploadError);
+            throw new Error(`Error al subir archivo: ${file.name}`);
+          }
+
+          uploadedAttachments.push({
+            fileName: file.name,
+            filePath: data.path
+          });
+        }
+      } catch (err: any) {
+        setError(err.message);
+        setSubmitting(false);
+        return;
+      }
+    }
+
     const payload = {
       items: cart.map(item => ({ id: item.id, type: item.type })),
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
+      attachments: uploadedAttachments, // Incluir evidencias
       ...formData, // Incluir todos los campos del formulario dinámico
     };
 
@@ -169,11 +216,13 @@ export default function CartPage() {
       });
 
       if (!res.ok) {
+        setSubmitting(false);
         const data = await res.json();
         throw new Error(data.message || 'Error al enviar la solicitud de reserva.');
       }
 
       setSuccess('¡Solicitud de reserva enviada con éxito para todos los artículos!');
+      setSubmitting(false);
       clearCart();
 
     } catch (err: unknown) {
@@ -297,12 +346,33 @@ export default function CartPage() {
                       return (
                         <Form.Group key={field.id} className="mb-3" controlId={field.id}>
                           <Form.Label>{field.label}{field.required && ' *'}</Form.Label>
+                          <div className="small text-muted mb-2">
+                            Si su reservación requiere documentos o evidencias adicionales, por favor adjúntelos aquí.
+                          </div>
                           <Form.Control
                             type="file"
                             onChange={handleFileChange}
                             multiple={field.multiple}
                             required={field.required}
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                           />
+                          <Form.Text className="text-muted">
+                            Formatos soportados: PDF, imágenes, Word. Máximo 5MB por archivo.
+                          </Form.Text>
+                          {files.length > 0 && (
+                            <div className="mt-2">
+                              <h6 className="small fw-bold">Archivos seleccionados:</h6>
+                              <ul className="list-unstyled small mb-0">
+                                {files.map((file, idx) => (
+                                  <li key={idx} className="d-flex align-items-center mb-1">
+                                    <span className="me-2">📄</span>
+                                    <span className="text-truncate" style={{ maxWidth: '200px' }}>{file.name}</span>
+                                    <span className="ms-2 text-muted">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </Form.Group>
                       );
                     }

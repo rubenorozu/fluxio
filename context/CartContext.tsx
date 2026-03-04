@@ -14,8 +14,7 @@ interface Resource {
   images: Image[]; // Added
   type: 'space' | 'equipment' | 'workshop';
   reservationLeadTime?: number | null;
-  isFixedToSpace?: boolean;
-  requiresSpaceReservationWithEquipment?: boolean; // Added
+  maxReservationDuration?: number | null; // Added
   _count?: { // Added
     equipments?: number;
   };
@@ -40,17 +39,25 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<Resource[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const storedCart = localStorage.getItem('cart');
     if (storedCart) {
-      setCart(JSON.parse(storedCart));
+      try {
+        setCart(JSON.parse(storedCart));
+      } catch (e) {
+        console.error('Error parsing cart from localStorage', e);
+      }
     }
+    setIsInitialized(true);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+    if (isInitialized) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+  }, [cart, isInitialized]);
 
   const addToCart = (resource: Resource) => {
     setCart(prevCart => {

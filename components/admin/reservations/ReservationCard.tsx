@@ -45,6 +45,24 @@ export default function ReservationCard({ group, filter, handleApproveReject, cu
         </div>
       </Card.Header>
       <Card.Body className="p-0">
+        {/* Evidencias / Adjuntos */}
+        {group.items[0].documents && group.items[0].documents.length > 0 && (
+          <div className="px-3 py-2 border-bottom bg-light">
+            <span className="me-2 text-muted" style={{ fontSize: "0.9rem" }}>📎 Evidencias:</span>
+            {group.items[0].documents.map((doc: any) => (
+              <a 
+                key={doc.id}
+                href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/reservations/${doc.filePath}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline-primary btn-sm me-2 py-0 px-2"
+                style={{ fontSize: "0.8rem" }}
+              >
+                {doc.fileName}
+              </a>
+            ))}
+          </div>
+        )}
         <ReservationTable items={group.items} filter={filter} handleApproveReject={handleApproveReject} currentUser={currentUser} />
       </Card.Body>
     </Card>

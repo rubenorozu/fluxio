@@ -24,6 +24,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         images: true,
         responsibleUserId: true,
         reservationLeadTime: true,
+        maxReservationDuration: true, // NEW: Include this field
         requiresSpaceReservationWithEquipment: true, // NEW: Include this field
         createdAt: true,
         updatedAt: true,
@@ -84,7 +85,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este espacio.' }, { status: 403 });
     }
 
-    const { name, description, images, responsibleUserId, requirementIds, reservationLeadTime, requiresSpaceReservationWithEquipment } = await request.json(); // Añadir 'images', 'reservationLeadTime' y 'requiresSpaceReservationWithEquipment'
+    const { name, description, images, responsibleUserId, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment } = await request.json(); // Añadir 'images', 'reservationLeadTime', 'maxReservationDuration' y 'requiresSpaceReservationWithEquipment'
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del espacio es obligatorio.' }, { status: 400 });
@@ -100,6 +101,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
           : { responsibleUser: { disconnect: true } }
         ),
         reservationLeadTime: reservationLeadTime || null, // Guardar el tiempo de antelación específico del espacio
+        maxReservationDuration: maxReservationDuration || null, // Guardar la duración máxima específica del espacio
         requiresSpaceReservationWithEquipment: requiresSpaceReservationWithEquipment ?? false, // Guardar si el espacio requiere reserva con equipo
         images: {
           // Eliminar imágenes existentes y crear nuevas

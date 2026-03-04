@@ -5,9 +5,10 @@ import { Container, Card, Form, Button, Alert, Table, Spinner } from 'react-boot
 import { useSession } from '@/context/SessionContext';
 import { useRouter } from 'next/navigation';
 import type { ReservationFormField, ReservationFormConfig } from '@/lib/reservation-form-utils';
-import { getFieldDisplayName } from '@/lib/reservation-form-utils';
+import { getFieldDisplayName, DEFAULT_FORM_CONFIG } from '@/lib/reservation-form-utils';
 
 export default function ReservationFormConfigPage() {
+    // ... rest of the component state ...
     const { user, loading: sessionLoading } = useSession();
     const router = useRouter();
     const [config, setConfig] = useState<ReservationFormConfig | null>(null);
@@ -80,8 +81,8 @@ export default function ReservationFormConfigPage() {
 
     const handleReset = () => {
         if (confirm('¿Estás seguro de restaurar la configuración por defecto? Se perderán todos los cambios.')) {
-            fetchConfig();
-            setSuccess('Configuración restaurada');
+            setConfig(DEFAULT_FORM_CONFIG);
+            setSuccess('Configuración restaurada (no olvides guardar los cambios)');
         }
     };
 

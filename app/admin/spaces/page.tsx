@@ -26,6 +26,7 @@ interface Space {
     lastName: string;
   } | null;
   reservationLeadTime: number | null; // NEW: Add reservationLeadTime to Space interface
+  maxReservationDuration: number | null; // NEW: Add maxReservationDuration to Space interface
   requiresSpaceReservationWithEquipment: boolean; // NEW: Add this field
   createdAt: string;
   updatedAt: string;
@@ -57,6 +58,7 @@ export default function AdminSpacesPage() {
     description: '',
     responsibleUserId: '',
     reservationLeadTime: '',
+    maxReservationDuration: '', // NEW: Initialize this field
     requiresSpaceReservationWithEquipment: false, // NEW: Initialize this field
   });
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
@@ -177,6 +179,7 @@ export default function AdminSpacesPage() {
       description: space?.description || '',
       responsibleUserId: (user && user.role === 'ADMIN_RESOURCE' && !space) ? user.id : space?.responsibleUserId || '',
       reservationLeadTime: space?.reservationLeadTime?.toString() || '',
+      maxReservationDuration: space?.maxReservationDuration ? (space.maxReservationDuration / 60).toString() : '', // Convert minutes to hours
       requiresSpaceReservationWithEquipment: space?.requiresSpaceReservationWithEquipment || false, // NEW: Initialize this field
     });
     setSelectedRequirements(space?.requirements.map(req => req.id) || []);
@@ -196,6 +199,7 @@ export default function AdminSpacesPage() {
       description: space.description || '',
       responsibleUserId: space.responsibleUserId || '',
       reservationLeadTime: space.reservationLeadTime?.toString() || '',
+      maxReservationDuration: space.maxReservationDuration ? (space.maxReservationDuration / 60).toString() : '',
       requiresSpaceReservationWithEquipment: space.requiresSpaceReservationWithEquipment || false,
     });
     setSelectedRequirements(space.requirements.map(req => req.id) || []);
@@ -215,6 +219,7 @@ export default function AdminSpacesPage() {
       description: '',
       responsibleUserId: '',
       reservationLeadTime: '',
+      maxReservationDuration: '', // NEW: Reset this field
       requiresSpaceReservationWithEquipment: false, // NEW: Reset this field
     });
     setExistingImages([]);
@@ -348,6 +353,7 @@ export default function AdminSpacesPage() {
           images: uploadedImageUrls, // Enviar las URLs de las imágenes
           requirementIds: selectedRequirements,
           reservationLeadTime: form.reservationLeadTime ? parseInt(form.reservationLeadTime, 10) : null, // Enviar el tiempo de antelación
+          maxReservationDuration: (form.maxReservationDuration && !isNaN(parseFloat(form.maxReservationDuration))) ? parseFloat(form.maxReservationDuration) * 60 : null, // Convert hours to minutes
           requiresSpaceReservationWithEquipment: form.requiresSpaceReservationWithEquipment, // NEW: Send this field
         }),
       });
@@ -772,6 +778,21 @@ export default function AdminSpacesPage() {
               />
               <Form.Text className="text-muted">
                 Número de horas mínimo antes de la reserva. Si se deja vacío, se usará el valor global.
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Duración Máxima de Reserva (horas)</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.5"
+                name="maxReservationDuration"
+                value={form.maxReservationDuration || ''}
+                onChange={handleChange}
+                min="0"
+                placeholder="Ej: 4 (dejar vacío para sin límite)"
+              />
+              <Form.Text className="text-muted">
+                Si se deja vacío o en 0, no habrá límite de tiempo para este espacio.
               </Form.Text>
             </Form.Group>
             <Form.Group className="mb-3">

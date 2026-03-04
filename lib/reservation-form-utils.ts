@@ -59,6 +59,15 @@ export const DEFAULT_FORM_CONFIG: ReservationFormConfig = {
             order: 4,
             rows: 4,
             placeholder: 'Describa la justificación'
+        },
+        {
+            id: 'attachments',
+            label: 'Evidencias/Adjuntos',
+            type: 'file',
+            enabled: true,
+            required: false,
+            order: 5,
+            multiple: true
         }
     ]
 };
@@ -98,7 +107,7 @@ export function getFieldDisplayName(fieldId: string): string {
         teacher: 'Proyecto',
         coordinator: 'Supervisor',
         justification: 'Justificación',
-        attachments: 'Adjuntar Archivos'
+        attachments: 'Evidencias/Adjuntos'
     };
     return displayNames[fieldId] || fieldId;
 }

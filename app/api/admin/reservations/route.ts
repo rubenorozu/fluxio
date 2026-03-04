@@ -63,6 +63,7 @@ export async function GET(request: Request) {
         user: { select: { id: true, firstName: true, lastName: true, email: true } },
         space: { select: { id: true, name: true, responsibleUserId: true } },
         equipment: { select: { id: true, name: true, responsibleUserId: true, space: { select: { id: true, name: true } } } },
+        documents: { select: { id: true, fileName: true, filePath: true } },
       },
       orderBy: {
         createdAt: 'desc',
@@ -116,6 +117,7 @@ export async function GET(request: Request) {
         subject: r.subject || null,
         coordinator: r.coordinator || null,
         teacher: r.teacher || null,
+        documents: (r as any).documents || [],
       });
     }
 
@@ -177,4 +179,5 @@ interface ReservationItem {
   space?: { id: string; name: string } | null;
   equipment?: { id: string; name: string } | null;
   workshop?: { id: string; name: string } | null;
+  documents?: { id: string; fileName: string; filePath: string }[];
 }

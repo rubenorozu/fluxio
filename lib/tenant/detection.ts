@@ -34,46 +34,6 @@ export async function detectTenant(): Promise<{
 } | null> {
     try {
         const headersList = headers();
-        console.log('[detectTenant] All Headers:', Array.from(headersList.keys()));
-
-        const configSelect = {
-            topLogoUrl: true,
-            topLogoHeight: true, // Added field
-            bottomLogoUrl: true,
-            faviconUrl: true,
-            primaryColor: true, // Added field
-            secondaryColor: true, // Added field
-            tertiaryColor: true,
-            inscriptionDefaultColor: true, // Inscription colors
-            inscriptionPendingColor: true, // Inscription colors
-            inscriptionApprovedColor: true, // Inscription colors
-            pdfTopLogoUrl: true,
-            pdfBottomLogoUrl: true,
-            siteName: true,
-            contactEmail: true,
-            allowedDomains: true,
-            privacyPolicy: true,
-            howItWorks: true,
-            carouselResourceLimit: true, // Carousel configuration
-        };
-
-        // 1. Intentar desde header (útil para APIs)
-        const headerSlug = headersList.get('x-tenant-slug');
-        if (headerSlug) {
-            console.log(`[detectTenant] Found x-tenant-slug header: ${headerSlug}`);
-            const tenant = await prisma.tenant.findUnique({
-                where: { slug: headerSlug, isActive: true },
-                include: {
-                    config: true
-                },
-            });
-            if (tenant) {
-                console.log(`[detectTenant] Resolved tenant from header: ${tenant.slug} (${tenant.id})`);
-                return tenant;
-            }
-        }
-
-        // 2. Intentar desde subdomain
         let host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
         if (host.includes(',')) {
             host = host.split(',')[0].trim();
@@ -116,6 +76,20 @@ export async function detectTenant(): Promise<{
             }
 
             console.log('[detectTenant] Platform tenant not found, returning null');
+
+            // SECURITY: In development, if no platform tenant found, try to find ANY active tenant as fallback
+            if (process.env.NODE_ENV === 'development' || host.includes('localhost')) {
+                console.log('[detectTenant] [DEV] Looking for any active tenant as final fallback...');
+                const anyTenant = await prisma.tenant.findFirst({
+                    where: { isActive: true },
+                    include: { config: true }
+                });
+                if (anyTenant) {
+                    console.log(`[detectTenant] [DEV] Using fallback tenant: ${anyTenant.slug}`);
+                    return anyTenant;
+                }
+            }
+
             return null;
         }
 
@@ -150,6 +124,14 @@ export async function detectTenant(): Promise<{
 
         if (!defaultTenant) {
             console.error('CRITICAL: No active tenants found in database.');
+            // En desarrollo, si la base de datos está vacía o inaccesible, devolvemos un objeto mínimo para evitar errores 400
+            if (process.env.NODE_ENV === 'development' || host.includes('localhost')) {
+                return {
+                    id: 'dev-tenant-id',
+                    slug: 'dev',
+                    name: 'Development Tenant'
+                } as any;
+            }
         } else {
             console.log('Tenant detected (fallback):', defaultTenant.slug);
         }
@@ -157,6 +139,14 @@ export async function detectTenant(): Promise<{
         return defaultTenant;
     } catch (error) {
         console.error('Error detecting tenant:', error);
+        // Fallback para errores de conexión en desarrollo
+        if (process.env.NODE_ENV === 'development' || (typeof window === 'undefined' && process.env.DATABASE_URL?.includes('localhost'))) {
+            return {
+                id: 'dev-tenant-id',
+                slug: 'dev',
+                name: 'Development Tenant'
+            } as any;
+        }
         return null;
     }
 }

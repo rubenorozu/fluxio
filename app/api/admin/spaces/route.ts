@@ -107,7 +107,7 @@ export async function POST(request: Request) {
   const prisma = getTenantPrisma(tenant.id);
 
   try {
-    const { name, description, responsibleUserId, images, requirementIds, reservationLeadTime, requiresSpaceReservationWithEquipment } = await request.json();
+    const { name, description, responsibleUserId, images, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del espacio es obligatorio.' }, { status: 400 });
@@ -142,6 +142,7 @@ export async function POST(request: Request) {
           }
         }),
         reservationLeadTime: reservationLeadTime || null, // Guardar el tiempo de antelación específico del espacio
+        maxReservationDuration: maxReservationDuration || null, // Guardar la duración máxima específica del espacio
         requiresSpaceReservationWithEquipment: requiresSpaceReservationWithEquipment ?? false, // Guardar si el espacio requiere reserva con equipo
         images: {
           create: images, // Prisma creará las imágenes y las conectará

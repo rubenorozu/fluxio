@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
-import { DEFAULT_FORM_CONFIG } from '@/lib/reservation-form-utils';
+import { DEFAULT_FORM_CONFIG, type ReservationFormConfig } from '@/lib/reservation-form-utils';
 
 /**
  * GET /api/admin/reservation-form-config
@@ -35,19 +35,21 @@ export async function GET(req: Request) {
             select: { reservationFormConfig: true }
         });
 
-        if (!config) {
-            // Crear configuración con valores por defecto
-            config = await prisma.tenantConfig.create({
-                data: {
-                    tenantId: tenant.id,
-                    reservationFormConfig: DEFAULT_FORM_CONFIG as any
-                },
-                select: { reservationFormConfig: true }
-            });
-        }
-
         // Si no tiene configuración del formulario, usar la por defecto
-        const formConfig = config.reservationFormConfig || DEFAULT_FORM_CONFIG;
+        let formConfig = (config.reservationFormConfig as unknown as ReservationFormConfig) || DEFAULT_FORM_CONFIG;
+
+        // Asegurar que todos los campos por defecto existan en la configuración (merge)
+        // Esto permite añadir campos al sistema y que aparezcan automáticamente para todos los tenants
+        const existingFieldIds = new Set(formConfig.fields.map(f => f.id));
+        const missingFields = DEFAULT_FORM_CONFIG.fields.filter(f => !existingFieldIds.has(f.id));
+
+        if (missingFields.length > 0) {
+            console.log(`[GET reservation-form-config] Adding ${missingFields.length} missing fields to config`);
+            formConfig = {
+                ...formConfig,
+                fields: [...formConfig.fields, ...missingFields]
+            };
+        }
 
         return NextResponse.json(formConfig, { status: 200 });
 

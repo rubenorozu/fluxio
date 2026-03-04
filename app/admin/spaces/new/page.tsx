@@ -12,6 +12,9 @@ export default function NewSpacePage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
   const [responsibleUserId, setResponsibleUserId] = useState('');
+  const [maxReservationDuration, setMaxReservationDuration] = useState<string>('');
+  const [reservationLeadTime, setReservationLeadTime] = useState<string>('');
+  const [requiresSpaceReservationWithEquipment, setRequiresSpaceReservationWithEquipment] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
@@ -79,6 +82,13 @@ export default function NewSpacePage() {
         name,
         description,
         responsibleUserId,
+        maxReservationDuration: maxReservationDuration && !isNaN(parseFloat(maxReservationDuration))
+          ? parseFloat(maxReservationDuration) * 60
+          : null,
+        reservationLeadTime: reservationLeadTime && !isNaN(parseFloat(reservationLeadTime))
+          ? parseFloat(reservationLeadTime) * 60 // Convert hours to minutes
+          : null,
+        requiresSpaceReservationWithEquipment: requiresSpaceReservationWithEquipment,
         images: imageUrls.map(url => ({ url })), // Estructura para Prisma
       };
 
@@ -100,6 +110,9 @@ export default function NewSpacePage() {
       setDescription('');
       setResponsibleUserId('');
       setImageFile(null);
+      setMaxReservationDuration('');
+      setReservationLeadTime('');
+      setRequiresSpaceReservationWithEquipment(false);
       router.push('/admin/spaces');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido al crear el espacio.');
@@ -147,6 +160,59 @@ export default function NewSpacePage() {
               <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
             ))}
           </select>
+        </div>
+        <div className="mb-3">
+          <label htmlFor="maxReservationDuration" className="form-label">Duración Máxima de Reserva (horas)</label>
+          <input
+            type="number"
+            step="0.5"
+            min="0"
+            className="form-control"
+            id="maxReservationDuration"
+            placeholder="Ej: 4 (dejar vacío para sin límite)"
+            value={maxReservationDuration}
+            onChange={(e) => setMaxReservationDuration(e.target.value)}
+          />
+          <small className="text-muted">Si se deja vacío o en 0, no habrá límite de tiempo para este equipo.</small>
+        </div>
+        <div className="mb-3">
+          <label htmlFor="maxReservationDuration" className="form-label">Duración Máxima de Reserva (horas)</label>
+          <input
+            type="number"
+            step="0.5"
+            min="0"
+            className="form-control"
+            id="maxReservationDuration"
+            placeholder="Ej: 4 (dejar vacío para sin límite)"
+            value={maxReservationDuration}
+            onChange={(e) => setMaxReservationDuration(e.target.value)}
+          />
+          <small className="text-muted">Si se deja vacío o en 0, no habrá límite de tiempo para este espacio.</small>
+        </div>
+        <div className="mb-3">
+          <label htmlFor="reservationLeadTime" className="form-label">Tiempo de Antelación Mínimo (horas)</label>
+          <input
+            type="number"
+            step="0.5"
+            min="0"
+            className="form-control"
+            id="reservationLeadTime"
+            placeholder="Ej: 24 (dejar vacío para usar valor por defecto)"
+            value={reservationLeadTime}
+            onChange={(e) => setReservationLeadTime(e.target.value)}
+          />
+        </div>
+        <div className="form-check mb-3">
+          <input
+            className="form-check-input"
+            type="checkbox"
+            id="requiresSpaceReservationWithEquipment"
+            checked={requiresSpaceReservationWithEquipment}
+            onChange={(e) => setRequiresSpaceReservationWithEquipment(e.target.checked)}
+          />
+          <label className="form-check-label" htmlFor="requiresSpaceReservationWithEquipment">
+            Requiere reservar equipo adicional
+          </label>
         </div>
         <div className="mb-3">
           <label htmlFor="imageFile" className="form-label">Imagen del Espacio (opcional)</label>

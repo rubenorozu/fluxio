@@ -1,0 +1,15 @@
+Categoría,Concepto,Descripción,Tecnologías y Librerías Implementadas,Estimación (Horas),Costo/Hora (USD),Total (USD)
+Infraestructura,Configuración de Servidor Privado,Preparación de entorno on-premise/VPS para alta disponibilidad.,"Linux, Node.js, PM2, Nginx, Docker",12,60.00,720.00
+Infraestructura,Base de Datos Relacional,Diseño de esquema complejo y optimización de consultas.,"PostgreSQL, Prisma ORM (@prisma/client)",24,60.00,1440.00
+Backend,Seguridad y Cifrado,Sistema de autenticación propietaria a medida con cifrado de grado militar.,"bcrypt, bcryptjs, jose (JWE/JWS), jsonwebtoken, cookie",32,70.00,2240.00
+Backend,API Empresarial y Rutas,Arquitectura RESTful escalable con manejo de sesiones seguras.,"Next.js API Routes, Server Actions, TypeScript",60,65.00,3900.00
+Frontend,Manejo de Fechas y Calendarios,Lógica compleja de zonas horarias y visualización de agenda.,"date-fns, react-big-calendar, react-datepicker",48,60.00,2880.00
+Frontend,Interfaz de Usuario (UI/UX),Diseño responsivo, íconos vectoriales y componentes modulares.,"React 18, Bootstrap 5, React-Bootstrap, Lucide-React, Sharp (Image Optimization)",60,50.00,3000.00
+Funcionalidad,Generación de Documentos,Motor de generación dinámica de PDFs legales y reportes automatizados.,"pdf-lib, @vercel/blob (Storage int.)",24,60.00,1440.00
+Funcionalidad,Exportación de Datos,Módulos de auditoría y exportación a formatos contables.,"xlsx (SheetJS)",16,50.00,800.00
+Funcionalidad,Lógica de Negocio y Control,Gestión de estados complejos y contextos de aplicación.,"React Context API, Hooks Personalizados",40,60.00,2400.00
+Integración,Despliegue y Seguridad,Validación de entorno y pruebas de integración continua.,"Dotenv, ESLint, TypeScript Strict Mode",20,80.00,1600.00
+Soporte,Documentación y Mantenimiento,Guías técnicas y transferencia de conocimiento.,"Markdown, Diagramas de Arquitectura",16,45.00,720.00
+Licenciamiento,Propiedad Intelectual / Código Fuente,Cesión de derechos patrimoniales para uso en infraestructura privada sin dependencias externas obligatorias.,"Licencia Perpetua de Uso",N/A,-,5000.00
+,,,,,
+TOTAL ESTIMADO (USD),,,,,,26140.00

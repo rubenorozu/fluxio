@@ -15,6 +15,8 @@ interface Resource {
   type: 'space' | 'equipment' | 'workshop';
   reservationLeadTime?: number | null;
   maxReservationDuration?: number | null; // Added
+  isFixedToSpace?: boolean; // Added
+  requiresSpaceReservationWithEquipment?: boolean; // Added
   _count?: { // Added
     equipments?: number;
   };

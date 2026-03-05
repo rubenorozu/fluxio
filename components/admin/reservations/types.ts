@@ -12,6 +12,7 @@ export interface ReservationItem {
   space?: { id: string; name: string; responsibleUserId?: string | null }; // Add responsibleUserId
   equipment?: { id: string; name: string; responsibleUserId?: string | null; space?: { id: string; name: string } | null }; // Add responsibleUserId and space info
   workshop?: { id: string; name: string };
+  documents?: { id: string; fileName: string; filePath: string }[];
 }
 
 export interface GroupedReservation {

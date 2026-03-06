@@ -24,6 +24,7 @@ interface Equipment {
   reservationLeadTime: number | null;
   maxReservationDuration: number | null; // NEW: Add maxReservationDuration to Equipment interface
   isFixedToSpace: boolean; // NEW: Add isFixedToSpace to Equipment interface
+  regulationsUrl?: string | null; // NEW: Added regulationsUrl
   createdAt: string;
   updatedAt: string;
 }
@@ -47,8 +48,9 @@ export default function AdminEquipmentPage() {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [duplicateCount, setDuplicateCount] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserIds: [] as string[], spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false });
+  const [form, setForm] = useState({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserIds: [] as string[], spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false, regulationsUrl: '' });
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [selectedRegulationsFile, setSelectedRegulationsFile] = useState<File | null>(null);
   const [existingImages, setExistingImages] = useState<Image[]>([]);
   const [responsibleUsers, setResponsibleUsers] = useState<ResponsibleUser[]>([]);
   const [responsibleUsersLoading, setResponsibleUsersLoading] = useState(true);
@@ -156,9 +158,11 @@ export default function AdminEquipmentPage() {
       reservationLeadTime: item?.reservationLeadTime?.toString() || '', // Initialize reservationLeadTime
       maxReservationDuration: item?.maxReservationDuration ? (item.maxReservationDuration / 60).toString() : '', // Convert minutes to hours
       isFixedToSpace: item?.isFixedToSpace || false, // Initialize isFixedToSpace
+      regulationsUrl: item?.regulationsUrl || '',
     });
     setExistingImages(item?.images || []);
     setSelectedFiles(null);
+    setSelectedRegulationsFile(null);
     setError(null);
     setSuccess(null);
     setShowModal(true);
@@ -178,9 +182,11 @@ export default function AdminEquipmentPage() {
       reservationLeadTime: item.reservationLeadTime?.toString() || '', // Duplicate reservationLeadTime
       maxReservationDuration: item.maxReservationDuration ? (item.maxReservationDuration / 60).toString() : '',
       isFixedToSpace: item.isFixedToSpace || false, // Duplicate isFixedToSpace
+      regulationsUrl: item.regulationsUrl || '',
     });
     setExistingImages(item.images || []);
     setSelectedFiles(null);
+    setSelectedRegulationsFile(null);
     setError(null);
     setSuccess(null);
     setShowModal(true);
@@ -190,9 +196,10 @@ export default function AdminEquipmentPage() {
     setShowModal(false);
     setCurrentEquipment(null);
     setIsDuplicating(false);
-    setForm({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserIds: [], spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false });
+    setForm({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserIds: [], spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false, regulationsUrl: '' });
     setExistingImages([]);
     setSelectedFiles(null);
+    setSelectedRegulationsFile(null);
     setError(null);
   };
 
@@ -301,6 +308,33 @@ export default function AdminEquipmentPage() {
         return;
       }
     }
+
+    let finalRegulationsUrl = form.regulationsUrl;
+    if (selectedRegulationsFile) {
+      try {
+        const formData = new FormData();
+        formData.append('files', selectedRegulationsFile);
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || 'Error al subir el reglamento.');
+        }
+
+        const uploadData = await uploadResponse.json();
+        if (uploadData.urls && uploadData.urls.length > 0) {
+          finalRegulationsUrl = uploadData.urls[0];
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Error desconocido al subir el reglamento');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     const method = currentEquipment ? 'PUT' : 'POST';
     const url = currentEquipment ? `/api/admin/equipment/${currentEquipment.id}` : '/api/admin/equipment';
     try {
@@ -312,7 +346,8 @@ export default function AdminEquipmentPage() {
           reservationLeadTime: form.reservationLeadTime ? parseInt(form.reservationLeadTime, 10) : null,
           maxReservationDuration: (form.maxReservationDuration && !isNaN(parseFloat(form.maxReservationDuration))) ? parseFloat(form.maxReservationDuration) * 60 : null,
           isFixedToSpace: form.isFixedToSpace,
-          images: uploadedImageUrls
+          images: uploadedImageUrls,
+          regulationsUrl: finalRegulationsUrl || null,
         }),
       });
       if (!response.ok) {
@@ -768,6 +803,24 @@ export default function AdminEquipmentPage() {
                       </Form.Select>)
                   }
                 </>
+              )}
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Reglamento (PDF opcional)</Form.Label>
+              <Form.Control
+                type="file"
+                accept=".pdf"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedRegulationsFile(e.target.files ? e.target.files[0] : null)}
+              />
+              <Form.Text className="text-muted d-block pb-2">
+                Puedes subir un documento PDF con las reglas de uso del equipo.
+              </Form.Text>
+              {form.regulationsUrl && (
+                <div className="mt-1 pb-2">
+                  <a href={form.regulationsUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-info">
+                    Ver Reglamento Actual
+                  </a>
+                </div>
               )}
             </Form.Group>
             {error && <Alert variant="danger">{error}</Alert>}

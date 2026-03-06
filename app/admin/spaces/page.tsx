@@ -29,6 +29,7 @@ interface Space {
   reservationLeadTime: number | null; // NEW: Add reservationLeadTime to Space interface
   maxReservationDuration: number | null; // NEW: Add maxReservationDuration to Space interface
   requiresSpaceReservationWithEquipment: boolean; // NEW: Add this field
+  regulationsUrl?: string | null; // NEW: Added regulationsUrl
   createdAt: string;
   updatedAt: string;
 }
@@ -61,8 +62,10 @@ export default function AdminSpacesPage() {
     reservationLeadTime: '',
     maxReservationDuration: '', // NEW: Initialize this field
     requiresSpaceReservationWithEquipment: false, // NEW: Initialize this field
+    regulationsUrl: '',
   });
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [selectedRegulationsFile, setSelectedRegulationsFile] = useState<File | null>(null);
   const [existingImages, setExistingImages] = useState<Image[]>([]);
   const [selectedRequirements, setSelectedRequirements] = useState<string[]>([]);
 
@@ -182,10 +185,12 @@ export default function AdminSpacesPage() {
       reservationLeadTime: space?.reservationLeadTime?.toString() || '',
       maxReservationDuration: space?.maxReservationDuration ? (space.maxReservationDuration / 60).toString() : '', // Convert minutes to hours
       requiresSpaceReservationWithEquipment: space?.requiresSpaceReservationWithEquipment || false, // NEW: Initialize this field
+      regulationsUrl: space?.regulationsUrl || '',
     });
     setSelectedRequirements(space?.requirements.map(req => req.id) || []);
     setExistingImages(space?.images || []);
     setSelectedFiles(null);
+    setSelectedRegulationsFile(null);
     setError(null);   // Resetear errores
     setSuccess(null); // Resetear mensajes de éxito
     setShowModal(true);
@@ -202,10 +207,12 @@ export default function AdminSpacesPage() {
       reservationLeadTime: space.reservationLeadTime?.toString() || '',
       maxReservationDuration: space.maxReservationDuration ? (space.maxReservationDuration / 60).toString() : '',
       requiresSpaceReservationWithEquipment: space.requiresSpaceReservationWithEquipment || false,
+      regulationsUrl: space.regulationsUrl || '',
     });
     setSelectedRequirements(space.requirements.map(req => req.id) || []);
     setExistingImages(space.images || []);
     setSelectedFiles(null);
+    setSelectedRegulationsFile(null);
     setError(null);
     setSuccess(null);
     setShowModal(true);
@@ -222,9 +229,11 @@ export default function AdminSpacesPage() {
       reservationLeadTime: '',
       maxReservationDuration: '', // NEW: Reset this field
       requiresSpaceReservationWithEquipment: false, // NEW: Reset this field
+      regulationsUrl: '',
     });
     setExistingImages([]);
     setSelectedFiles(null);
+    setSelectedRegulationsFile(null);
     setError(null);
   };
 
@@ -345,6 +354,32 @@ export default function AdminSpacesPage() {
       }
     }
 
+    let finalRegulationsUrl = form.regulationsUrl;
+    if (selectedRegulationsFile) {
+      try {
+        const formData = new FormData();
+        formData.append('files', selectedRegulationsFile);
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || 'Error al subir el reglamento.');
+        }
+
+        const uploadData = await uploadResponse.json();
+        if (uploadData.urls && uploadData.urls.length > 0) {
+          finalRegulationsUrl = uploadData.urls[0];
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Error desconocido al subir el reglamento');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     const method = currentSpace ? 'PUT' : 'POST';
     const url = currentSpace ? `/api/admin/spaces/${currentSpace.id}` : '/api/admin/spaces';
 
@@ -361,6 +396,7 @@ export default function AdminSpacesPage() {
           reservationLeadTime: form.reservationLeadTime ? parseInt(form.reservationLeadTime, 10) : null, // Enviar el tiempo de antelación
           maxReservationDuration: (form.maxReservationDuration && !isNaN(parseFloat(form.maxReservationDuration))) ? parseFloat(form.maxReservationDuration) * 60 : null, // Convert hours to minutes
           requiresSpaceReservationWithEquipment: form.requiresSpaceReservationWithEquipment, // NEW: Send this field
+          regulationsUrl: finalRegulationsUrl || null,
         }),
       });
 
@@ -814,6 +850,24 @@ export default function AdminSpacesPage() {
               <Form.Text className="text-muted">
                 Marcar si el espacio debe ser reservado automáticamente cuando se reserva cualquiera de sus equipos.
               </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Reglamento (PDF opcional)</Form.Label>
+              <Form.Control
+                type="file"
+                accept=".pdf"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedRegulationsFile(e.target.files ? e.target.files[0] : null)}
+              />
+              <Form.Text className="text-muted d-block pb-2">
+                Puedes subir un documento PDF con las reglas de uso del espacio.
+              </Form.Text>
+              {form.regulationsUrl && (
+                <div className="mt-1 pb-2">
+                  <a href={form.regulationsUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-info">
+                    Ver Reglamento Actual
+                  </a>
+                </div>
+              )}
             </Form.Group>
             {error && <Alert variant="danger">{error}</Alert>}
             {success && <Alert variant="success">{success}</Alert>} {/* Mostrar mensaje de éxito */}

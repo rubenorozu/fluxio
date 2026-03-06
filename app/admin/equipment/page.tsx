@@ -18,9 +18,9 @@ interface Equipment {
   fixedAssetId: string | null;
   images: Image[];
   status: string;
-  responsibleUserId: string | null;
+  responsibleUserIds?: string[];
   spaceId: string | null;
-  responsibleUser: { firstName: string; lastName: string; } | null;
+  responsibleUsers?: { id: string; firstName: string; lastName: string; }[];
   reservationLeadTime: number | null;
   maxReservationDuration: number | null; // NEW: Add maxReservationDuration to Equipment interface
   isFixedToSpace: boolean; // NEW: Add isFixedToSpace to Equipment interface
@@ -47,7 +47,7 @@ export default function AdminEquipmentPage() {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [duplicateCount, setDuplicateCount] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserId: '', spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false });
+  const [form, setForm] = useState({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserIds: [] as string[], spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false });
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [existingImages, setExistingImages] = useState<Image[]>([]);
   const [responsibleUsers, setResponsibleUsers] = useState<ResponsibleUser[]>([]);
@@ -151,7 +151,7 @@ export default function AdminEquipmentPage() {
       description: item?.description || '',
       serialNumber: item?.serialNumber || '',
       fixedAssetId: item?.fixedAssetId || '',
-      responsibleUserId: (user && user.role === 'ADMIN_RESOURCE' && !item) ? user.id : item?.responsibleUserId || '',
+      responsibleUserIds: item ? (item.responsibleUsers?.map(u => u.id) || []) : (user && user.role === 'ADMIN_RESOURCE' ? [user.id] : []),
       spaceId: item?.spaceId || '',
       reservationLeadTime: item?.reservationLeadTime?.toString() || '', // Initialize reservationLeadTime
       maxReservationDuration: item?.maxReservationDuration ? (item.maxReservationDuration / 60).toString() : '', // Convert minutes to hours
@@ -173,7 +173,7 @@ export default function AdminEquipmentPage() {
       description: item.description || '',
       serialNumber: '', // El número de serie debe ser único
       fixedAssetId: '', // El ID de activo fijo debe ser único
-      responsibleUserId: item.responsibleUserId || '',
+      responsibleUserIds: item.responsibleUsers?.map(u => u.id) || [],
       spaceId: item.spaceId || '',
       reservationLeadTime: item.reservationLeadTime?.toString() || '', // Duplicate reservationLeadTime
       maxReservationDuration: item.maxReservationDuration ? (item.maxReservationDuration / 60).toString() : '',
@@ -190,7 +190,7 @@ export default function AdminEquipmentPage() {
     setShowModal(false);
     setCurrentEquipment(null);
     setIsDuplicating(false);
-    setForm({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserId: '', spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false });
+    setForm({ name: '', description: '', serialNumber: '', fixedAssetId: '', responsibleUserIds: [], spaceId: '', reservationLeadTime: '', maxReservationDuration: '', isFixedToSpace: false });
     setExistingImages([]);
     setSelectedFiles(null);
     setError(null);
@@ -239,6 +239,11 @@ export default function AdminEquipmentPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleResponsibleUsersChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(e.target.selectedOptions).map(option => option.value);
+    setForm(prev => ({ ...prev, responsibleUserIds: selectedOptions }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -622,7 +627,7 @@ export default function AdminEquipmentPage() {
                   </td>
                   <td>{item.displayId || item.id}</td>
                   <td>{item.name}</td>
-                  <td>{item.responsibleUser ? `${item.responsibleUser.firstName} ${item.responsibleUser.lastName}` : 'N/A'}</td>
+                  <td>{item.responsibleUsers && item.responsibleUsers.length > 0 ? item.responsibleUsers.map(u => `${u.firstName} ${u.lastName}`).join(', ') : 'N/A'}</td>
                   <td>{item.reservationLeadTime !== null ? `${item.reservationLeadTime} hrs` : 'Global'}</td>
                   <td>{item.isFixedToSpace ? 'Sí' : 'No'}</td>
                   <td>
@@ -748,7 +753,7 @@ export default function AdminEquipmentPage() {
               {user?.role === 'ADMIN_RESOURCE' ? (
                 <Form.Control
                   type="text"
-                  value={currentEquipment ? `${currentEquipment.responsibleUser?.firstName || ''} ${currentEquipment.responsibleUser?.lastName || ''}`.trim() : (`${user.firstName || ''} ${user.lastName || ''}`).trim()}
+                  value={currentEquipment ? (currentEquipment.responsibleUsers?.map(u => `${u.firstName} ${u.lastName}`).join(', ') || '') : (`${user.firstName || ''} ${user.lastName || ''}`).trim()}
                   readOnly
                   disabled
                 />
@@ -756,8 +761,7 @@ export default function AdminEquipmentPage() {
                 <>
                   {responsibleUsersLoading ? <Spinner animation="border" size="sm" /> :
                     responsibleUsersError ? <Alert variant="danger">Error al cargar responsables</Alert> :
-                      (<Form.Select name="responsibleUserId" value={form.responsibleUserId || ''} onChange={handleChange}>
-                        <option value="">-- Ninguno --</option>
+                      (<Form.Select name="responsibleUserIds" multiple value={form.responsibleUserIds} onChange={handleResponsibleUsersChange} style={{ minHeight: '120px' }}>
                         {responsibleUsers.map(rUser => (
                           <option key={rUser.id} value={rUser.id}>{rUser.firstName} {rUser.lastName} ({rUser.email})</option>
                         ))}

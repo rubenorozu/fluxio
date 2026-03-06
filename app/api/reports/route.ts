@@ -75,6 +75,63 @@ export async function POST(request: Request) {
 
     const report = await prisma.report.create({ data });
 
+    // Create notifications for admins/responsible users
+    try {
+      let responsibleUserIds: string[] = [];
+      let resourceName = 'un recurso';
+
+      if (resourceType === 'space') {
+        const space = await prisma.space.findUnique({
+          where: { id: resourceId },
+          select: { responsibleUsers: { select: { id: true } }, name: true }
+        });
+        responsibleUserIds = (space as any)?.responsibleUsers.map((u: any) => u.id) || [];
+        resourceName = space?.name || resourceName;
+      } else if (resourceType === 'equipment') {
+        const equipment = await prisma.equipment.findUnique({
+          where: { id: resourceId },
+          select: { responsibleUsers: { select: { id: true } }, name: true }
+        });
+        responsibleUserIds = (equipment as any)?.responsibleUsers.map((u: any) => u.id) || [];
+        resourceName = equipment?.name || resourceName;
+      } else if (resourceType === 'workshop') {
+        const workshop = await prisma.workshop.findUnique({
+          where: { id: resourceId },
+          select: { responsibleUsers: { select: { id: true } }, name: true }
+        });
+        responsibleUserIds = (workshop as any)?.responsibleUsers.map((u: any) => u.id) || [];
+        resourceName = workshop?.name || resourceName;
+      }
+
+      for (const responsibleUserId of responsibleUserIds) {
+        await prisma.notification.create({
+          data: {
+            recipientId: responsibleUserId,
+            message: `Nuevo reporte de problema para tu recurso: ${resourceName}`,
+          },
+        });
+      }
+
+      // Also notify Superusers
+      const superusers = await prisma.user.findMany({
+        where: { role: 'SUPERUSER', tenantId: tenant.id },
+        select: { id: true }
+      });
+
+      for (const superuser of superusers) {
+        if (!responsibleUserIds.includes(superuser.id)) { // Avoid duplicate notification
+          await prisma.notification.create({
+            data: {
+              recipientId: superuser.id,
+              message: `Nuevo reporte de problema registrado: ${resourceName}`,
+            },
+          });
+        }
+      }
+    } catch (notifyError) {
+      console.error('Error creating admin notifications for report:', notifyError);
+    }
+
     return NextResponse.json(report, { status: 201 });
   } catch (error) {
     console.error('Error al crear el reporte:', error);

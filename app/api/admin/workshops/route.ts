@@ -39,7 +39,9 @@ export async function GET(request: Request) {
     const whereClause: Prisma.WorkshopWhereInput = {};
 
     if (session.user.role === Role.ADMIN_RESOURCE) {
-      whereClause.responsibleUserId = session.user.id;
+      whereClause.responsibleUsers = {
+        some: { id: session.user.id }
+      };
     }
 
     // When searching, fetch more results and filter in memory for accent-insensitive search
@@ -50,8 +52,9 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         images: true,
-        responsibleUser: {
+        responsibleUsers: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           }
@@ -70,15 +73,13 @@ export async function GET(request: Request) {
     if (search) {
       const normalizedSearch = normalizeText(search);
       filteredWorkshops = workshops.filter(workshop => {
-        const responsibleName = (workshop as any).responsibleUser
-          ? `${(workshop as any).responsibleUser.firstName} ${(workshop as any).responsibleUser.lastName}`
-          : '';
+        const responsibleNames = (workshop as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join(', ');
         const searchableText = [
           workshop.name || '',
           workshop.description || '',
           workshop.teacher || '',
           workshop.displayId || '',
-          responsibleName,
+          responsibleNames,
         ].join(' ');
         return normalizeText(searchableText).includes(normalizedSearch);
       });
@@ -93,7 +94,7 @@ export async function GET(request: Request) {
       csvRows.push('"ID del taller","Nombre del taller","Responsable","Maestro","Descripción","Fecha de inicio","Fecha de finalización","Sesiones"');
 
       for (const workshop of filteredWorkshops) { // Use filteredWorkshops for CSV export
-        const responsibleName = (workshop as any).responsibleUser ? `${(workshop as any).responsibleUser.firstName} ${(workshop as any).responsibleUser.lastName}` : 'N/A';
+        const responsibleNames = (workshop as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join('; ') || 'N/A';
         const sessions = (workshop as any).sessions.map((session: any) => {
           const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
           return `${days[session.dayOfWeek]} ${session.timeStart}-${session.timeEnd}${session.room ? ` (${session.room})` : ''}`;
@@ -102,7 +103,7 @@ export async function GET(request: Request) {
         csvRows.push(
           `"${workshop.displayId || workshop.id}",` +
           `"${workshop.name.replace(/"/g, '""')}",` +
-          `"${responsibleName.replace(/"/g, '""')}",` +
+          `"${responsibleNames.replace(/"/g, '""')}",` +
           `"${(workshop.teacher || 'N/A').replace(/"/g, '""')}",` +
           `"${(workshop.description || 'N/A').replace(/"/g, '""')}",` +
           `"${workshop.startDate ? new Date(workshop.startDate).toLocaleDateString() : 'N/A'}",` +
@@ -142,15 +143,17 @@ export async function POST(request: Request) {
   const prisma = getTenantPrisma(tenant.id);
 
   try {
-    const { name, description, capacity, teacher, startDate, endDate, inscriptionsStartDate, responsibleUserId, sessions, images } = await request.json();
+    const { name, description, capacity, teacher, startDate, endDate, inscriptionsStartDate, responsibleUserIds, sessions, images } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del taller es obligatorio.' }, { status: 400 });
     }
 
-    let finalResponsibleUserId = responsibleUserId;
+    let finalResponsibleUserIds = responsibleUserIds || [];
     if (session.user.role === Role.ADMIN_RESOURCE) {
-      finalResponsibleUserId = session.user.id;
+      if (!finalResponsibleUserIds.includes(session.user.id)) {
+        finalResponsibleUserIds.push(session.user.id);
+      }
     }
 
     // SECURITY FIX: Generación atómica de displayId con retry
@@ -190,7 +193,9 @@ export async function POST(request: Request) {
                 tenantId: tenant.id
               })),
             },
-            responsibleUser: finalResponsibleUserId ? { connect: { id: finalResponsibleUserId } } : undefined,
+            responsibleUsers: {
+              connect: (finalResponsibleUserIds || []).map((id: string) => ({ id }))
+            },
           },
           include: { images: true, sessions: true },
         });

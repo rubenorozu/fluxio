@@ -26,11 +26,12 @@ interface Workshop {
   name: string;
   description: string | null;
   images: Image[];
-  responsibleUserId: string | null;
-  responsibleUser: {
+  responsibleUserIds?: string[];
+  responsibleUsers?: {
+    id: string;
     firstName: string;
     lastName: string;
-  } | null;
+  }[];
   capacity: number;
   availableFrom: string | null;
   inscriptionsOpen: boolean;
@@ -72,7 +73,7 @@ export default function AdminWorkshopsPage() {
   const [form, setForm] = useState({
     name: '',
     description: '',
-    responsibleUserId: '',
+    responsibleUserIds: [] as string[],
     capacity: 0,
     availableFrom: '',
     teacher: '',
@@ -196,7 +197,7 @@ export default function AdminWorkshopsPage() {
     setForm({
       name: item?.name || '',
       description: item?.description || '',
-      responsibleUserId: (user && user.role === 'ADMIN_RESOURCE' && !item) ? user.id : item?.responsibleUserId || '',
+      responsibleUserIds: item ? (item.responsibleUsers?.map(u => u.id) || []) : (user && user.role === 'ADMIN_RESOURCE' ? [user.id] : []),
       capacity: item?.capacity || 0,
       availableFrom: item?.availableFrom ? new Date(item.availableFrom).toISOString().slice(0, 16) : '',
       teacher: item?.teacher || '',
@@ -221,7 +222,7 @@ export default function AdminWorkshopsPage() {
     setForm({
       name: `${item.name} (Copia)`,
       description: item.description || '',
-      responsibleUserId: item.responsibleUserId || '',
+      responsibleUserIds: item.responsibleUsers?.map(u => u.id) || [],
       capacity: item.capacity || 0,
       availableFrom: item.availableFrom ? new Date(item.availableFrom).toISOString().slice(0, 16) : '',
       teacher: item.teacher || '',
@@ -247,7 +248,7 @@ export default function AdminWorkshopsPage() {
     setForm({
       name: '',
       description: '',
-      responsibleUserId: '',
+      responsibleUserIds: [],
       capacity: 0,
       availableFrom: '',
       teacher: '',
@@ -267,6 +268,11 @@ export default function AdminWorkshopsPage() {
       ...prev,
       [name]: type === 'number' ? parseInt(value, 10) : value,
     }));
+  };
+
+  const handleResponsibleUsersChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(e.target.selectedOptions).map(option => option.value);
+    setForm(prev => ({ ...prev, responsibleUserIds: selectedOptions }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -656,8 +662,8 @@ export default function AdminWorkshopsPage() {
                   <td>{item.displayId || item.id}</td>
                   <td>{item.name}</td>
                   <td>
-                    {item.responsibleUser
-                      ? `${item.responsibleUser.firstName} ${item.responsibleUser.lastName}`
+                    {item.responsibleUsers && item.responsibleUsers.length > 0
+                      ? item.responsibleUsers.map(u => `${u.firstName} ${u.lastName}`).join(', ')
                       : 'N/A'}
                   </td>
                   <td>
@@ -833,7 +839,7 @@ export default function AdminWorkshopsPage() {
               {user.role === 'ADMIN_RESOURCE' ? (
                 <Form.Control
                   type="text"
-                  value={currentWorkshop ? `${currentWorkshop.responsibleUser?.firstName || ''} ${currentWorkshop.responsibleUser?.lastName || ''}`.trim() : (`${user.firstName || ''} ${user.lastName || ''}`).trim()}
+                  value={currentWorkshop ? (currentWorkshop.responsibleUsers?.map(u => `${u.firstName} ${u.lastName}`).join(', ') || '') : (`${user.firstName || ''} ${user.lastName || ''}`).trim()}
                   readOnly
                   disabled
                 />
@@ -843,11 +849,12 @@ export default function AdminWorkshopsPage() {
                 <Alert variant="danger">Error al cargar responsables</Alert>
               ) : (
                 <Form.Select
-                  name="responsibleUserId"
-                  value={form.responsibleUserId || ''}
-                  onChange={handleChange}
+                  name="responsibleUserIds"
+                  multiple
+                  value={form.responsibleUserIds}
+                  onChange={handleResponsibleUsersChange}
+                  style={{ minHeight: '120px' }}
                 >
-                  <option value="">-- Ninguno --</option>
                   {responsibleUsers.map(rUser => (
                     <option key={rUser.id} value={rUser.id}>
                       {rUser.firstName} {rUser.lastName} ({rUser.email})

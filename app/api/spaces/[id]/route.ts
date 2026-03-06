@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         images: true,
         reservationLeadTime: true,
         requiresSpaceReservationWithEquipment: true,
-        responsibleUser: {
+        responsibleUsers: {
           select: {
             firstName: true,
             lastName: true,

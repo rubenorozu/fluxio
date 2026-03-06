@@ -107,7 +107,7 @@ export async function POST(request: Request) {
                         description: row.descripcion ? String(row.descripcion) : null,
                         status: status as 'AVAILABLE' | 'IN_MAINTENANCE',
                         tenantId: tenant.id,
-                        responsibleUserId,
+                        ...(responsibleUserId ? { responsibleUsers: { connect: [{ id: responsibleUserId }] } } : {}),
                         requiresSpaceReservationWithEquipment: row.requiere_reserva_espacio
                             ? parseBoolean(row.requiere_reserva_espacio)
                             : false,

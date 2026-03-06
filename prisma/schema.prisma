@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  // directUrl = env("DIRECT_URL")
 }
 
 model Tenant {
@@ -128,9 +128,9 @@ model User {
   reservations           Reservation[]
   inscriptions           Inscription[]
   notifications          Notification[]
-  managedSpaces          Space[]
-  managedEquipment       Equipment[]
-  managedWorkshops       Workshop[]
+  managedSpaces          Space[]       @relation("SpaceResponsibles")
+  managedEquipment       Equipment[]   @relation("EquipmentResponsibles")
+  managedWorkshops       Workshop[]    @relation("WorkshopResponsibles")
   projects               Project[]
   approvedReservations   Reservation[]  @relation("ApprovedReservations")
   checkedOutReservations Reservation[]  @relation("CheckedOutReservations")
@@ -166,8 +166,7 @@ model Space {
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
   tenantId String?
 
-  responsibleUserId                     String?
-  responsibleUser                       User?            @relation(fields: [responsibleUserId], references: [id])
+  responsibleUsers                      User[]           @relation("SpaceResponsibles")
   requiresSpaceReservationWithEquipment Boolean          @default(false)
   reservationLeadTime                   Int?
   maxReservationDuration                Int?             // Duración máxima en minutos
@@ -176,6 +175,7 @@ model Space {
   recurringBlocks                       RecurringBlock[]
   requirements                          Requirement[]    @relation("SpaceRequirements")
   reports                               Report[]
+  regulationsUrl                        String?          // URL para el reglamento en PDF
   createdAt                             DateTime         @default(now())
   updatedAt                             DateTime         @updatedAt
 
@@ -208,14 +208,14 @@ model Equipment {
 
   spaceId             String?                     @map("space_id")
   space               Space?                      @relation(fields: [spaceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  responsibleUserId   String?
-  responsibleUser     User?                       @relation(fields: [responsibleUserId], references: [id])
+  responsibleUsers    User[]                      @relation("EquipmentResponsibles")
   reservationLeadTime Int?
   maxReservationDuration Int?             // Duración máxima en minutos
   isFixedToSpace      Boolean                     @default(false)
   reservations        Reservation[]
   recurringBlocks     RecurringBlockOnEquipment[]
   reports             Report[]
+  regulationsUrl      String?                   // URL para el reglamento en PDF
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
 
@@ -241,8 +241,7 @@ model Workshop {
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
   tenantId String?
 
-  responsibleUserId String?
-  responsibleUser   User?             @relation(fields: [responsibleUserId], references: [id])
+  responsibleUsers      User[]            @relation("WorkshopResponsibles")
   inscriptions      Inscription[]
   sessions          WorkshopSession[]
   reports           Report[]

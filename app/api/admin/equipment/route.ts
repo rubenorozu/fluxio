@@ -50,7 +50,9 @@ export async function GET(request: Request) {
     const whereClause: Prisma.EquipmentWhereInput = {};
 
     if (userRole === Role.ADMIN_RESOURCE) {
-      whereClause.responsibleUserId = session.user.id;
+      whereClause.responsibleUsers = {
+        some: { id: session.user.id }
+      };
     }
 
     // When searching, fetch more results and filter in memory for accent-insensitive search
@@ -61,8 +63,9 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         images: true,
-        responsibleUser: {
+        responsibleUsers: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           }
@@ -80,16 +83,14 @@ export async function GET(request: Request) {
     if (search) {
       const normalizedSearch = normalizeText(search);
       filteredEquipment = equipment.filter(item => {
-        const responsibleName = (item as any).responsibleUser
-          ? `${(item as any).responsibleUser.firstName} ${(item as any).responsibleUser.lastName}`
-          : '';
+        const responsibleNames = (item as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join(', ');
         const searchableText = [
           item.name || '',
           item.description || '',
           item.serialNumber || '',
           item.fixedAssetId || '',
           item.displayId || '',
-          responsibleName,
+          responsibleNames,
         ].join(' ');
         return normalizeText(searchableText).includes(normalizedSearch);
       });
@@ -119,7 +120,7 @@ export async function POST(request: Request) {
   const prisma = getTenantPrisma(tenant.id);
 
   try {
-    const { name, description, serialNumber, fixedAssetId, images, responsibleUserId, spaceId, reservationLeadTime, maxReservationDuration, isFixedToSpace } = await request.json();
+    const { name, description, serialNumber, fixedAssetId, images, responsibleUserIds, spaceId, reservationLeadTime, maxReservationDuration, isFixedToSpace, regulationsUrl } = await request.json();
 
     if (!name || name.length < 3 || name.length > 100) {
       return NextResponse.json({ error: 'El nombre del equipo es obligatorio y debe tener entre 3 y 100 caracteres.' }, { status: 400 });
@@ -137,9 +138,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El ID de activo fijo no puede exceder los 50 caracteres.' }, { status: 400 });
     }
 
-    let finalResponsibleUserId = responsibleUserId;
+    let finalResponsibleUserIds = responsibleUserIds || [];
     if (session.user.role === Role.ADMIN_RESOURCE) {
-      finalResponsibleUserId = session.user.id;
+      if (!finalResponsibleUserIds.includes(session.user.id)) {
+        finalResponsibleUserIds.push(session.user.id);
+      }
     }
 
     let displayId: string;
@@ -162,11 +165,14 @@ export async function POST(request: Request) {
         description,
         serialNumber,
         fixedAssetId,
-        responsibleUserId: finalResponsibleUserId || null,
+        responsibleUsers: {
+          connect: (finalResponsibleUserIds || []).map((id: string) => ({ id }))
+        },
         spaceId: spaceId || null, // Guardar el spaceId
         reservationLeadTime: reservationLeadTime || null, // Guardar el tiempo de antelación específico del equipo
         maxReservationDuration: maxReservationDuration || null,
         isFixedToSpace: isFixedToSpace ?? false, // Guardar si el equipo está fijo al espacio
+        regulationsUrl: regulationsUrl || null, // Guardar el reglamento en PDF
         images: {
           create: images.map((img: { url: string }) => ({ url: img.url })),
         },

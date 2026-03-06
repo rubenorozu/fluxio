@@ -8,8 +8,9 @@ interface Space {
   id: string;
   name: string;
   description: string | null;
-  imageUrl: string | null;
-  responsibleUserId: string | null;
+  images: { url: string }[] | null;
+  regulationsUrl: string | null;
+  responsibleUsers?: { id: string }[];
   maxReservationDuration: number | null;
 }
 
@@ -17,10 +18,12 @@ export default function EditSpacePage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [regulationsUrl, setRegulationsUrl] = useState('');
   const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
-  const [responsibleUserId, setResponsibleUserId] = useState('');
+  const [responsibleUserIds, setResponsibleUserIds] = useState<string[]>([]);
   const [maxReservationDuration, setMaxReservationDuration] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [regulationsFile, setRegulationsFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,8 +73,9 @@ export default function EditSpacePage() {
         const data: Space = await res.json();
         setName(data.name);
         setDescription(data.description || '');
-        setImageUrl(data.imageUrl || '');
-        setResponsibleUserId(data.responsibleUserId || '');
+        setImageUrl(data.images?.[0]?.url || '');
+        setRegulationsUrl(data.regulationsUrl || '');
+        setResponsibleUserIds(data.responsibleUsers?.map(u => u.id) || []);
         // Convert minutes to hours for the UI
         if (data.maxReservationDuration) {
           setMaxReservationDuration((data.maxReservationDuration / 60).toString());
@@ -106,32 +110,48 @@ export default function EditSpacePage() {
     }
 
     const token = localStorage.getItem('token');
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('description', description);
-    formData.append('responsibleUserId', responsibleUserId);
 
-    // Convert hours to minutes for the database
-    if (maxReservationDuration && !isNaN(parseFloat(maxReservationDuration))) {
-      formData.append('maxReservationDuration', (parseFloat(maxReservationDuration) * 60).toString());
-    } else {
-      formData.append('maxReservationDuration', '');
-    }
-
-    if (imageFile) {
-      formData.append('imageFile', imageFile);
-    }
+    let currentImageUrl = imageUrl;
+    let currentRegulationsUrl = regulationsUrl;
 
     try {
-      const res = await fetch(`/api/admin/spaces/${id}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
+      if (imageFile) {
+        const imageFormData = new FormData();
+        imageFormData.append('files', imageFile);
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: imageFormData });
+        if (!uploadRes.ok) throw new Error('Error al subir la imagen.');
+        const uploadData = await uploadRes.json();
+        currentImageUrl = uploadData.urls[0];
+      }
+
+      if (regulationsFile) {
+        const regsFormData = new FormData();
+        regsFormData.append('files', regulationsFile);
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: regsFormData });
+        if (!uploadRes.ok) throw new Error('Error al subir el reglamento.');
+        const uploadData = await uploadRes.json();
+        currentRegulationsUrl = uploadData.urls[0];
+      }
+
+      const spaceData = {
+        name,
+        description,
+        responsibleUserIds,
+        maxReservationDuration: maxReservationDuration && !isNaN(parseFloat(maxReservationDuration))
+          ? parseFloat(maxReservationDuration) * 60
+          : null,
+        images: currentImageUrl ? [{ url: currentImageUrl }] : [],
+        regulationsUrl: currentRegulationsUrl || null,
+      };
+
+      const res = await fetch(`/api/admin/spaces/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(spaceData),
+      });
 
       if (!res.ok) {
         const errorData = await res.json();
@@ -139,13 +159,9 @@ export default function EditSpacePage() {
       }
 
       setSuccess('Espacio actualizado con éxito!');
-      router.push('/admin/spaces'); // Redirect to spaces list
+      router.push('/admin/spaces');
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unknown error occurred');
-      }
+      setError(err instanceof Error ? err.message : 'Error desconocido.');
     }
   };
 
@@ -186,18 +202,28 @@ export default function EditSpacePage() {
           ></textarea>
         </div>
         <div className="mb-3">
-          <label htmlFor="responsibleUser" className="form-label">Encargado</label>
+          <label htmlFor="responsibleUsers" className="form-label">Encargados</label>
           <select
+            multiple
             className="form-select"
-            id="responsibleUser"
-            value={responsibleUserId}
-            onChange={(e) => setResponsibleUserId(e.target.value)}
+            id="responsibleUsers"
+            value={responsibleUserIds}
+            onChange={(e) => {
+              const options = e.target.options;
+              const selected: string[] = [];
+              for (let i = 0; i < options.length; i++) {
+                if (options[i].selected) {
+                  selected.push(options[i].value);
+                }
+              }
+              setResponsibleUserIds(selected);
+            }}
           >
-            <option value="">Selecciona un encargado</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
             ))}
           </select>
+          <small className="text-muted">Mantén presionado Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples encargados.</small>
         </div>
         <div className="mb-3">
           <label htmlFor="maxReservationDuration" className="form-label">Duración Máxima de Reserva (horas)</label>
@@ -214,15 +240,15 @@ export default function EditSpacePage() {
           <small className="text-muted">Si se deja vacío o en 0, no habrá límite de tiempo para este espacio.</small>
         </div>
         <div className="mb-3">
-          <label htmlFor="imageFile" className="form-label">Imagen del Espacio (opcional)</label>
+          <label htmlFor="regulationsFile" className="form-label">Reglamento (PDF opcional)</label>
           <input
             type="file"
             className="form-control"
-            id="imageFile"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+            id="regulationsFile"
+            accept="application/pdf"
+            onChange={(e) => setRegulationsFile(e.target.files ? e.target.files[0] : null)}
           />
-          {imageUrl && <small className="text-muted">Imagen actual: <a href={imageUrl} target="_blank" rel="noopener noreferrer">Ver</a></small>}
+          {regulationsUrl && <small className="text-muted d-block mt-1">Reglamento actual: <a href={regulationsUrl} target="_blank" rel="noopener noreferrer">Ver</a></small>}
         </div>
         <button type="submit" className="btn btn-primary" style={{ backgroundColor: '#0076A8', borderColor: '#0076A8' }}>
           Actualizar Espacio

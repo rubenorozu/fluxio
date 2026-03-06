@@ -9,7 +9,7 @@ import { Role } from '@prisma/client';
 interface Resource {
   id: string;
   name: string;
-  responsibleUserId: string | null;
+  responsibleUsers?: { id: string }[];
 }
 
 interface ResourceCalendarViewProps {
@@ -62,15 +62,15 @@ export default function ResourceCalendarView({ resources, resourceType, role }: 
           Haz clic y arrastra en un horario vacío para crear un bloqueo. Haz clic en un evento para gestionarlo.
         </p>
       )}
-      
+
       <div style={{ height: '70vh' }}>
         {selectedResourceId ? (
-          <AdminCalendar 
+          <AdminCalendar
             key={selectedResourceId} // Add key to force re-render on resource change
             spaceId={resourceType === 'space' ? selectedResourceId : undefined}
             equipmentId={resourceType === 'equipment' ? selectedResourceId : undefined}
             role={role}
-            responsibleUserId={selectedResource?.responsibleUserId || null}
+            responsibleUsers={selectedResource?.responsibleUsers || []}
           />
         ) : (
           <p>Por favor selecciona un recurso.</p>

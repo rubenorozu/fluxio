@@ -20,11 +20,12 @@ interface Space {
   images: Image[];
   status: string;
   requirements: { id: string; name: string }[];
-  responsibleUserId: string | null;
-  responsibleUser: {
+  responsibleUserIds?: string[];
+  responsibleUsers?: {
+    id: string;
     firstName: string;
     lastName: string;
-  } | null;
+  }[];
   reservationLeadTime: number | null; // NEW: Add reservationLeadTime to Space interface
   maxReservationDuration: number | null; // NEW: Add maxReservationDuration to Space interface
   requiresSpaceReservationWithEquipment: boolean; // NEW: Add this field
@@ -56,7 +57,7 @@ export default function AdminSpacesPage() {
   const [form, setForm] = useState({
     name: '',
     description: '',
-    responsibleUserId: '',
+    responsibleUserIds: [] as string[],
     reservationLeadTime: '',
     maxReservationDuration: '', // NEW: Initialize this field
     requiresSpaceReservationWithEquipment: false, // NEW: Initialize this field
@@ -177,7 +178,7 @@ export default function AdminSpacesPage() {
     setForm({
       name: space?.name || '',
       description: space?.description || '',
-      responsibleUserId: (user && user.role === 'ADMIN_RESOURCE' && !space) ? user.id : space?.responsibleUserId || '',
+      responsibleUserIds: space ? (space.responsibleUsers?.map(u => u.id) || []) : (user && user.role === 'ADMIN_RESOURCE' ? [user.id] : []),
       reservationLeadTime: space?.reservationLeadTime?.toString() || '',
       maxReservationDuration: space?.maxReservationDuration ? (space.maxReservationDuration / 60).toString() : '', // Convert minutes to hours
       requiresSpaceReservationWithEquipment: space?.requiresSpaceReservationWithEquipment || false, // NEW: Initialize this field
@@ -197,7 +198,7 @@ export default function AdminSpacesPage() {
     setForm({
       name: `${space.name} (Copia)`,
       description: space.description || '',
-      responsibleUserId: space.responsibleUserId || '',
+      responsibleUserIds: space.responsibleUsers?.map(u => u.id) || [],
       reservationLeadTime: space.reservationLeadTime?.toString() || '',
       maxReservationDuration: space.maxReservationDuration ? (space.maxReservationDuration / 60).toString() : '',
       requiresSpaceReservationWithEquipment: space.requiresSpaceReservationWithEquipment || false,
@@ -217,7 +218,7 @@ export default function AdminSpacesPage() {
     setForm({
       name: '',
       description: '',
-      responsibleUserId: '',
+      responsibleUserIds: [],
       reservationLeadTime: '',
       maxReservationDuration: '', // NEW: Reset this field
       requiresSpaceReservationWithEquipment: false, // NEW: Reset this field
@@ -233,6 +234,11 @@ export default function AdminSpacesPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : (name === 'reservationLeadTime' ? (value === '' ? null : parseInt(value, 10)) : (value === '' ? null : value))
     }));
+  };
+
+  const handleResponsibleUsersChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(e.target.selectedOptions).map(option => option.value);
+    setForm(prev => ({ ...prev, responsibleUserIds: selectedOptions }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -586,8 +592,8 @@ export default function AdminSpacesPage() {
                     )}
                   </td>
                   <td>
-                    {space.responsibleUser
-                      ? `${space.responsibleUser.firstName} ${space.responsibleUser.lastName}`
+                    {space.responsibleUsers && space.responsibleUsers.length > 0
+                      ? space.responsibleUsers.map(u => `${u.firstName} ${u.lastName}`).join(', ')
                       : 'N/A'}
                   </td>
                   <td>
@@ -739,7 +745,7 @@ export default function AdminSpacesPage() {
               {user?.role === 'ADMIN_RESOURCE' ? (
                 <Form.Control
                   type="text"
-                  value={currentSpace ? `${currentSpace.responsibleUser?.firstName || ''} ${currentSpace.responsibleUser?.lastName || ''}`.trim() : (`${user.firstName || ''} ${user.lastName || ''}`).trim()}
+                  value={currentSpace ? (currentSpace.responsibleUsers?.map(u => `${u.firstName} ${u.lastName}`).join(', ') || '') : (`${user.firstName || ''} ${user.lastName || ''}`).trim()}
                   readOnly
                   disabled
                 />
@@ -751,11 +757,12 @@ export default function AdminSpacesPage() {
                     <Alert variant="danger">Error al cargar responsables</Alert>
                   ) : (
                     <Form.Select
-                      name="responsibleUserId"
-                      value={form.responsibleUserId || ''}
-                      onChange={handleChange}
+                      name="responsibleUserIds"
+                      multiple
+                      value={form.responsibleUserIds}
+                      onChange={handleResponsibleUsersChange}
+                      style={{ minHeight: '120px' }}
                     >
-                      <option value="">-- Ninguno --</option>
                       {responsibleUsers.map(rUser => (
                         <option key={rUser.id} value={rUser.id}>
                           {rUser.firstName} {rUser.lastName} ({rUser.email})

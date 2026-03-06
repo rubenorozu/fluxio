@@ -57,19 +57,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
   try {
     await prisma.$transaction(async (tx) => {
-      // Nullify responsible user fields
-      await tx.space.updateMany({
-        where: { responsibleUserId: userIdToDelete },
-        data: { responsibleUserId: null },
-      });
-      await tx.equipment.updateMany({
-        where: { responsibleUserId: userIdToDelete },
-        data: { responsibleUserId: null },
-      });
-      await tx.workshop.updateMany({
-        where: { responsibleUserId: userIdToDelete },
-        data: { responsibleUserId: null },
-      });
+      // Prisma handles many-to-many cascading automatically for responsibleUsers
 
       // Delete dependent records
       await tx.notification.deleteMany({

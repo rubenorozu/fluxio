@@ -39,7 +39,9 @@ export async function GET(request: Request) {
     const whereClause: Prisma.SpaceWhereInput = {};
 
     if (session.user.role === Role.ADMIN_RESOURCE) {
-      whereClause.responsibleUserId = session.user.id;
+      whereClause.responsibleUsers = {
+        some: { id: session.user.id }
+      };
     }
 
     // When searching, fetch more results and filter in memory for accent-insensitive search
@@ -50,8 +52,9 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         images: true,
-        responsibleUser: {
+        responsibleUsers: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           }
@@ -70,14 +73,12 @@ export async function GET(request: Request) {
     if (search) {
       const normalizedSearch = normalizeText(search);
       filteredSpaces = spaces.filter(space => {
-        const responsibleName = (space as any).responsibleUser
-          ? `${(space as any).responsibleUser.firstName} ${(space as any).responsibleUser.lastName}`
-          : '';
+        const responsibleNames = (space as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join(', ');
         const searchableText = [
           space.name || '',
           space.description || '',
           space.displayId || '',
-          responsibleName,
+          responsibleNames,
         ].join(' ');
         return normalizeText(searchableText).includes(normalizedSearch);
       });
@@ -107,15 +108,17 @@ export async function POST(request: Request) {
   const prisma = getTenantPrisma(tenant.id);
 
   try {
-    const { name, description, responsibleUserId, images, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment } = await request.json();
+    const { name, description, responsibleUserIds, images, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment, regulationsUrl } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del espacio es obligatorio.' }, { status: 400 });
     }
 
-    let finalResponsibleUserId = responsibleUserId;
+    let finalResponsibleUserIds = responsibleUserIds || [];
     if (session.user.role === Role.ADMIN_RESOURCE) {
-      finalResponsibleUserId = session.user.id;
+      if (!finalResponsibleUserIds.includes(session.user.id)) {
+        finalResponsibleUserIds.push(session.user.id);
+      }
     }
 
     let displayId: string;
@@ -136,14 +139,15 @@ export async function POST(request: Request) {
         displayId,
         name,
         description,
-        ...(finalResponsibleUserId && {
-          responsibleUser: {
-            connect: { id: finalResponsibleUserId }
+        ...(finalResponsibleUserIds.length > 0 && {
+          responsibleUsers: {
+            connect: finalResponsibleUserIds.map((id: string) => ({ id }))
           }
         }),
         reservationLeadTime: reservationLeadTime || null, // Guardar el tiempo de antelación específico del espacio
         maxReservationDuration: maxReservationDuration || null, // Guardar la duración máxima específica del espacio
         requiresSpaceReservationWithEquipment: requiresSpaceReservationWithEquipment ?? false, // Guardar si el espacio requiere reserva con equipo
+        regulationsUrl: regulationsUrl || null, // Guardar el reglamento en PDF
         images: {
           create: images, // Prisma creará las imágenes y las conectará
         },

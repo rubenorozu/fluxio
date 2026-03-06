@@ -92,7 +92,7 @@ export async function POST(request: Request) {
                             ? parseBoolean(row.inscripciones_abiertas)
                             : true,
                         tenantId: tenant.id,
-                        responsibleUserId,
+                        ...(responsibleUserId ? { responsibleUsers: { connect: [{ id: responsibleUserId }] } } : {}),
                     },
                 });
 

@@ -26,10 +26,10 @@ export async function POST(request: Request, { params }: { params: { id: string 
       where: { id: reservationId },
       include: {
         space: {
-          select: { responsibleUserId: true }
+          include: { responsibleUsers: { select: { id: true } } }
         },
         equipment: {
-          select: { responsibleUserId: true }
+          include: { responsibleUsers: { select: { id: true } } }
         }
       }
     });
@@ -40,8 +40,10 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     // If ADMIN_RESERVATION, check if they are responsible for the resource
     if (session.user.role === Role.ADMIN_RESERVATION) {
-      const responsibleUserId = (existingReservation as any).space?.responsibleUserId || (existingReservation as any).equipment?.responsibleUserId;
-      if (!responsibleUserId || responsibleUserId !== session.user.id) {
+      const responsibleUsers = (existingReservation as any).space?.responsibleUsers || (existingReservation as any).equipment?.responsibleUsers;
+      const isResponsible = responsibleUsers?.some((u: { id: string }) => u.id === session.user.id);
+
+      if (!isResponsible) {
         return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este recurso.' }, { status: 403 });
       }
     }

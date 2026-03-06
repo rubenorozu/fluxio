@@ -33,6 +33,7 @@ interface ResourceDetail {
   reservationLeadTime?: number | null; // Added
   isFixedToSpace?: boolean; // Added
   requiresSpaceReservationWithEquipment?: boolean; // Added
+  regulationsUrl?: string | null; // Added
 }
 
 interface WorkshopSession {
@@ -203,6 +204,14 @@ export default function ResourceDetailPage() {
       )}
       {resource.type === 'workshop' && resource.capacity && resource.capacity > 0 && (
         <p className="card-text"><strong>Capacidad:</strong> {resource.capacity} {resource._count?.inscriptions ? `(${resource._count.inscriptions} inscritos)` : ''}</p>
+      )}
+      {resource.regulationsUrl && (
+        <p className="card-text">
+          <strong>Reglamento:</strong>{' '}
+          <a href={resource.regulationsUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-info ms-2">
+            Ver Reglamento (PDF)
+          </a>
+        </p>
       )}
 
       {resource.type === 'workshop' && resource.sessions && resource.sessions.length > 0 && (

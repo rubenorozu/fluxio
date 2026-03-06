@@ -19,6 +19,7 @@ interface SpaceDetail {
   images: Image[];
   reservationLeadTime?: number | null;
   requiresSpaceReservationWithEquipment?: boolean; // NEW: Add this field
+  regulationsUrl?: string | null; // Added
 }
 
 interface EquipmentResource {
@@ -86,54 +87,55 @@ export default function SpaceDetailPage() {
   };
 
   const handleAddSpaceAndEquipmentToCart = () => {
-        if (!space) return;
-    
-        setIsAddingToCart(true);
-        // If the space requires reservation with equipment, add the space itself.
-        if (space.requiresSpaceReservationWithEquipment) {
-          addToCart({ 
-            id: space.id, 
-            name: space.name, 
-            type: 'space', 
-            description: space.description, 
-            images: space.images,
-            reservationLeadTime: space.reservationLeadTime
-          });
-        }
-        
-        // Add only the selected equipment
-        spaceEquipment.forEach(eq => {
-          if (selectedEquipment.includes(eq.id)) {
-            addToCart({
-              id: eq.id,
-              name: eq.name,
-              type: 'equipment',
-              description: eq.description,
-              images: eq.images,
-              reservationLeadTime: eq.reservationLeadTime,
-              isFixedToSpace: eq.isFixedToSpace
-            });
-          }
+    if (!space) return;
+
+    setIsAddingToCart(true);
+    // If the space requires reservation with equipment, add the space itself.
+    if (space.requiresSpaceReservationWithEquipment) {
+      addToCart({
+        id: space.id,
+        name: space.name,
+        type: 'space',
+        description: space.description,
+        images: space.images,
+        reservationLeadTime: space.reservationLeadTime
+      });
+    }
+
+    // Add only the selected equipment
+    spaceEquipment.forEach(eq => {
+      if (selectedEquipment.includes(eq.id)) {
+        addToCart({
+          id: eq.id,
+          name: eq.name,
+          type: 'equipment',
+          description: eq.description,
+          images: eq.images,
+          reservationLeadTime: eq.reservationLeadTime,
+          isFixedToSpace: eq.isFixedToSpace
         });
-    
-        // Determine the appropriate alert message based on space type and selected equipment
-        let alertMessage: string;
-        if (!space.requiresSpaceReservationWithEquipment) {
-          // Case 2: Individual equipment from a container space (e.g., computer lab)
-          alertMessage = 'Equipo añadido al carrito.';
-        } else {
-          // Case 1: Space with optional equipment (e.g., TV studio)
-          if (selectedEquipment.length === 0) {
-            // Only the space was added (no equipment selected)
-            alertMessage = 'Espacio añadido al carrito.';
-          } else {
-            // Space and some equipment were added
-            alertMessage = 'Espacio y equipos añadidos al carrito.';
-          }
-        }
-    
-        alert(alertMessage);
-        setIsAddingToCart(false);  };
+      }
+    });
+
+    // Determine the appropriate alert message based on space type and selected equipment
+    let alertMessage: string;
+    if (!space.requiresSpaceReservationWithEquipment) {
+      // Case 2: Individual equipment from a container space (e.g., computer lab)
+      alertMessage = 'Equipo añadido al carrito.';
+    } else {
+      // Case 1: Space with optional equipment (e.g., TV studio)
+      if (selectedEquipment.length === 0) {
+        // Only the space was added (no equipment selected)
+        alertMessage = 'Espacio añadido al carrito.';
+      } else {
+        // Space and some equipment were added
+        alertMessage = 'Espacio y equipos añadidos al carrito.';
+      }
+    }
+
+    alert(alertMessage);
+    setIsAddingToCart(false);
+  };
 
   if (loading) {
     return <Container className="mt-5 text-center"><Spinner animation="border" /><p>Cargando detalles del espacio...</p></Container>;
@@ -159,6 +161,14 @@ export default function SpaceDetailPage() {
       <p>{space.description}</p>
       {space.reservationLeadTime !== null && (
         <p><strong>Tiempo de Antelación de Reserva:</strong> {space.reservationLeadTime} horas</p>
+      )}
+      {space.regulationsUrl && (
+        <p className="mt-3">
+          <strong>Reglamento:</strong>{' '}
+          <a href={space.regulationsUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-info ms-2">
+            Ver Reglamento (PDF)
+          </a>
+        </p>
       )}
 
       {spaceEquipment.length > 0 && (

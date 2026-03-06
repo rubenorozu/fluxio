@@ -16,7 +16,7 @@ export default function NewWorkshopPage() {
   const [inscriptionsStartDate, setInscriptionsStartDate] = useState('');
   const [workshopSessions, setWorkshopSessions] = useState([{ dayOfWeek: 1, timeStart: '09:00', timeEnd: '10:00', room: '' }]);
   const [users, setUsers] = useState<{ id: string; firstName: string; lastName: string; email: string; role: string }[]>([]);
-  const [responsibleUserId, setResponsibleUserId] = useState('');
+  const [responsibleUserIds, setResponsibleUserIds] = useState<string[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -117,7 +117,7 @@ export default function NewWorkshopPage() {
           endDate: endDate ? new Date(endDate).toISOString() : null,
           inscriptionsStartDate: inscriptionsStartDate ? new Date(inscriptionsStartDate).toISOString() : null,
           teacher,
-          responsibleUserId,
+          responsibleUserIds,
           images: imageUrls,
           sessions: workshopSessions.map(session => ({
             dayOfWeek: session.dayOfWeek,
@@ -140,15 +140,15 @@ export default function NewWorkshopPage() {
       setEndDate('');
       setInscriptionsStartDate('');
       setWorkshopSessions([{ dayOfWeek: 1, timeStart: '', timeEnd: '', room: '' }]);
-      setResponsibleUserId('');
+      setResponsibleUserIds([]);
       setImageFile(null);
       router.push('/admin/workshops');
     } catch (err: unknown) {
-        if (err instanceof Error) {
-            setError(err.message);
-        } else {
-            setError('An unknown error occurred');
-        }
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
     }
   };
 
@@ -306,18 +306,28 @@ export default function NewWorkshopPage() {
           </button>
         </div>
         <div className="mb-3">
-          <label htmlFor="responsibleUser" className="form-label">Encargado</label>
+          <label htmlFor="responsibleUsers" className="form-label">Encargados</label>
           <select
+            multiple
             className="form-select"
-            id="responsibleUser"
-            value={responsibleUserId}
-            onChange={(e) => setResponsibleUserId(e.target.value)}
+            id="responsibleUsers"
+            value={responsibleUserIds}
+            onChange={(e) => {
+              const options = e.target.options;
+              const selected: string[] = [];
+              for (let i = 0; i < options.length; i++) {
+                if (options[i].selected) {
+                  selected.push(options[i].value);
+                }
+              }
+              setResponsibleUserIds(selected);
+            }}
           >
-            <option value="">Selecciona un encargado</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>{user.firstName} {user.lastName} ({user.email})</option>
             ))}
           </select>
+          <small className="text-muted">Mantén presionado Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples encargados.</small>
         </div>
         <div className="mb-3">
           <label htmlFor="imageFile" className="form-label">Imagen del Taller (opcional)</label>

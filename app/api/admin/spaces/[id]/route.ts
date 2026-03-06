@@ -17,20 +17,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
   try {
     const space = await prisma.space.findUnique({
       where: { id: spaceId },
-      select: {
-        id: true,
-        name: true,
-        description: true,
+      include: {
         images: true,
-        responsibleUserId: true,
-        reservationLeadTime: true,
-        maxReservationDuration: true, // NEW: Include this field
-        requiresSpaceReservationWithEquipment: true, // NEW: Include this field
-        createdAt: true,
-        updatedAt: true,
-        status: true,
-        displayId: true,
-        responsibleUser: {
+        responsibleUsers: {
           select: {
             id: true,
             firstName: true,
@@ -51,7 +40,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Espacio no encontrado.' }, { status: 404 });
     }
 
-    if (session.user.role === Role.ADMIN_RESOURCE && space.responsibleUserId !== session.user.id) {
+    if (session.user.role === Role.ADMIN_RESOURCE && !space.responsibleUsers.some(u => u.id === session.user.id)) {
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este espacio.' }, { status: 403 });
     }
 
@@ -75,17 +64,18 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   try {
     const existingSpace = await prisma.space.findUnique({
       where: { id: spaceId },
+      include: { responsibleUsers: true }
     });
 
     if (!existingSpace) {
       return NextResponse.json({ error: 'Espacio no encontrado.' }, { status: 404 });
     }
 
-    if (session.user.role === Role.ADMIN_RESOURCE && existingSpace.responsibleUserId !== session.user.id) {
+    if (session.user.role === Role.ADMIN_RESOURCE && !existingSpace.responsibleUsers.some(u => u.id === session.user.id)) {
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este espacio.' }, { status: 403 });
     }
 
-    const { name, description, images, responsibleUserId, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment } = await request.json(); // Añadir 'images', 'reservationLeadTime', 'maxReservationDuration' y 'requiresSpaceReservationWithEquipment'
+    const { name, description, images, responsibleUserIds, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment, regulationsUrl } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del espacio es obligatorio.' }, { status: 400 });
@@ -96,39 +86,29 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       data: {
         name,
         description,
-        ...(responsibleUserId
-          ? { responsibleUser: { connect: { id: responsibleUserId } } }
-          : { responsibleUser: { disconnect: true } }
-        ),
-        reservationLeadTime: reservationLeadTime || null, // Guardar el tiempo de antelación específico del espacio
-        maxReservationDuration: maxReservationDuration || null, // Guardar la duración máxima específica del espacio
-        requiresSpaceReservationWithEquipment: requiresSpaceReservationWithEquipment ?? false, // Guardar si el espacio requiere reserva con equipo
-        images: {
-          // Eliminar imágenes existentes y crear nuevas
-          deleteMany: {},
-          create: images.map((img: { url: string }) => ({ url: img.url })),
+        responsibleUsers: {
+          set: (responsibleUserIds || []).map((id: string) => ({ id }))
         },
-        ...(requirementIds && {
-          requirements: {
-            set: requirementIds.map((id: string) => ({ id }))
-          }
-        })
+        reservationLeadTime: reservationLeadTime || null,
+        maxReservationDuration: maxReservationDuration || null,
+        requiresSpaceReservationWithEquipment: requiresSpaceReservationWithEquipment ?? false,
+        regulationsUrl: regulationsUrl || null,
+        images: {
+          deleteMany: {},
+          create: (images || []).map((img: { url: string }) => ({ url: img.url })),
+        },
+        requirements: {
+          set: (requirementIds || []).map((id: string) => ({ id }))
+        }
       },
-      include: { images: true, requirements: true }, // Incluir las imágenes en la respuesta
+      include: { images: true, requirements: true, responsibleUsers: true },
     });
 
     return NextResponse.json(updatedSpace, { status: 200 });
   } catch (error) {
     console.error('Error al actualizar el espacio:', error);
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as PrismaError).code === 'P2025') {
-      return NextResponse.json({ error: 'Espacio no encontrado para actualizar.' }, { status: 404 });
-    }
     return NextResponse.json({ error: 'No se pudo actualizar el espacio.' }, { status: 500 });
   }
-}
-
-interface PrismaError extends Error {
-  code?: string;
 }
 
 // DELETE: Eliminar un espacio por ID
@@ -144,13 +124,14 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   try {
     const existingSpace = await prisma.space.findUnique({
       where: { id: spaceId },
+      include: { responsibleUsers: true }
     });
 
     if (!existingSpace) {
       return NextResponse.json({ error: 'Espacio no encontrado.' }, { status: 404 });
     }
 
-    if (session.user.role === Role.ADMIN_RESOURCE && existingSpace.responsibleUserId !== session.user.id) {
+    if (session.user.role === Role.ADMIN_RESOURCE && !existingSpace.responsibleUsers.some(u => u.id === session.user.id)) {
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este espacio.' }, { status: 403 });
     }
 
@@ -161,9 +142,6 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return NextResponse.json({ message: 'Espacio eliminado correctamente.' }, { status: 200 });
   } catch (error) {
     console.error('Error al eliminar el espacio:', error);
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as PrismaError).code === 'P2025') {
-      return NextResponse.json({ error: 'Espacio no encontrado para eliminar.' }, { status: 404 });
-    }
-    return NextResponse.json({ error: 'No se pudo eliminar el espacio. Es posible que tenga reservas asociadas que deben ser eliminadas o reasignadas primero.' }, { status: 500 });
+    return NextResponse.json({ error: 'No se pudo eliminar el espacio.' }, { status: 500 });
   }
 }

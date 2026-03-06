@@ -12,11 +12,12 @@ export default function NewEquipmentPage() {
   const [serialNumber, setSerialNumber] = useState('');
   const [fixedAssetId, setFixedAssetId] = useState('');
   const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
-  const [responsibleUserId, setResponsibleUserId] = useState('');
+  const [responsibleUserIds, setResponsibleUserIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [regulationsFile, setRegulationsFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (sessionLoading) return;
@@ -52,20 +53,42 @@ export default function NewEquipmentPage() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('description', description);
-    formData.append('serialNumber', serialNumber);
-    formData.append('fixedAssetId', fixedAssetId);
-    formData.append('responsibleUserId', responsibleUserId);
-    if (imageFile) {
-      formData.append('imageFile', imageFile);
-    }
+    let imageUrls: string[] = [];
+    let regulationsUrl = null;
 
     try {
+      if (imageFile) {
+        const imageFormData = new FormData();
+        imageFormData.append('files', imageFile);
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: imageFormData });
+        if (!uploadRes.ok) throw new Error('Error al subir la imagen.');
+        const uploadData = await uploadRes.json();
+        imageUrls = uploadData.urls;
+      }
+
+      if (regulationsFile) {
+        const regsFormData = new FormData();
+        regsFormData.append('files', regulationsFile);
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: regsFormData });
+        if (!uploadRes.ok) throw new Error('Error al subir el reglamento.');
+        const uploadData = await uploadRes.json();
+        regulationsUrl = uploadData.urls[0];
+      }
+
       const res = await fetch('/api/admin/equipment', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          serialNumber,
+          fixedAssetId,
+          responsibleUserIds,
+          images: imageUrls.map(url => ({ url })),
+          regulationsUrl,
+        }),
       });
 
       if (!res.ok) {
@@ -80,11 +103,11 @@ export default function NewEquipmentPage() {
       setFixedAssetId('');
       router.push('/admin/equipment');
     } catch (err: unknown) {
-        if (err instanceof Error) {
-            setError(err.message);
-        } else {
-            setError('An unknown error occurred');
-        }
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
     }
   };
 
@@ -137,27 +160,37 @@ export default function NewEquipmentPage() {
           />
         </div>
         <div className="mb-3">
-          <label htmlFor="responsibleUser" className="form-label">Encargado</label>
+          <label htmlFor="responsibleUsers" className="form-label">Encargados</label>
           <select
+            multiple
             className="form-select"
-            id="responsibleUser"
-            value={responsibleUserId}
-            onChange={(e) => setResponsibleUserId(e.target.value)}
+            id="responsibleUsers"
+            value={responsibleUserIds}
+            onChange={(e) => {
+              const options = e.target.options;
+              const selected: string[] = [];
+              for (let i = 0; i < options.length; i++) {
+                if (options[i].selected) {
+                  selected.push(options[i].value);
+                }
+              }
+              setResponsibleUserIds(selected);
+            }}
           >
-            <option value="">Selecciona un encargado</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
             ))}
           </select>
+          <small className="text-muted">Mantén presionado Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples encargados.</small>
         </div>
         <div className="mb-3">
-          <label htmlFor="imageFile" className="form-label">Imagen del Equipo (opcional)</label>
+          <label htmlFor="regulationsFile" className="form-label">Reglamento (PDF opcional)</label>
           <input
             type="file"
             className="form-control"
-            id="imageFile"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+            id="regulationsFile"
+            accept="application/pdf"
+            onChange={(e) => setRegulationsFile(e.target.files ? e.target.files[0] : null)}
           />
         </div>
         <button type="submit" className="btn btn-primary" style={{ backgroundColor: '#0076A8', borderColor: '#0076A8' }}>

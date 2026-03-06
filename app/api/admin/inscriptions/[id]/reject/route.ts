@@ -16,14 +16,18 @@ export async function POST(request: Request, { params }: { params: { id: string 
   try {
     const inscription = await prisma.inscription.findUnique({
       where: { id: inscriptionId },
-      include: { workshop: { select: { responsibleUserId: true } } },
+      include: {
+        workshop: {
+          include: { responsibleUsers: { select: { id: true } } }
+        }
+      },
     });
 
     if (!inscription) {
       return NextResponse.json({ error: 'Inscripción no encontrada.' }, { status: 404 });
     }
 
-    if (session.user.role !== Role.SUPERUSER && inscription.workshop.responsibleUserId !== session.user.id) {
+    if (session.user.role !== Role.SUPERUSER && !inscription.workshop.responsibleUsers.some(u => u.id === session.user.id)) {
       return NextResponse.json({ error: 'No tienes permisos para rechazar esta inscripción.' }, { status: 403 });
     }
     const updatedInscription = await prisma.inscription.update({

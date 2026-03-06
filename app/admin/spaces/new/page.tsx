@@ -10,8 +10,9 @@ export default function NewSpacePage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [regulationsFile, setRegulationsFile] = useState<File | null>(null);
   const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
-  const [responsibleUserId, setResponsibleUserId] = useState('');
+  const [responsibleUserIds, setResponsibleUserIds] = useState<string[]>([]);
   const [maxReservationDuration, setMaxReservationDuration] = useState<string>('');
   const [reservationLeadTime, setReservationLeadTime] = useState<string>('');
   const [requiresSpaceReservationWithEquipment, setRequiresSpaceReservationWithEquipment] = useState(false);
@@ -54,6 +55,7 @@ export default function NewSpacePage() {
     }
 
     let imageUrls: string[] = [];
+    let regulationsUrl = null;
 
     if (imageFile) {
       try {
@@ -77,11 +79,33 @@ export default function NewSpacePage() {
       }
     }
 
+    if (regulationsFile) {
+      try {
+        const regsFormData = new FormData();
+        regsFormData.append('files', regulationsFile);
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: regsFormData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Error al subir el reglamento.');
+        }
+
+        const uploadData = await uploadRes.json();
+        regulationsUrl = uploadData.urls[0];
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido al subir el reglamento.');
+        return;
+      }
+    }
+
     try {
       const spaceData = {
         name,
         description,
-        responsibleUserId,
+        responsibleUserIds,
         maxReservationDuration: maxReservationDuration && !isNaN(parseFloat(maxReservationDuration))
           ? parseFloat(maxReservationDuration) * 60
           : null,
@@ -89,6 +113,7 @@ export default function NewSpacePage() {
           ? parseFloat(reservationLeadTime) * 60 // Convert hours to minutes
           : null,
         requiresSpaceReservationWithEquipment: requiresSpaceReservationWithEquipment,
+        regulationsUrl,
         images: imageUrls.map(url => ({ url })), // Estructura para Prisma
       };
 
@@ -108,11 +133,12 @@ export default function NewSpacePage() {
       setSuccess('Espacio creado con éxito!');
       setName('');
       setDescription('');
-      setResponsibleUserId('');
+      setResponsibleUserIds([]);
       setImageFile(null);
       setMaxReservationDuration('');
       setReservationLeadTime('');
       setRequiresSpaceReservationWithEquipment(false);
+      setRegulationsFile(null);
       router.push('/admin/spaces');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido al crear el espacio.');
@@ -148,32 +174,28 @@ export default function NewSpacePage() {
           ></textarea>
         </div>
         <div className="mb-3">
-          <label htmlFor="responsibleUser" className="form-label">Encargado</label>
+          <label htmlFor="responsibleUsers" className="form-label">Encargados</label>
           <select
+            multiple
             className="form-select"
-            id="responsibleUser"
-            value={responsibleUserId}
-            onChange={(e) => setResponsibleUserId(e.target.value)}
+            id="responsibleUsers"
+            value={responsibleUserIds}
+            onChange={(e) => {
+              const options = e.target.options;
+              const selected: string[] = [];
+              for (let i = 0; i < options.length; i++) {
+                if (options[i].selected) {
+                  selected.push(options[i].value);
+                }
+              }
+              setResponsibleUserIds(selected);
+            }}
           >
-            <option value="">Selecciona un encargado</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
             ))}
           </select>
-        </div>
-        <div className="mb-3">
-          <label htmlFor="maxReservationDuration" className="form-label">Duración Máxima de Reserva (horas)</label>
-          <input
-            type="number"
-            step="0.5"
-            min="0"
-            className="form-control"
-            id="maxReservationDuration"
-            placeholder="Ej: 4 (dejar vacío para sin límite)"
-            value={maxReservationDuration}
-            onChange={(e) => setMaxReservationDuration(e.target.value)}
-          />
-          <small className="text-muted">Si se deja vacío o en 0, no habrá límite de tiempo para este equipo.</small>
+          <small className="text-muted">Mantén presionado Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples encargados.</small>
         </div>
         <div className="mb-3">
           <label htmlFor="maxReservationDuration" className="form-label">Duración Máxima de Reserva (horas)</label>
@@ -215,13 +237,13 @@ export default function NewSpacePage() {
           </label>
         </div>
         <div className="mb-3">
-          <label htmlFor="imageFile" className="form-label">Imagen del Espacio (opcional)</label>
+          <label htmlFor="regulationsFile" className="form-label">Reglamento (PDF opcional)</label>
           <input
             type="file"
             className="form-control"
-            id="imageFile"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+            id="regulationsFile"
+            accept="application/pdf"
+            onChange={(e) => setRegulationsFile(e.target.files ? e.target.files[0] : null)}
           />
         </div>
         <button type="submit" className="btn btn-primary" style={{ backgroundColor: '#0076A8', borderColor: '#0076A8' }}>

@@ -19,6 +19,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: tenant?.config?.siteName || tenant?.name || "Fluxio RSV",
     description: "Aplicación para la gestión y reserva de espacios y equipos.",
+    manifest: '/manifest.json',
+    themeColor: '#000000',
+    viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: tenant?.config?.siteName || tenant?.name || "Fluxio RSV",
+    },
     icons: {
       icon: tenant?.config?.faviconUrl || '/assets/FaviconFluxioRSV.svg',
       shortcut: tenant?.config?.faviconUrl || '/assets/FaviconFluxioRSV.svg',

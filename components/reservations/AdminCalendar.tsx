@@ -35,7 +35,7 @@ interface AdminCalendarProps {
   spaceId?: string;
   equipmentId?: string;
   role?: Role;
-  responsibleUserId?: string | null;
+  responsibleUsers?: { id: string }[] | null;
 }
 
 interface CalendarEvent extends BigCalendarEvent {
@@ -53,7 +53,7 @@ const customFormats = {
     localizer.format(start, 'HH:mm', culture) + ' - ' + localizer.format(end, 'HH:mm', culture),
 };
 
-export default function AdminCalendar({ spaceId, equipmentId, role, responsibleUserId }: AdminCalendarProps) {
+export default function AdminCalendar({ spaceId, equipmentId, role, responsibleUsers }: AdminCalendarProps) {
   const { user: currentUser } = useSession();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [view, setView] = useState('week');
@@ -66,7 +66,7 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
   const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(null); // NEW: Stores the event to be deleted
 
   const isViewer = role === Role.CALENDAR_VIEWER;
-  const isEditable = !isViewer && (currentUser?.role === Role.SUPERUSER || currentUser?.id === responsibleUserId);
+  const isEditable = !isViewer && (currentUser?.role === Role.SUPERUSER || (responsibleUsers && currentUser && responsibleUsers.some(u => u.id === currentUser.id)));
 
 
   const onNavigate = useCallback((newDate: Date) => setDate(newDate), [setDate]);
@@ -290,8 +290,8 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
   if (selectedEvent && currentUser && !isViewer) {
     const reservation = selectedEvent.fullReservation;
     const isResponsible = (currentUser.role === Role.ADMIN_RESERVATION || currentUser.role === Role.ADMIN_RESOURCE) &&
-      (reservation.space?.responsibleUserId === currentUser.id ||
-        reservation.equipment?.responsibleUserId === currentUser.id);
+      (reservation.space?.responsibleUsers?.some((u: any) => u.id === currentUser.id) ||
+        reservation.equipment?.responsibleUsers?.some((u: any) => u.id === currentUser.id));
     canApproveReject = currentUser.role === Role.SUPERUSER || isResponsible;
   }
 

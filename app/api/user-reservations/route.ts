@@ -188,6 +188,58 @@ export async function POST(request: Request) {
       return resList;
     });
 
+    // Create notifications for responsible admins
+    try {
+      // Get unique responsible user IDs from the created reservations
+      const resourceOwners = await Promise.all(
+        createdReservations.map(async (res: any) => {
+          if (res.spaceId) {
+            const space = await prisma.space.findUnique({
+              where: { id: res.spaceId },
+              select: {
+                responsibleUsers: { select: { id: true } },
+                name: true
+              }
+            });
+            return space?.responsibleUsers ? space.responsibleUsers.map(u => ({ userId: u.id, resourceName: space.name })) : [];
+          } else if (res.equipmentId) {
+            const equipment = await prisma.equipment.findUnique({
+              where: { id: res.equipmentId },
+              select: {
+                responsibleUsers: { select: { id: true } },
+                name: true
+              }
+            });
+            return equipment?.responsibleUsers ? equipment.responsibleUsers.map(u => ({ userId: u.id, resourceName: equipment.name })) : [];
+          }
+          return null;
+        })
+      );
+
+      // Flatten the array of arrays and filter duplicates
+      const allNotifications: { userId: string, resourceName: string }[] = [];
+      resourceOwners.flat().forEach(owner => {
+        if (!allNotifications.some(n => n.userId === owner.userId && n.resourceName === owner.resourceName)) {
+          allNotifications.push(owner);
+        }
+      });
+
+      for (const owner of allNotifications) {
+        if (owner) {
+          await prisma.notification.create({
+            data: {
+              recipientId: owner.userId,
+              message: `Nueva reservación pendiente para su revisión: ${owner.resourceName}`,
+              reservationId: createdReservations[0].id // Link to at least one reservation in the batch
+            }
+          });
+        }
+      }
+    } catch (notifyError) {
+      console.error("Error creating admin notifications:", notifyError);
+      // Don't fail the request if notifications fail
+    }
+
     return NextResponse.json(createdReservations, { status: 201 });
 
   } catch (error) {

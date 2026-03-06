@@ -61,8 +61,8 @@ export async function GET(request: Request) {
         teacher: true,
         status: true,
         user: { select: { id: true, firstName: true, lastName: true, email: true } },
-        space: { select: { id: true, name: true, responsibleUserId: true } },
-        equipment: { select: { id: true, name: true, responsibleUserId: true, space: { select: { id: true, name: true } } } },
+        space: { select: { id: true, name: true, responsibleUsers: { select: { id: true } } } },
+        equipment: { select: { id: true, name: true, responsibleUsers: { select: { id: true } }, space: { select: { id: true, name: true } } } },
         documents: { select: { id: true, fileName: true, filePath: true } },
       },
       orderBy: {

@@ -58,12 +58,12 @@ export async function GET(request: NextRequest) {
         },
         space: {
           select: {
-            responsibleUserId: true,
+            responsibleUsers: { select: { id: true } },
           },
         },
         equipment: {
           select: {
-            responsibleUserId: true,
+            responsibleUsers: { select: { id: true } },
           },
         },
       },
@@ -100,12 +100,12 @@ export async function POST(request: NextRequest) {
     if (session.user.role === Role.ADMIN_RESOURCE || session.user.role === Role.ADMIN_RESERVATION) {
       let resource;
       if (spaceId) {
-        resource = await prisma.space.findUnique({ where: { id: spaceId } });
+        resource = await prisma.space.findUnique({ where: { id: spaceId }, include: { responsibleUsers: { select: { id: true } } } });
       } else if (equipmentId) {
-        resource = await prisma.equipment.findUnique({ where: { id: equipmentId } });
+        resource = await prisma.equipment.findUnique({ where: { id: equipmentId }, include: { responsibleUsers: { select: { id: true } } } });
       }
 
-      if (!resource || resource.responsibleUserId !== session.user.id) {
+      if (!resource || !resource.responsibleUsers.some((u: any) => u.id === session.user.id)) {
         return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este recurso.' }, { status: 403 });
       }
     }

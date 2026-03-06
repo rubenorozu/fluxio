@@ -19,7 +19,7 @@ interface Workshop {
   description: string | null;
   imageUrl: string | null;
   images: { url: string }[]; // Añadido para manejar múltiples imágenes
-  responsibleUserId: string | null;
+  responsibleUsers?: { id: string }[];
   availableFrom: string | null;
   teacher: string | null; // Añadido
   startDate: string | null; // Añadido
@@ -48,7 +48,7 @@ export default function EditWorkshopPage() {
   const [workshopSessions, setWorkshopSessions] = useState<WorkshopSession[]>([]); // Añadido
   const [currentImageUrls, setCurrentImageUrls] = useState<string[]>([]); // Para URLs de imágenes existentes
   const [users, setUsers] = useState<User[]>([]);
-  const [responsibleUserId, setResponsibleUserId] = useState('');
+  const [responsibleUserIds, setResponsibleUserIds] = useState<string[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null); // Para una nueva imagen
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -115,7 +115,7 @@ export default function EditWorkshopPage() {
         setName(data.name);
         setDescription(data.description || '');
         setTeacher(data.teacher || '');
-        setResponsibleUserId(data.responsibleUserId || '');
+        setResponsibleUserIds(data.responsibleUsers?.map(u => u.id) || []);
         setAvailableFrom(data.availableFrom ? new Date(data.availableFrom).toISOString().split('T')[0] : '');
         setStartDate(data.startDate ? new Date(data.startDate).toISOString().split('T')[0] : '');
         setEndDate(data.endDate ? new Date(data.endDate).toISOString().split('T')[0] : '');
@@ -152,39 +152,58 @@ export default function EditWorkshopPage() {
 
     const token = localStorage.getItem('token');
 
-    const formData = new FormData(); // Restaurado
-    formData.append('name', name);
-    formData.append('description', description);
-    formData.append('teacher', teacher);
-    formData.append('availableFrom', availableFrom ? new Date(availableFrom).toISOString() : '');
-    formData.append('startDate', startDate ? new Date(startDate).toISOString() : '');
-    formData.append('endDate', endDate ? new Date(endDate).toISOString() : '');
-    formData.append('inscriptionsStartDate', inscriptionsStartDate ? new Date(inscriptionsStartDate).toISOString() : '');
-    formData.append('responsibleUserId', responsibleUserId);
-
-    // Añadir sesiones serializadas
-    const sessionsJson = JSON.stringify(workshopSessions);
-    formData.append('sessions', sessionsJson);
-
-    // Añadir URLs de imágenes existentes
-    currentImageUrls.forEach(url => {
-      formData.append('existingImages[]', url);
-    });
-
-    // Añadir nuevas imágenes (si hay)
+    const imageUrls: { url: string }[] = [...currentImageUrls.map(url => ({ url }))];
     if (imageFile) {
-      formData.append('newImages', imageFile);
-    }
+      const imageFormData = new FormData();
+      imageFormData.append('file', imageFile);
 
-    // --- FIN DE DEPURACIÓN ---
+      try {
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: imageFormData,
+        });
+
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json();
+          throw new Error(errorData.message || 'Error al subir la imagen.');
+        }
+        const uploadData = await uploadRes.json();
+        // Replace current image
+        imageUrls[0] = { url: uploadData.url };
+      } catch (uploadError: unknown) {
+        if (uploadError instanceof Error) {
+          setError(`Error al subir la imagen: ${uploadError.message}`);
+        } else {
+          setError('Ocurrió un error desconocido al subir la imagen.');
+        }
+        return;
+      }
+    }
 
     try {
       const res = await fetch(`/api/admin/workshops/${id}`, {
         method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: formData,
+        body: JSON.stringify({
+          name,
+          description,
+          teacher,
+          availableFrom: availableFrom ? new Date(availableFrom).toISOString() : null,
+          startDate: startDate ? new Date(startDate).toISOString() : null,
+          endDate: endDate ? new Date(endDate).toISOString() : null,
+          inscriptionsStartDate: inscriptionsStartDate ? new Date(inscriptionsStartDate).toISOString() : null,
+          responsibleUserIds,
+          images: imageUrls,
+          sessions: workshopSessions.map(session => ({
+            dayOfWeek: session.dayOfWeek,
+            timeStart: session.timeStart,
+            timeEnd: session.timeEnd,
+            room: session.room,
+          })),
+        }),
       });
 
       if (!res.ok) {
@@ -366,18 +385,28 @@ export default function EditWorkshopPage() {
           </button>
         </div>
         <div className="mb-3">
-          <label htmlFor="responsibleUser" className="form-label">Encargado</label>
+          <label htmlFor="responsibleUsers" className="form-label">Encargados</label>
           <select
+            multiple
             className="form-select"
-            id="responsibleUser"
-            value={responsibleUserId}
-            onChange={(e) => setResponsibleUserId(e.target.value)}
+            id="responsibleUsers"
+            value={responsibleUserIds}
+            onChange={(e) => {
+              const options = e.target.options;
+              const selected: string[] = [];
+              for (let i = 0; i < options.length; i++) {
+                if (options[i].selected) {
+                  selected.push(options[i].value);
+                }
+              }
+              setResponsibleUserIds(selected);
+            }}
           >
-            <option value="">Selecciona un encargado</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>{user.firstName} {user.lastName} ({user.email})</option>
             ))}
           </select>
+          <small className="text-muted">Mantén presionado Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples encargados.</small>
         </div>
         <div className="mb-3">
           <label htmlFor="imageFile" className="form-label">Imagen del Taller (opcional)</label>

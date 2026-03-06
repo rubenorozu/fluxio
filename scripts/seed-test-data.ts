@@ -48,7 +48,7 @@ async function main() {
                     name: `Espacio ${i} - ${tenant.name}`,
                     description: `Descripción del espacio ${i} para ${tenant.name}`,
                     status: 'AVAILABLE',
-                    responsibleUserId: users[0].id, // Asignar al primer usuario (admin)
+                    responsibleUsers: { connect: [{ id: users[0].id }] }, // Asignar al primer usuario (admin)
                     tenantId: tenant.id,
                 },
             });
@@ -68,7 +68,7 @@ async function main() {
                     fixedAssetId: `FA-${tenant.slug.toUpperCase()}-${timestamp}-${String(i).padStart(4, '0')}`,
                     status: 'AVAILABLE',
                     spaceId: spaces[i % 5].id, // Distribuir equipos entre espacios
-                    responsibleUserId: users[0].id,
+                    responsibleUsers: { connect: [{ id: users[0].id }] },
                     tenantId: tenant.id,
                 },
             });
@@ -90,7 +90,7 @@ async function main() {
                     startDate: new Date(2024, 0, 1 + i),
                     endDate: new Date(2024, 11, 31),
                     inscriptionsOpen: true,
-                    responsibleUserId: users[0].id,
+                    responsibleUsers: { connect: [{ id: users[0].id }] },
                     tenantId: tenant.id,
                 },
             });

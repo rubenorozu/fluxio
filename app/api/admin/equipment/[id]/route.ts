@@ -1,3 +1,4 @@
+
 import { Role } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
@@ -16,14 +17,24 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     const equipment = await prisma.equipment.findUnique({
       where: { id: equipmentId },
-      include: { images: true }, // Incluir las imágenes relacionadas
+      include: {
+        images: true,
+        responsibleUsers: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          }
+        }
+      },
     });
 
     if (!equipment) {
       return NextResponse.json({ error: 'Equipo no encontrado.' }, { status: 404 });
     }
 
-    if (session.user.role === Role.ADMIN_RESOURCE && equipment.responsibleUserId !== session.user.id) {
+    if (session.user.role === Role.ADMIN_RESOURCE && !equipment.responsibleUsers.some(u => u.id === session.user.id)) {
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este equipo.' }, { status: 403 });
     }
 
@@ -47,17 +58,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     const existingEquipment = await prisma.equipment.findUnique({
       where: { id: equipmentId },
+      include: { responsibleUsers: true }
     });
 
     if (!existingEquipment) {
       return NextResponse.json({ error: 'Equipo no encontrado.' }, { status: 404 });
     }
 
-    if (session.user.role === Role.ADMIN_RESOURCE && existingEquipment.responsibleUserId !== session.user.id) {
+    if (session.user.role === Role.ADMIN_RESOURCE && !existingEquipment.responsibleUsers.some(u => u.id === session.user.id)) {
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este equipo.' }, { status: 403 });
     }
 
-    const { name, description, serialNumber, fixedAssetId, images, responsibleUserId, spaceId, reservationLeadTime, isFixedToSpace } = await request.json();
+    const { name, description, serialNumber, fixedAssetId, images, responsibleUserIds, spaceId, reservationLeadTime, isFixedToSpace, regulationsUrl } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del equipo es obligatorio.' }, { status: 400 });
@@ -70,31 +82,26 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         description,
         serialNumber,
         fixedAssetId,
-        responsibleUserId: responsibleUserId || null,
-        spaceId: spaceId || null, // Add spaceId here
-        reservationLeadTime: reservationLeadTime || null, // Guardar el tiempo de antelación específico del equipo
-        isFixedToSpace: isFixedToSpace ?? false, // Guardar si el equipo está fijo al espacio
+        responsibleUsers: {
+          set: (responsibleUserIds || []).map((id: string) => ({ id }))
+        },
+        spaceId: spaceId || null,
+        reservationLeadTime: reservationLeadTime || null,
+        isFixedToSpace: isFixedToSpace ?? false,
+        regulationsUrl: regulationsUrl || null,
         images: {
-          // Eliminar imágenes existentes y crear nuevas
           deleteMany: {},
-          create: images.map((img: { url: string }) => ({ url: img.url })),
+          create: (images || []).map((img: { url: string }) => ({ url: img.url })),
         },
       },
-      include: { images: true }, // Incluir las imágenes en la respuesta
+      include: { images: true, responsibleUsers: true },
     });
 
     return NextResponse.json(updatedEquipment, { status: 200 });
   } catch (error) {
     console.error('Error al actualizar el equipo:', error);
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as PrismaError).code === 'P2025') {
-      return NextResponse.json({ error: 'Equipo no encontrado para actualizar.' }, { status: 404 });
-    }
     return NextResponse.json({ error: 'No se pudo actualizar el equipo.' }, { status: 500 });
   }
-}
-
-interface PrismaError extends Error {
-  code?: string;
 }
 
 // DELETE: Eliminar un equipo por ID
@@ -110,13 +117,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const existingEquipment = await prisma.equipment.findUnique({
       where: { id: equipmentId },
+      include: { responsibleUsers: true }
     });
 
     if (!existingEquipment) {
       return NextResponse.json({ error: 'Equipo no encontrado.' }, { status: 404 });
     }
 
-    if (session.user.role === Role.ADMIN_RESOURCE && existingEquipment.responsibleUserId !== session.user.id) {
+    if (session.user.role === Role.ADMIN_RESOURCE && !existingEquipment.responsibleUsers.some(u => u.id === session.user.id)) {
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este equipo.' }, { status: 403 });
     }
 
@@ -127,9 +135,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     return NextResponse.json({ message: 'Equipo eliminado correctamente.' }, { status: 200 });
   } catch (error) {
     console.error('Error al eliminar el equipo:', error);
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as PrismaError).code === 'P2025') {
-      return NextResponse.json({ error: 'Equipo no encontrado para eliminar.' }, { status: 404 });
-    }
-    return NextResponse.json({ error: 'No se pudo eliminar el equipo. Es posible que tenga reservas asociadas que deben ser eliminadas o reasignadas primero.' }, { status: 500 });
+    return NextResponse.json({ error: 'No se pudo eliminar el equipo.' }, { status: 500 });
   }
 }

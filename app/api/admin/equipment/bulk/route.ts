@@ -24,7 +24,11 @@ export async function DELETE(request: Request) {
       const equipmentToDelete = await prisma.equipment.findMany({
         where: {
           id: { in: ids },
-          responsibleUserId: session.user.id,
+          responsibleUsers: {
+            some: {
+              id: session.user.id,
+            },
+          },
         },
         select: { id: true },
       });

@@ -31,6 +31,7 @@ interface Resource {
   reservationLeadTime?: number | null;
   isFixedToSpace?: boolean; // NEW: Add isFixedToSpace to Resource interface
   requiresSpaceReservationWithEquipment?: boolean; // NEW: Add this field
+  regulationsUrl?: string | null; // Added
   _count?: {
     inscriptions?: number;
     equipments?: number;

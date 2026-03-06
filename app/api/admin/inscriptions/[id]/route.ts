@@ -16,14 +16,14 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   try {
     const inscription = await prisma.inscription.findUnique({
       where: { id: inscriptionId },
-      include: { workshop: { select: { responsibleUserId: true } } },
+      include: { workshop: { select: { responsibleUsers: { select: { id: true } } } } },
     });
 
     if (!inscription) {
       return NextResponse.json({ error: 'Inscripción no encontrada.' }, { status: 404 });
     }
 
-    if (session.user.role !== Role.SUPERUSER && inscription.workshop.responsibleUserId !== session.user.id) {
+    if (session.user.role !== Role.SUPERUSER && !inscription.workshop.responsibleUsers.some((u: { id: string }) => u.id === session.user.id)) {
       return NextResponse.json({ error: 'No tienes permisos para eliminar esta inscripción.' }, { status: 403 });
     }
     await prisma.inscription.delete({

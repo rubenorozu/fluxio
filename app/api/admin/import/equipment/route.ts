@@ -104,7 +104,7 @@ export async function POST(request: Request) {
                         status: status as 'AVAILABLE' | 'IN_MAINTENANCE',
                         tenantId: tenant.id,
                         spaceId,
-                        responsibleUserId,
+                        ...(responsibleUserId ? { responsibleUsers: { connect: [{ id: responsibleUserId }] } } : {}),
                         isFixedToSpace: row.fijo_a_espacio ? parseBoolean(row.fijo_a_espacio) : false,
                         reservationLeadTime: row.tiempo_anticipacion
                             ? parseInt(String(row.tiempo_anticipacion))

@@ -41,7 +41,7 @@ export async function GET(request: Request) {
         }
       };
 
-      const intervalId = setInterval(sendNotifications, 5000); // Poll every 5 seconds
+      const intervalId = setInterval(sendNotifications, 30000); // Poll every 30 seconds
 
       request.signal.addEventListener('abort', () => {
         clearInterval(intervalId);

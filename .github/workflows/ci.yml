@@ -7,7 +7,19 @@ on:
     branches: [ "main" ]
 
 env:
+  # Variables de entorno dummy para que el build de Next.js pueda
+  # pre-analizar las rutas de API sin fallar.
+  # Los valores reales se configuran en Vercel como secretos.
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/dummy"
+  DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/dummy"
+  JWT_SECRET: "ci-dummy-jwt-secret-not-for-production"
+  RESEND_API_KEY: "re_dummy"
+  EMAIL_FROM: "CI <ci@localhost>"
+  ADMIN_EMAIL: "ci@localhost"
+  NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-anon-key"
+  SUPABASE_SERVICE_ROLE_KEY: "dummy-service-role-key"
+  NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
   HUSKY: "0"
 
 jobs:

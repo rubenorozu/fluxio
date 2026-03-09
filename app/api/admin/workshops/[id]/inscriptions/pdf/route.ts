@@ -83,12 +83,12 @@ export async function GET(request: Request, { params }: Params) {
         const bytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV2.png'));
         topLogo = await pdfDoc.embedPng(bytes);
       }
-      topLogoDims = topLogo.scale(0.25 * 0.6);
+      topLogoDims = topLogo.scale(0.25 * 0.4);
     } catch (e) {
       console.error('Error loading top logo, using default:', e);
       const bytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV2.png'));
       topLogo = await pdfDoc.embedPng(bytes);
-      topLogoDims = topLogo.scale(0.25 * 0.6);
+      topLogoDims = topLogo.scale(0.25 * 0.4);
     }
 
     // Cargar logo inferior (ej: UNIVA) - abajo derecha

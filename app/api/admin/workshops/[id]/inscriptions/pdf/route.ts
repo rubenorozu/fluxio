@@ -63,13 +63,55 @@ export async function GET(request: Request, { params }: Params) {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Cargar Logos
-    const fluxioLogo2Bytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV2.png'));
-    const fluxioLogoBytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV.png'));
-    const fluxioLogo2 = await pdfDoc.embedPng(fluxioLogo2Bytes);
-    const fluxioLogo = await pdfDoc.embedPng(fluxioLogoBytes);
-    const fluxioLogo2Dims = fluxioLogo2.scale(0.25 * 0.6);
-    const fluxioLogoDims = fluxioLogo.scale(0.25 * 0.4);
+    // Obtener configuración del tenant para los logos del PDF
+    const tenantConfig = await prisma.tenantConfig.findUnique({
+      where: { tenantId: tenant.id },
+      select: { pdfTopLogoUrl: true, pdfBottomLogoUrl: true },
+    });
+
+    // Cargar logo superior (tenant logo, ej: CEPROA) - arriba izquierda
+    let topLogo;
+    let topLogoDims;
+    try {
+      if (tenantConfig?.pdfTopLogoUrl) {
+        const res = await fetch(tenantConfig.pdfTopLogoUrl);
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        topLogo = tenantConfig.pdfTopLogoUrl.toLowerCase().endsWith('.jpg') || tenantConfig.pdfTopLogoUrl.toLowerCase().endsWith('.jpeg')
+          ? await pdfDoc.embedJpg(bytes)
+          : await pdfDoc.embedPng(bytes);
+      } else {
+        const bytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV2.png'));
+        topLogo = await pdfDoc.embedPng(bytes);
+      }
+      topLogoDims = topLogo.scale(0.25 * 0.6);
+    } catch (e) {
+      console.error('Error loading top logo, using default:', e);
+      const bytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV2.png'));
+      topLogo = await pdfDoc.embedPng(bytes);
+      topLogoDims = topLogo.scale(0.25 * 0.6);
+    }
+
+    // Cargar logo inferior (ej: UNIVA) - abajo derecha
+    let bottomLogo;
+    let bottomLogoDims;
+    try {
+      if (tenantConfig?.pdfBottomLogoUrl) {
+        const res = await fetch(tenantConfig.pdfBottomLogoUrl);
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        bottomLogo = tenantConfig.pdfBottomLogoUrl.toLowerCase().endsWith('.jpg') || tenantConfig.pdfBottomLogoUrl.toLowerCase().endsWith('.jpeg')
+          ? await pdfDoc.embedJpg(bytes)
+          : await pdfDoc.embedPng(bytes);
+      } else {
+        const bytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV.png'));
+        bottomLogo = await pdfDoc.embedPng(bytes);
+      }
+      bottomLogoDims = bottomLogo.scale(0.25 * 0.4);
+    } catch (e) {
+      console.error('Error loading bottom logo, using default:', e);
+      const bytes = await fs.readFile(path.join(process.cwd(), 'public/assets/FluxioRSV.png'));
+      bottomLogo = await pdfDoc.embedPng(bytes);
+      bottomLogoDims = bottomLogo.scale(0.25 * 0.4);
+    }
 
     const tableLeft = 50;
     const tableRight = 792 - 50;
@@ -82,7 +124,7 @@ export async function GET(request: Request, { params }: Params) {
       const { width, height } = page.getSize();
       const tableTop = height - 120;
       // --- Encabezado ---
-      page.drawImage(fluxioLogo2, { x: 50, y: height - 60, width: fluxioLogo2Dims.width, height: fluxioLogo2Dims.height });
+      page.drawImage(topLogo, { x: 50, y: height - 60, width: topLogoDims.width, height: topLogoDims.height });
 
       const responsibleList = (workshop as any).responsibleUsers || [];
       const teacherName = workshop.teacher || (responsibleList.length > 0 ? `${responsibleList[0].firstName} ${responsibleList[0].lastName}` : 'N/A');
@@ -104,12 +146,12 @@ export async function GET(request: Request, { params }: Params) {
         size: 14,
       });
 
-      // --- Pie de Página ---
-      page.drawImage(fluxioLogo, {
-        x: width - 50 - fluxioLogoDims.width,
-        y: height - 60,
-        width: fluxioLogoDims.width,
-        height: fluxioLogoDims.height
+      // --- Logo inferior (ej: UNIVA) en pie de página ---
+      page.drawImage(bottomLogo, {
+        x: width - 50 - bottomLogoDims.width,
+        y: 15,
+        width: bottomLogoDims.width,
+        height: bottomLogoDims.height
       });
 
       // --- Formatted Schedule ---
@@ -136,7 +178,7 @@ export async function GET(request: Request, { params }: Params) {
       });
 
       page.drawText('HORARIO', { x: 50, y: 80, font: boldFont, size: 10 });
-      page.drawLine({ start: { x: 50, y: 75 }, end: { x: width - 50 - fluxioLogoDims.width - 10, y: 75 }, thickness: 0.5 });
+      page.drawLine({ start: { x: 50, y: 75 }, end: { x: width - 50 - bottomLogoDims.width - 10, y: 75 }, thickness: 0.5 });
 
       // Draw table header and grid
       const headerY = tableTop - 13;

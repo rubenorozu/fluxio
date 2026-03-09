@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    // Linting se ejecuta por separado en GitHub Actions CI.
+    // Esto evita que el build de Vercel falle por warnings de ESLint.
+    ignoreDuringBuilds: true,
+  },
   transpilePackages: ['@react-pdf/renderer'],
   images: {
     remotePatterns: [

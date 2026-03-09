@@ -38,12 +38,11 @@ export async function DELETE(request: Request) {
       }
     }
 
-    // Delete related WorkshopSession records first to satisfy foreign key constraint
-    await prisma.workshopSession.deleteMany({
-      where: {
-        workshopId: { in: ids },
-      },
-    });
+    // Delete related records first to satisfy foreign key constraints
+    await prisma.workshopSession.deleteMany({ where: { workshopId: { in: ids } } });
+    await prisma.image.deleteMany({ where: { workshopId: { in: ids } } });
+    await prisma.inscription.deleteMany({ where: { workshopId: { in: ids } } });
+    await prisma.report.deleteMany({ where: { workshopId: { in: ids } } });
 
     const deleteResult = await prisma.workshop.deleteMany({
       where: {

@@ -143,6 +143,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     // Eliminar imágenes asociadas
     await prisma.image.deleteMany({ where: { workshopId: id } });
 
+    // Eliminar inscripciones asociadas
+    await prisma.inscription.deleteMany({ where: { workshopId: id } });
+
+    // Eliminar reportes asociados
+    await prisma.report.deleteMany({ where: { workshopId: id } });
+
     // Eliminar el taller
     await prisma.workshop.delete({ where: { id } });
 

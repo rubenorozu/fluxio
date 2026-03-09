@@ -1,5 +1,5 @@
 
-import { detectTenant } from './lib/tenant/detection';
+import { detectTenant } from '../lib/tenant/detection';
 
 async function main() {
     console.log('Testing detectTenant...');

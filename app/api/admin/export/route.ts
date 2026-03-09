@@ -81,7 +81,7 @@ export async function GET(request: Request) {
             id: true,
             displayId: true,
             name: true,
-            responsibleUser: {
+            responsibleUsers: {
               select: {
                 firstName: true,
                 lastName: true,
@@ -94,7 +94,7 @@ export async function GET(request: Request) {
         const spaceCsvRows = [];
         spaceCsvRows.push('"ID del espacio","Nombre del espacio","Encargado"');
         for (const space of spaces) {
-          const responsibleName = (space as any).responsibleUser ? `${(space as any).responsibleUser.firstName} ${(space as any).responsibleUser.lastName}` : 'N/A';
+          const responsibleName = (space as any).responsibleUsers?.length > 0 ? (space as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join(', ') : 'N/A';
           spaceCsvRows.push(
             `"${space.displayId || space.id}",` +
             `"${space.name.replace(/"/g, '""')}",` +
@@ -118,7 +118,7 @@ export async function GET(request: Request) {
             name: true,
             serialNumber: true,
             fixedAssetId: true,
-            responsibleUser: {
+            responsibleUsers: {
               select: {
                 firstName: true,
                 lastName: true,
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
         const equipmentCsvRows = [];
         equipmentCsvRows.push('"ID del equipo","Nombre","Número de serie","Activo fijo","Responsable"');
         for (const equipment of equipmentList) {
-          const responsibleName = (equipment as any).responsibleUser ? `${(equipment as any).responsibleUser.firstName} ${(equipment as any).responsibleUser.lastName}` : 'N/A';
+          const responsibleName = (equipment as any).responsibleUsers?.length > 0 ? (equipment as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join(', ') : 'N/A';
           equipmentCsvRows.push(
             `"${equipment.displayId || equipment.id}",` +
             `"${equipment.name.replace(/"/g, '""')}",` +
@@ -158,7 +158,7 @@ export async function GET(request: Request) {
             teacher: true,
             startDate: true,
             endDate: true,
-            responsibleUser: {
+            responsibleUsers: {
               select: {
                 firstName: true,
                 lastName: true,
@@ -179,7 +179,7 @@ export async function GET(request: Request) {
         const workshopCsvRows = [];
         workshopCsvRows.push('"ID del taller","Nombre del taller","Responsable","Maestro","Descripción","Fecha de inicio","Fecha de finalización","Sesiones"');
         for (const workshop of workshopsList) {
-          const responsibleName = (workshop as any).responsibleUser ? `${(workshop as any).responsibleUser.firstName} ${(workshop as any).responsibleUser.lastName}` : 'N/A';
+          const responsibleName = (workshop as any).responsibleUsers?.length > 0 ? (workshop as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join(', ') : 'N/A';
           const sessions = (workshop as any).sessions.map((session: any) => {
             const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
             return `${days[session.dayOfWeek]} ${session.timeStart}-${session.timeEnd}${session.room ? ` (${session.room})` : ''}`;

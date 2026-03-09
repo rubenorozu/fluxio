@@ -41,7 +41,7 @@ export async function GET(request: Request, { params }: Params) {
     const workshop = await prisma.workshop.findUnique({
       where: { id },
       include: {
-        responsibleUser: { select: { firstName: true, lastName: true } },
+        responsibleUsers: { select: { firstName: true, lastName: true } },
         sessions: true,
         inscriptions: {
           where: { status: 'APPROVED' },
@@ -84,7 +84,8 @@ export async function GET(request: Request, { params }: Params) {
       // --- Encabezado ---
       page.drawImage(fluxioLogo2, { x: 50, y: height - 60, width: fluxioLogo2Dims.width, height: fluxioLogo2Dims.height });
 
-      const teacherName = workshop.teacher || ((workshop as any).responsibleUser ? `${(workshop as any).responsibleUser.firstName} ${(workshop as any).responsibleUser.lastName}` : 'N/A');
+      const responsibleList = (workshop as any).responsibleUsers || [];
+      const teacherName = workshop.teacher || (responsibleList.length > 0 ? `${responsibleList[0].firstName} ${responsibleList[0].lastName}` : 'N/A');
       const teacherText = `MAESTRO/A: ${teacherName}`.toUpperCase();
       const teacherTextWidth = boldFont.widthOfTextAtSize(teacherText, 10);
       page.drawText(teacherText, {

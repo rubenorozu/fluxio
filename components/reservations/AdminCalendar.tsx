@@ -291,11 +291,17 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
 
   let canApproveReject = false;
   if (selectedEvent && currentUser && !isViewer) {
-    const reservation = selectedEvent.fullReservation;
-    const isResponsible = (currentUser.role === Role.ADMIN_RESERVATION || currentUser.role === Role.ADMIN_RESOURCE) &&
-      (reservation.space?.responsibleUsers?.some((u: any) => u.id === currentUser.id) ||
-        reservation.equipment?.responsibleUsers?.some((u: any) => u.id === currentUser.id));
-    canApproveReject = currentUser.role === Role.SUPERUSER || isResponsible;
+    if (selectedEvent.isBlock) {
+      // For blocks (recurring or admin), use isEditable which already checks role + responsibility
+      canApproveReject = isEditable;
+    } else {
+      // For regular reservations, check responsibility on the reservation's resource
+      const reservation = selectedEvent.fullReservation;
+      const isResponsible = (currentUser.role === Role.ADMIN_RESERVATION || currentUser.role === Role.ADMIN_RESOURCE) &&
+        (reservation.space?.responsibleUsers?.some((u: any) => u.id === currentUser.id) ||
+          reservation.equipment?.responsibleUsers?.some((u: any) => u.id === currentUser.id));
+      canApproveReject = currentUser.role === Role.SUPERUSER || isResponsible;
+    }
   }
 
   const handleCloseRecurringBlockModal = useCallback(() => {

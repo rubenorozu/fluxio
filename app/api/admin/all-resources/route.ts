@@ -24,6 +24,7 @@ export async function GET() {
           displayId: true,
           description: true,
           status: true,
+          responsibleUsers: { select: { id: true } },
         },
         orderBy: { name: 'asc' },
       }),
@@ -34,6 +35,7 @@ export async function GET() {
           displayId: true,
           description: true,
           status: true,
+          responsibleUsers: { select: { id: true } },
         },
         orderBy: { name: 'asc' },
       })

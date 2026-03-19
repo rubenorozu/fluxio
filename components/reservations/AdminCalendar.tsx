@@ -66,7 +66,10 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
   const [eventToDelete, setEventToDelete] = useState<CalendarEvent | null>(null); // NEW: Stores the event to be deleted
 
   const isViewer = role === Role.CALENDAR_VIEWER;
-  const isEditable = !isViewer && (currentUser?.role === Role.SUPERUSER || (responsibleUsers && currentUser && responsibleUsers.some(u => u.id === currentUser.id)));
+  const isResponsibleUser = responsibleUsers && currentUser && responsibleUsers.some(u => u.id === currentUser.id);
+  const isEditable = !isViewer && (currentUser?.role === Role.SUPERUSER || (
+    (currentUser?.role === Role.ADMIN_RESOURCE || currentUser?.role === Role.ADMIN_RESERVATION) && isResponsibleUser
+  ));
 
 
   const onNavigate = useCallback((newDate: Date) => setDate(newDate), [setDate]);

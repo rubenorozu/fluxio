@@ -218,8 +218,8 @@ export async function POST(request: Request) {
 
       // Flatten the array of arrays and filter duplicates
       const allNotifications: { userId: string, resourceName: string }[] = [];
-      resourceOwners.flat().forEach(owner => {
-        if (!allNotifications.some(n => n.userId === owner.userId && n.resourceName === owner.resourceName)) {
+      resourceOwners.flat().filter(Boolean).forEach(owner => {
+        if (owner && !allNotifications.some(n => n.userId === owner.userId && n.resourceName === owner.resourceName)) {
           allNotifications.push(owner);
         }
       });

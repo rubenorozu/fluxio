@@ -54,6 +54,14 @@ export default function RecurringBlockModal({ show, handleClose, onSave, initial
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Helper to format a Date as 'YYYY-MM-DD' in LOCAL timezone (avoids UTC shift from toISOString)
+  const formatLocalDate = (d: Date): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     const fetchResources = async () => {
       setLoadingResources(true);
@@ -121,8 +129,8 @@ export default function RecurringBlockModal({ show, handleClose, onSave, initial
       setForm({
         title: '',
         description: '',
-        startDate: start.toISOString().split('T')[0],
-        endDate: end.toISOString().split('T')[0],
+        startDate: formatLocalDate(start),
+        endDate: formatLocalDate(end),
         startTime: start.toTimeString().slice(0, 5),
         endTime: end.toTimeString().slice(0, 5),
         dayOfWeek: [start.getDay()],

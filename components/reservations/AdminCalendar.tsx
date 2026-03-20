@@ -157,9 +157,16 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
               const instanceEndDate = new Date(current.getFullYear(), current.getMonth(), current.getDate(), parseInt(endHour), parseInt(endMinute));
 
               // Ensure the event falls within the recurring block's overall start and end dates
-              // Normalize block.endDate to the end of that day to prevent time-mismatch hiding single-day blocks
-              const blockEndDate = endOfDay(new Date(block.endDate));
-              if (instanceStartDate >= new Date(block.startDate) && instanceEndDate <= blockEndDate) {
+              // IMPORTANT: Parse block dates using UTC components to avoid timezone shift.
+              // new Date("2026-03-20T00:00:00.000Z") in CST becomes March 19 18:00 CST,
+              // so we extract UTC year/month/day and build a local date instead.
+              const toLocalDate = (dateStr: string | Date) => {
+                const d = new Date(dateStr);
+                return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+              };
+              const blockStartDate = toLocalDate(block.startDate);
+              const blockEndDate = endOfDay(toLocalDate(block.endDate));
+              if (instanceStartDate >= blockStartDate && instanceEndDate <= blockEndDate) {
                 // Check if this specific instance is an exception
                 const isExcepted = exceptions.some(
                   (ex: any) =>

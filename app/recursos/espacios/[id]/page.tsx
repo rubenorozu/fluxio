@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Container, Spinner, Alert, Button, FormCheck } from 'react-bootstrap';
+import { Container, Spinner, Alert, Button, FormCheck, Modal } from 'react-bootstrap';
 import { useCart } from '@/context/CartContext';
 import Link from 'next/link';
-import ReportModal from '@/components/ReportModal'; // Import ReportModal
+import ReportModal from '@/components/ReportModal';
+import AvailabilityCalendar from '@/components/public/AvailabilityCalendar'; // Import ReportModal
 
 interface Image {
   id: string;
@@ -41,7 +42,8 @@ export default function SpaceDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false); // State for ReportModal
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false); // State for ReportModal
 
   // Fetch space details and associated equipment
   useEffect(() => {
@@ -185,8 +187,14 @@ export default function SpaceDetailPage() {
               onChange={() => handleToggleEquipmentSelection(eq.id)}
             />
           ))}
-          <div className="d-flex justify-content-end mt-3">
-            <Button variant="primary" onClick={handleAddSpaceAndEquipmentToCart} disabled={isAddingToCart || loading} className="me-2">
+          <div className="d-flex justify-content-end mt-3 gap-2">
+            <Button
+              variant="outline-primary"
+              onClick={() => setShowAvailabilityModal(true)}
+            >
+              📅 Consultar Disponibilidad
+            </Button>
+            <Button variant="primary" onClick={handleAddSpaceAndEquipmentToCart} disabled={isAddingToCart || loading}>
               {isAddingToCart ? 'Añadiendo al Carrito...' : 'Agregar Espacio y Equipos al Carrito'}
             </Button>
             <Button variant="outline-danger" onClick={() => setShowReportModal(true)}>
@@ -197,12 +205,43 @@ export default function SpaceDetailPage() {
       )}
 
       {spaceEquipment.length === 0 && (
-        <div className="d-flex justify-content-end mt-3">
+        <div className="d-flex justify-content-end mt-3 gap-2">
+          <Button
+            variant="outline-primary"
+            onClick={() => setShowAvailabilityModal(true)}
+          >
+            📅 Consultar Disponibilidad
+          </Button>
           <Button variant="outline-danger" onClick={() => setShowReportModal(true)}>
             Reportar un problema
           </Button>
         </div>
       )}
+
+      <Modal 
+        show={showAvailabilityModal} 
+        onHide={() => setShowAvailabilityModal(false)} 
+        size="lg" 
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Disponibilidad de {space.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0">
+          <div className="p-3">
+             <p className="text-muted small mb-3">
+              Consulta los horarios ocupados y bloqueos institucionales antes de realizar tu solicitud.
+              Las franjas de color indican que el recurso ya está comprometido.
+            </p>
+            <AvailabilityCalendar resourceId={space.id} resourceType="space" />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAvailabilityModal(false)}>
+            Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {space && (
         <ReportModal

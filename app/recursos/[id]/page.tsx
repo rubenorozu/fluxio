@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { Container, Row, Col, Spinner, Alert, Carousel, Button } from 'react-bootstrap';
+import { Container, Row, Col, Spinner, Alert, Carousel, Button, Modal } from 'react-bootstrap';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import ReportModal from '@/components/ReportModal';
+import AvailabilityCalendar from '@/components/public/AvailabilityCalendar';
 
 interface Image {
   id: string;
@@ -53,6 +54,7 @@ export default function ResourceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const type = searchParams.get('type');
 
 
@@ -275,6 +277,13 @@ export default function ResourceDetailPage() {
         ) : (
           (resource.type === 'space' || resource.type === 'equipment') ? (
             <>
+              <Button
+                variant="outline-primary"
+                onClick={() => setShowAvailabilityModal(true)}
+                className="me-2"
+              >
+                📅 Consultar Disponibilidad
+              </Button>
               <Button variant="primary" onClick={() => addToCart({
                 id: resource.id,
                 name: resource.name,
@@ -296,6 +305,35 @@ export default function ResourceDetailPage() {
         )}
 
       </div>
+
+      <Modal 
+        show={showAvailabilityModal} 
+        onHide={() => setShowAvailabilityModal(false)} 
+        size="lg" 
+        centered
+        className="availability-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Disponibilidad de {resource.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0">
+          <div className="p-3">
+            <p className="text-muted small mb-3">
+              Consulta los horarios ocupados y bloqueos institucionales antes de realizar tu solicitud.
+              Las franjas de color indican que el recurso ya está comprometido.
+            </p>
+            <AvailabilityCalendar 
+              resourceId={resource.id} 
+              resourceType={resource.type as 'space' | 'equipment'} 
+            />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAvailabilityModal(false)}>
+            Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {resource && (
         <ReportModal

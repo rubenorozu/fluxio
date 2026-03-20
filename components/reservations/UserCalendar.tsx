@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Calendar, dateFnsLocalizer, Event as BigCalendarEvent } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth, startOfDay, endOfDay, endOfWeek } from 'date-fns';
+import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth, startOfDay, endOfDay, endOfWeek, addDays } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { Reservation, ReservationStatus } from '@prisma/client';
 
@@ -88,25 +88,35 @@ export default function UserCalendar() {
           let current = new Date(viewStart);
 
           while (current <= viewEnd) {
-            if (current.getDay() === block.dayOfWeek) {
+            // Parse dayOfWeek as array (API returns it as array, but fallback if string)
+            const blockDays = typeof block.dayOfWeek === 'string' ? JSON.parse(block.dayOfWeek) : block.dayOfWeek;
+            if (Array.isArray(blockDays) && blockDays.includes(current.getDay())) {
               const [startHour, startMinute] = block.startTime.split(':');
               const [endHour, endMinute] = block.endTime.split(':');
-              const startDate = new Date(current.getFullYear(), current.getMonth(), current.getDate(), startHour, startMinute);
-              const endDate = new Date(current.getFullYear(), current.getMonth(), current.getDate(), endHour, endMinute);
+              const startDate = new Date(current.getFullYear(), current.getMonth(), current.getDate(), parseInt(startHour), parseInt(startMinute));
+              const endDate = new Date(current.getFullYear(), current.getMonth(), current.getDate(), parseInt(endHour), parseInt(endMinute));
 
-              if (startDate >= new Date(block.startDate) && endDate <= new Date(block.endDate)) {
+              // Parse block dates using UTC components to avoid timezone shift
+              const toLocalDate = (dateStr: string | Date) => {
+                const d = new Date(dateStr);
+                return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+              };
+              const blockStartDate = toLocalDate(block.startDate);
+              const blockEndDate = endOfDay(toLocalDate(block.endDate));
+
+              if (startDate >= blockStartDate && endDate <= blockEndDate) {
                 events.push({
                   id: `recurring-${block.id}-${current.toISOString()}`,
                   title: block.title,
                   start: startDate,
                   end: endDate,
-                  status: 'APPROVED', // Treat recurring blocks as approved reservations
+                  status: 'APPROVED',
                   isBlock: true,
                   fullReservation: { ...block, user: { firstName: 'Bloqueo', lastName: 'Recurrente' } },
                 });
               }
             }
-            current.setDate(current.getDate() + 1);
+            current = addDays(current, 1);
           }
           return events;
         });
@@ -126,7 +136,7 @@ export default function UserCalendar() {
   }, [fetchEvents]);
 
   const eventStyleGetter = (event: CalendarEvent) => {
-    let backgroundColor = '#3174ad'; // Blue for approved
+    let backgroundColor = '#28a745'; // Green for approved
     if (event.isBlock) {
       backgroundColor = '#d9534f'; // Red for blocks
     } else if (event.status === 'PENDING') {

@@ -44,8 +44,11 @@ export async function GET(request: Request) {
     }
 
     if (startStr && endStr) {
-      reservationWhere.startTime = { gte: new Date(startStr) };
-      reservationWhere.endTime = { lte: new Date(endStr) };
+      const start = new Date(startStr);
+      const end = new Date(endStr);
+      // Overlap logic: event starts before view ends AND event ends after view starts
+      reservationWhere.startTime = { lt: end };
+      reservationWhere.endTime = { gt: start };
     }
 
     const reservations = await basePrisma.reservation.findMany({
@@ -64,13 +67,14 @@ export async function GET(request: Request) {
         title: item.status === 'PENDING' ? 'Pendiente de Aprobación' : 'Ocupado',
         start: item.startTime.toISOString(),
         end: item.endTime.toISOString(),
-        backgroundColor: item.status === 'PENDING' ? '#f39c12' : '#e74c3c', // Naranja = Pendiente, Rojo = Ocupado
-        borderColor: item.status === 'PENDING' ? '#f39c12' : '#e74c3c',
+        backgroundColor: '#95a5a6', // Uniform Grey for public
+        borderColor: '#95a5a6',
         display: 'block',
       });
     });
 
     // 2. Fetch RecurringBlocks
+    // Using basePrisma here too to bypass tenantId filtering if it's null in DB
     const blockWhere: any = {};
     if (resourceType === 'space') {
       blockWhere.spaceId = resourceId;
@@ -80,7 +84,7 @@ export async function GET(request: Request) {
       };
     }
 
-    const recurringBlocks = await prisma.recurringBlock.findMany({
+    const recurringBlocks = await basePrisma.recurringBlock.findMany({
       where: blockWhere,
       select: {
         id: true,
@@ -89,27 +93,35 @@ export async function GET(request: Request) {
         dayOfWeek: true,
         startTime: true,
         endTime: true,
-        title: true, // We can use the custom title given by the admin (like 'Clase de Artes') or replace it with 'Ocupado'
+        title: true,
       }
     });
 
     recurringBlocks.forEach((block: any) => {
-      // Mapping '0' to Sunday, '1' to Monday (Standard in FullCalendar)
-      // Prisma schema is String for dayOfWeek, assumed to be '0'-res '6'-res
-      const dayInt = parseInt(block.dayOfWeek, 10);
-      if (!isNaN(dayInt)) {
-        events.push({
-          id: `block-${block.id}`,
-          title: 'Bloqueo Institucional / Ocupado',
-          daysOfWeek: [dayInt],
-          startTime: block.startTime,
-          endTime: block.endTime,
-          startRecur: block.startDate.toISOString(),
-          endRecur: block.endDate.toISOString(),
-          backgroundColor: '#95a5a6', // Gris para bloqueos institucionales
-          borderColor: '#95a5a6',
-          display: 'block',
-        });
+      try {
+        const blockDays = typeof block.dayOfWeek === 'string' && block.dayOfWeek.startsWith('[') 
+          ? JSON.parse(block.dayOfWeek) 
+          : [parseInt(block.dayOfWeek, 10)];
+        
+        const daysArray = Array.isArray(blockDays) ? blockDays : [blockDays];
+        const validDays = daysArray.filter(d => !isNaN(d));
+
+        if (validDays.length > 0) {
+          events.push({
+            id: `block-${block.id}`,
+            title: 'Bloqueo Institucional / Ocupado',
+            daysOfWeek: validDays,
+            startTime: block.startTime,
+            endTime: block.endTime,
+            startRecur: block.startDate.toISOString(),
+            endRecur: block.endDate.toISOString(),
+            backgroundColor: '#95a5a6',
+            borderColor: '#95a5a6',
+            display: 'block',
+          });
+        }
+      } catch (err) {
+        console.error('Error parsing blockDays:', block.dayOfWeek, err);
       }
     });
 

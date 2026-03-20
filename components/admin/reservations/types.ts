@@ -9,8 +9,8 @@ export interface ReservationItem {
   teacher: string | null;
   status: string;
   user: { id: string; name: string | null; email: string };
-  space?: { id: string; name: string; responsibleUserId?: string | null }; // Add responsibleUserId
-  equipment?: { id: string; name: string; responsibleUserId?: string | null; space?: { id: string; name: string } | null }; // Add responsibleUserId and space info
+  space?: { id: string; name: string; responsibleUsers?: { id: string }[] };
+  equipment?: { id: string; name: string; responsibleUsers?: { id: string }[]; space?: { id: string; name: string } | null };
   workshop?: { id: string; name: string };
   documents?: { id: string; fileName: string; filePath: string }[];
 }

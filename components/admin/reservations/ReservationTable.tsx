@@ -81,8 +81,8 @@ export default function ReservationTable({ items, filter, handleApproveReject, c
             .filter(item => filter !== 'pending' || item.status === 'PENDING')
             .map(reservation => {
               const isResponsible = (currentUser?.role === Role.ADMIN_RESERVATION || currentUser?.role === Role.ADMIN_RESOURCE) &&
-                (reservation.space?.responsibleUserId === currentUser.id ||
-                  reservation.equipment?.responsibleUserId === currentUser.id);
+                (reservation.space?.responsibleUsers?.some((u: { id: string }) => u.id === currentUser.id) ||
+                  reservation.equipment?.responsibleUsers?.some((u: { id: string }) => u.id === currentUser.id));
               const canApproveReject = currentUser?.role === Role.SUPERUSER || isResponsible;
 
 

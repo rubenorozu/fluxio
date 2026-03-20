@@ -148,14 +148,18 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
 
           while (current <= viewEnd) {
             // Check if the current day of the week is included in the block's dayOfWeek array
-            if (block.dayOfWeek.includes(current.getDay())) {
+            // Parse dayOfWeek if it's a string (though the API should now return it as an array)
+            const blockDays = typeof block.dayOfWeek === 'string' ? JSON.parse(block.dayOfWeek) : block.dayOfWeek;
+            if (Array.isArray(blockDays) && blockDays.includes(current.getDay())) {
               const [startHour, startMinute] = block.startTime.split(':');
               const [endHour, endMinute] = block.endTime.split(':');
               const instanceStartDate = new Date(current.getFullYear(), current.getMonth(), current.getDate(), parseInt(startHour), parseInt(startMinute));
               const instanceEndDate = new Date(current.getFullYear(), current.getMonth(), current.getDate(), parseInt(endHour), parseInt(endMinute));
 
               // Ensure the event falls within the recurring block's overall start and end dates
-              if (instanceStartDate >= new Date(block.startDate) && instanceEndDate <= new Date(block.endDate)) {
+              // Normalize block.endDate to the end of that day to prevent time-mismatch hiding single-day blocks
+              const blockEndDate = endOfDay(new Date(block.endDate));
+              if (instanceStartDate >= new Date(block.startDate) && instanceEndDate <= blockEndDate) {
                 // Check if this specific instance is an exception
                 const isExcepted = exceptions.some(
                   (ex: any) =>

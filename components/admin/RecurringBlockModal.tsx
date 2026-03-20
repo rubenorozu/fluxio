@@ -104,7 +104,11 @@ export default function RecurringBlockModal({ show, handleClose, onSave, initial
         description: initialData.description || '',
         startDate: initialData.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : '',
         endDate: initialData.endDate ? new Date(initialData.endDate).toISOString().split('T')[0] : '',
-        dayOfWeek: initialData.dayOfWeek !== undefined ? (Array.isArray(initialData.dayOfWeek) ? initialData.dayOfWeek : [initialData.dayOfWeek]) : [],
+        dayOfWeek: initialData.dayOfWeek !== undefined 
+          ? (typeof initialData.dayOfWeek === 'string' 
+              ? JSON.parse(initialData.dayOfWeek) 
+              : (Array.isArray(initialData.dayOfWeek) ? initialData.dayOfWeek : [initialData.dayOfWeek])) 
+          : [],
         startTime: initialData.startTime || '',
         endTime: initialData.endTime || '',
         spaceId: initialData.spaceId || '',

@@ -50,6 +50,7 @@ export async function GET(request: Request) {
     // Flatten the equipment structure for easier consumption
     const formattedRecurringBlocks = recurringBlocks.map(block => ({
       ...block,
+      dayOfWeek: typeof block.dayOfWeek === 'string' ? JSON.parse(block.dayOfWeek) : block.dayOfWeek,
       equipment: block.equipment.map(eq => eq.equipment),
     }));
     return NextResponse.json(formattedRecurringBlocks);
@@ -86,7 +87,10 @@ export async function POST(request: Request) {
     const finalEndDate = endOfDay(parsedEndDate);
 
     while (currentDate <= finalEndDate) {
-      if (dayOfWeek.includes(currentDate.getDay())) {
+      // Usar getDay() sobre la fecha local que startOfDay y addDays mantienen consistente
+      const currentDay = currentDate.getDay();
+      
+      if (dayOfWeek.includes(currentDay)) {
         const instanceStart = setMinutes(setHours(currentDate, startHour), startMinute);
         const instanceEnd = setMinutes(setHours(currentDate, endHour), endMinute);
 

@@ -166,31 +166,33 @@ export default function CartPage() {
     setSubmitting(true);
     let uploadedAttachments = [];
 
-    // Subir archivos a Supabase
+    // Subir archivos a Vercel Blob via API
     if (files.length > 0) {
       try {
-        const { createClient } = await import('@/lib/supabase/client');
-        const supabase = createClient();
+        const formData = new FormData();
+        files.forEach(file => {
+          formData.append('files', file);
+        });
 
-        for (const file of files) {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-          const filePath = `${user.id}/${fileName}`;
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
 
-          const { error: uploadError, data } = await supabase.storage
-            .from('reservations')
-            .upload(filePath, file);
-
-          if (uploadError) {
-            console.error('Error uploading file:', uploadError);
-            throw new Error(`Error al subir archivo: ${file.name}`);
-          }
-
-          uploadedAttachments.push({
-            fileName: file.name,
-            filePath: data.path
-          });
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          throw new Error(errData.error || 'Error al subir evidencias.');
         }
+
+        const uploadData = await uploadRes.json();
+        
+        // uploadData.urls contiene los URLs absolutos de Vercel Blob
+        uploadData.urls.forEach((url: string, index: number) => {
+          uploadedAttachments.push({
+            fileName: files[index].name,
+            filePath: url
+          });
+        });
       } catch (err: any) {
         setError(err.message);
         setSubmitting(false);

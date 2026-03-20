@@ -366,6 +366,51 @@ export function getTenantPrisma(tenantId: string) {
                 }),
         },
 
+        // Location - auto-filtrado por tenant
+        location: {
+            findMany: (args?: any) =>
+                basePrisma.location.findMany({
+                    ...args,
+                    where: { ...args?.where, tenantId },
+                }),
+            findUnique: (args: any) =>
+                basePrisma.location.findUnique({
+                    ...args,
+                    where: { ...args.where, tenantId },
+                }),
+            findFirst: (args?: any) =>
+                basePrisma.location.findFirst({
+                    ...args,
+                    where: { ...args?.where, tenantId },
+                }),
+            create: (args: any) =>
+                basePrisma.location.create({
+                    ...args,
+                    data: { ...args.data, tenantId },
+                }),
+            update: (args: any) =>
+                basePrisma.location.update({
+                    ...args,
+                    where: { ...args.where, tenantId },
+                }),
+            delete: (args: any) =>
+                basePrisma.location.delete({
+                    ...args,
+                    where: { ...args.where, tenantId },
+                }),
+            count: (args?: any) =>
+                basePrisma.location.count({
+                    ...args,
+                    where: { ...args?.where, tenantId },
+                }),
+            upsert: (args: any) =>
+                basePrisma.location.upsert({
+                    ...args,
+                    where: { ...args.where, tenantId },
+                    create: { ...args.create, tenantId },
+                }),
+        },
+
         // Modelos sin filtro de tenant
         document: basePrisma.document,
         notification: basePrisma.notification,
@@ -378,6 +423,7 @@ export function getTenantPrisma(tenantId: string) {
         requirement: basePrisma.requirement,
         recurringBlockOnEquipment: basePrisma.recurringBlockOnEquipment,
         recurringBlockException: basePrisma.recurringBlockException,
+        equipmentUnit: basePrisma.equipmentUnit,
 
         // Acceso directo al tenant
         tenant: basePrisma.tenant,

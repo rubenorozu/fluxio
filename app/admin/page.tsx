@@ -100,6 +100,7 @@ export default function AdminDashboardPage() {
 
   const cardImages = {
     users: '/images/admin-cards/Usuarios.jpg',
+    locations: '/images/admin-cards/Espacios.jpg', // Reusing spaces image for locations for now
     spaces: '/images/admin-cards/Espacios.jpg',
     equipment: '/images/admin-cards/Equipos.jpg',
     workshops: '/images/admin-cards/Talleres.jpg',
@@ -158,11 +159,25 @@ export default function AdminDashboardPage() {
             <Col>
               <Card className="h-100">
                 <div style={{ position: 'relative', width: '100%', height: '150px', backgroundColor: 'white' }}>
+                  <Image src={cardImages.locations} alt="Ubicaciones" fill style={{ objectFit: 'contain' }} />
+                </div>
+                <Card.Body className="d-flex flex-column text-center">
+                  <Card.Title>Ubicaciones</Card.Title>
+                  <Card.Text className="flex-grow-1">Gestionar ubicaciones físicas.</Card.Text>
+                  <Link href="/admin/locations" className="btn btn-primary mt-auto">
+                    Ir a Ubicaciones
+                  </Link>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col>
+              <Card className="h-100">
+                <div style={{ position: 'relative', width: '100%', height: '150px', backgroundColor: 'white' }}>
                   <Image src={cardImages.spaces} alt="Espacios" fill style={{ objectFit: 'contain' }} />
                 </div>
                 <Card.Body className="d-flex flex-column text-center">
                   <Card.Title>Espacios</Card.Title>
-                  <Card.Text className="flex-grow-1">Gestionar espacios físicos.</Card.Text>
+                  <Card.Text className="flex-grow-1">Gestionar espacios físicos y asignaciones.</Card.Text>
                   <Link href="/admin/spaces" className="btn btn-primary mt-auto">
                     Ir a Espacios
                   </Link>

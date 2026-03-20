@@ -42,6 +42,7 @@ model Tenant {
   reservationCounters ReservationCounter[]
   reportCounters      ReportCounter[]
   config              TenantConfig?
+  locations           Location[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -166,6 +167,9 @@ model Space {
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
   tenantId String?
 
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  locationId String?
+
   responsibleUsers                      User[]           @relation("SpaceResponsibles")
   requiresSpaceReservationWithEquipment Boolean          @default(false)
   reservationLeadTime                   Int?
@@ -202,9 +206,13 @@ model Equipment {
   fixedAssetId String?
   images       Image[]
   status       ResourceStatus @default(AVAILABLE)
+  quantity     Int            @default(1)
 
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
   tenantId String?
+
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  locationId String?
 
   spaceId             String?                     @map("space_id")
   space               Space?                      @relation(fields: [spaceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -216,6 +224,7 @@ model Equipment {
   recurringBlocks     RecurringBlockOnEquipment[]
   reports             Report[]
   regulationsUrl      String?                   // URL para el reglamento en PDF
+  units               EquipmentUnit[]
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
 
@@ -504,3 +513,39 @@ enum DomainStatus {
   ACTIVE
   FAILED
 }
+
+model Location {
+  id          String  @id @default(cuid())
+  name        String
+  zone        String?
+  description String?
+
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+  tenantId String?
+
+  spaces    Space[]
+  equipment Equipment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model EquipmentUnit {
+  id            String         @id @default(cuid())
+  unitNumber    Int            // Sequential number within the equipment (1, 2, 3...)
+  inventoryCode String?        // Código de inventario (ej. "INV-2024-001")
+  resourceCode  String?        // Código de recurso único (ej. "CAM-CANON-001")
+  status        ResourceStatus @default(AVAILABLE)
+  notes         String?
+
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  equipmentId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([equipmentId, unitNumber])
+}
+

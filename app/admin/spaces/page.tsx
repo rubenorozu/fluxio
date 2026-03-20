@@ -28,8 +28,10 @@ interface Space {
   }[];
   reservationLeadTime: number | null; // NEW: Add reservationLeadTime to Space interface
   maxReservationDuration: number | null; // NEW: Add maxReservationDuration to Space interface
-  requiresSpaceReservationWithEquipment: boolean; // NEW: Add this field
-  regulationsUrl?: string | null; // NEW: Added regulationsUrl
+  requiresSpaceReservationWithEquipment: boolean;
+  regulationsUrl?: string | null;
+  locationId?: string | null;
+  location?: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -61,8 +63,9 @@ export default function AdminSpacesPage() {
     responsibleUserIds: [] as string[],
     reservationLeadTime: '',
     maxReservationDuration: '', // NEW: Initialize this field
-    requiresSpaceReservationWithEquipment: false, // NEW: Initialize this field
+    requiresSpaceReservationWithEquipment: false,
     regulationsUrl: '',
+    locationId: '',
   });
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [selectedRegulationsFile, setSelectedRegulationsFile] = useState<File | null>(null);
@@ -73,21 +76,29 @@ export default function AdminSpacesPage() {
   const [responsibleUsersLoading, setResponsibleUsersLoading] = useState(true);
   const [responsibleUsersError, setResponsibleUsersError] = useState<string | null>(null);
   const [requirements, setRequirements] = useState<{ id: string; name: string }[]>([]);
+  const [locations, setLocations] = useState<{ id: string; name: string; zone: string | null }[]>([]);
 
   useEffect(() => {
-    const fetchRequirements = async () => {
+    const fetchRequirementsAndLocations = async () => {
       try {
-        const response = await fetch('/api/admin/requirements');
-        if (response.ok) {
-          const data = await response.json();
-          setRequirements(data);
+        const [reqsRes, locsRes] = await Promise.all([
+          fetch('/api/admin/requirements'),
+          fetch('/api/admin/locations')
+        ]);
+        if (reqsRes.ok) {
+          const reqsData = await reqsRes.json();
+          setRequirements(reqsData);
+        }
+        if (locsRes.ok) {
+          const locsData = await locsRes.json();
+          setLocations(locsData);
         }
       } catch (error) {
-        console.error('Error al cargar los requisitos:', error);
+        console.error('Error al cargar datos adicionales:', error);
       }
     };
 
-    fetchRequirements();
+    fetchRequirementsAndLocations();
   }, []);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -184,8 +195,9 @@ export default function AdminSpacesPage() {
       responsibleUserIds: space ? (space.responsibleUsers?.map(u => u.id) || []) : (user && user.role === 'ADMIN_RESOURCE' ? [user.id] : []),
       reservationLeadTime: space?.reservationLeadTime?.toString() || '',
       maxReservationDuration: space?.maxReservationDuration ? (space.maxReservationDuration / 60).toString() : '', // Convert minutes to hours
-      requiresSpaceReservationWithEquipment: space?.requiresSpaceReservationWithEquipment || false, // NEW: Initialize this field
+      requiresSpaceReservationWithEquipment: space?.requiresSpaceReservationWithEquipment || false,
       regulationsUrl: space?.regulationsUrl || '',
+      locationId: space?.location?.id || space?.locationId || '',
     });
     setSelectedRequirements(space?.requirements.map(req => req.id) || []);
     setExistingImages(space?.images || []);
@@ -208,6 +220,7 @@ export default function AdminSpacesPage() {
       maxReservationDuration: space.maxReservationDuration ? (space.maxReservationDuration / 60).toString() : '',
       requiresSpaceReservationWithEquipment: space.requiresSpaceReservationWithEquipment || false,
       regulationsUrl: space.regulationsUrl || '',
+      locationId: space.location ? space.location.name : space.locationId || '',  // we actually need the ID
     });
     setSelectedRequirements(space.requirements.map(req => req.id) || []);
     setExistingImages(space.images || []);
@@ -228,8 +241,9 @@ export default function AdminSpacesPage() {
       responsibleUserIds: [],
       reservationLeadTime: '',
       maxReservationDuration: '', // NEW: Reset this field
-      requiresSpaceReservationWithEquipment: false, // NEW: Reset this field
+      requiresSpaceReservationWithEquipment: false,
       regulationsUrl: '',
+      locationId: '',
     });
     setExistingImages([]);
     setSelectedFiles(null);
@@ -394,8 +408,9 @@ export default function AdminSpacesPage() {
           images: uploadedImageUrls, // Enviar las URLs de las imágenes
           requirementIds: selectedRequirements,
           reservationLeadTime: form.reservationLeadTime ? parseInt(form.reservationLeadTime, 10) : null, // Enviar el tiempo de antelación
-          maxReservationDuration: (form.maxReservationDuration && !isNaN(parseFloat(form.maxReservationDuration))) ? parseFloat(form.maxReservationDuration) * 60 : null, // Convert hours to minutes
-          requiresSpaceReservationWithEquipment: form.requiresSpaceReservationWithEquipment, // NEW: Send this field
+          maxReservationDuration: (form.maxReservationDuration && !isNaN(parseFloat(form.maxReservationDuration))) ? parseFloat(form.maxReservationDuration) * 60 : null,
+          requiresSpaceReservationWithEquipment: form.requiresSpaceReservationWithEquipment,
+          locationId: form.locationId || undefined,
           regulationsUrl: finalRegulationsUrl || null,
         }),
       });
@@ -600,7 +615,7 @@ export default function AdminSpacesPage() {
                     disabled={spaces.length === 0}
                   />
                 </th>
-                <th>ID</th><th>Nombre</th><th>Imágenes</th><th>Responsable</th><th>Estado</th><th>Requisitos</th>                      <th>Tiempo Antelación Reserva</th><th>Reserva con Equipo</th><th>Acciones</th>
+                <th>ID</th><th>Nombre</th><th>Ubicación</th><th>Imágenes</th><th>Responsable</th><th>Estado</th><th>Requisitos</th>                      <th>Tiempo Antelación Reserva</th><th>Reserva con Equipo</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -616,6 +631,7 @@ export default function AdminSpacesPage() {
                   </td>
                   <td>{space.displayId || space.id}</td>
                   <td>{space.name}</td>
+                  <td>{space.location?.name || 'Sin Ubicación'}</td>
                   <td>
                     {space.images && space.images.length > 0 ? (
                       <div className="d-flex flex-wrap">
@@ -720,6 +736,21 @@ export default function AdminSpacesPage() {
                 value={form.description}
                 onChange={handleChange}
               />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Ubicación Fija</Form.Label>
+              <Form.Select
+                name="locationId"
+                value={form.locationId}
+                onChange={handleChange}
+              >
+                <option value="">(Sin ubicación)</option>
+                {locations.map(loc => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name} {loc.zone ? `(${loc.zone})` : ''}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Imágenes</Form.Label>

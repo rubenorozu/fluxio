@@ -18,29 +18,32 @@ export default function NewEquipmentPage() {
   const router = useRouter();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [regulationsFile, setRegulationsFile] = useState<File | null>(null);
+  const [locations, setLocations] = useState<{ id: string; name: string; zone: string | null }[]>([]);
+  const [locationId, setLocationId] = useState('');
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     if (sessionLoading) return;
 
-    if (!sessionUser || (sessionUser.role !== 'SUPERUSER' && sessionUser.role !== 'ADMIN_RESOURCE')) {
-      router.push('/login');
-      return;
-    }
-
-    const fetchUsers = async () => {
+    const fetchUsersAndLocations = async () => {
       try {
-        const res = await fetch('/api/admin/users');
-        if (res.ok) {
-          const data = await res.json();
+        const [usersRes, locsRes] = await Promise.all([
+          fetch('/api/admin/users'),
+          fetch('/api/admin/locations')
+        ]);
+        if (usersRes.ok) {
+          const data = await usersRes.json();
           setUsers(data.filter((u: { role: string }) => u.role === 'SUPERUSER' || u.role === 'ADMIN_RESOURCE'));
-        } else {
-          console.error('Failed to fetch users');
+        }
+        if (locsRes.ok) {
+          const locData = await locsRes.json();
+          setLocations(locData);
         }
       } catch (err) {
-        console.error('Error fetching users:', err);
+        console.error('Error fetching data:', err);
       }
     };
-    fetchUsers();
+    fetchUsersAndLocations();
   }, [router, sessionLoading, sessionUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,6 +91,8 @@ export default function NewEquipmentPage() {
           responsibleUserIds,
           images: imageUrls.map(url => ({ url })),
           regulationsUrl,
+          locationId: locationId || undefined,
+          quantity: quantity > 0 ? quantity : 1,
         }),
       });
 
@@ -138,6 +143,37 @@ export default function NewEquipmentPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           ></textarea>
+        </div>
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label htmlFor="quantity" className="form-label">Cantidad de Unidades</label>
+            <input
+              type="number"
+              className="form-control"
+              id="quantity"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              required
+            />
+            <small className="text-muted">Se generará automáticamente esta cantidad de unidades editables.</small>
+          </div>
+          <div className="col-md-6">
+            <label htmlFor="locationId" className="form-label">Ubicación</label>
+            <select
+              className="form-select"
+              id="locationId"
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+            >
+              <option value="">Seleccione una ubicación...</option>
+              {locations.map(loc => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name} {loc.zone ? `(${loc.zone})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="mb-3">
           <label htmlFor="serialNumber" className="form-label">Número de Serie (opcional)</label>

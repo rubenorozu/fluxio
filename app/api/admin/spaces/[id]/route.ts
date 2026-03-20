@@ -19,6 +19,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       where: { id: spaceId },
       include: {
         images: true,
+        location: true,
         responsibleUsers: {
           select: {
             id: true,
@@ -75,7 +76,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este espacio.' }, { status: 403 });
     }
 
-    const { name, description, images, responsibleUserIds, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment, regulationsUrl } = await request.json();
+    const { name, description, images, responsibleUserIds, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment, regulationsUrl, locationId } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del espacio es obligatorio.' }, { status: 400 });
@@ -93,6 +94,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         maxReservationDuration: maxReservationDuration || null,
         requiresSpaceReservationWithEquipment: requiresSpaceReservationWithEquipment ?? false,
         regulationsUrl: regulationsUrl || null,
+        locationId: locationId || null,
         images: {
           deleteMany: {},
           create: (images || []).map((img: { url: string }) => ({ url: img.url })),
@@ -101,7 +103,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
           set: (requirementIds || []).map((id: string) => ({ id }))
         }
       },
-      include: { images: true, requirements: true, responsibleUsers: true },
+      include: { images: true, requirements: true, responsibleUsers: true, location: true },
     });
 
     return NextResponse.json(updatedSpace, { status: 200 });

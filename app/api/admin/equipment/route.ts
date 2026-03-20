@@ -63,6 +63,8 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         images: true,
+        location: true,
+        units: true,
         responsibleUsers: {
           select: {
             id: true,
@@ -120,7 +122,7 @@ export async function POST(request: Request) {
   const prisma = getTenantPrisma(tenant.id);
 
   try {
-    const { name, description, serialNumber, fixedAssetId, images, responsibleUserIds, spaceId, reservationLeadTime, maxReservationDuration, isFixedToSpace, regulationsUrl } = await request.json();
+    const { name, description, serialNumber, fixedAssetId, images, responsibleUserIds, spaceId, reservationLeadTime, maxReservationDuration, isFixedToSpace, regulationsUrl, locationId, quantity } = await request.json();
 
     if (!name || name.length < 3 || name.length > 100) {
       return NextResponse.json({ error: 'El nombre del equipo es obligatorio y debe tener entre 3 y 100 caracteres.' }, { status: 400 });
@@ -173,11 +175,20 @@ export async function POST(request: Request) {
         maxReservationDuration: maxReservationDuration || null,
         isFixedToSpace: isFixedToSpace ?? false, // Guardar si el equipo está fijo al espacio
         regulationsUrl: regulationsUrl || null, // Guardar el reglamento en PDF
+        locationId: locationId || null,
+        quantity: Math.max(1, parseInt(quantity) || 1),
         images: {
           create: images.map((img: { url: string }) => ({ url: img.url })),
         },
+        units: {
+          create: Array.from({ length: Math.max(1, parseInt(quantity) || 1) }).map((_, index) => ({
+            unitNumber: index + 1,
+            inventoryCode: serialNumber ? `${serialNumber}-${index + 1}` : null,
+            resourceCode: fixedAssetId ? `${fixedAssetId}-${index + 1}` : null,
+          }))
+        }
       },
-      include: { images: true }, // Incluir las imágenes en la respuesta
+      include: { images: true, units: true, location: true }, // Incluir las imágenes y unidades
     });
 
     return NextResponse.json(newEquipment, { status: 201 });

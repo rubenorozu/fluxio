@@ -52,6 +52,7 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         images: true,
+        location: true,
         responsibleUsers: {
           select: {
             id: true,
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
   const prisma = getTenantPrisma(tenant.id);
 
   try {
-    const { name, description, responsibleUserIds, images, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment, regulationsUrl } = await request.json();
+    const { name, description, responsibleUserIds, images, requirementIds, reservationLeadTime, maxReservationDuration, requiresSpaceReservationWithEquipment, regulationsUrl, locationId } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del espacio es obligatorio.' }, { status: 400 });
@@ -155,9 +156,10 @@ export async function POST(request: Request) {
           requirements: {
             connect: requirementIds.map((id: string) => ({ id }))
           }
-        })
+        }),
+        locationId: locationId || null,
       },
-      include: { images: true, requirements: true },
+      include: { images: true, requirements: true, location: true },
     });
 
     return NextResponse.json(newSpace, { status: 201 });

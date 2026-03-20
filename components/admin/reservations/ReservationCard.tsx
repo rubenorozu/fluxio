@@ -52,7 +52,7 @@ export default function ReservationCard({ group, filter, handleApproveReject, cu
             {group.items[0].documents.map((doc: any) => (
               <a 
                 key={doc.id}
-                href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/reservations/${doc.filePath}`}
+                href={doc.filePath.startsWith('http') ? doc.filePath : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/reservations/${doc.filePath}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-outline-primary btn-sm me-2 py-0 px-2"

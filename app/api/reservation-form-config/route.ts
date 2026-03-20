@@ -26,7 +26,22 @@ export async function GET(req: Request) {
         });
 
         // Si no tiene configuración, usar la por defecto
-        const formConfig = config?.reservationFormConfig || DEFAULT_FORM_CONFIG;
+        let formConfig = config?.reservationFormConfig || DEFAULT_FORM_CONFIG;
+
+        // Asegurar que todos los campos por defecto existan en la configuración (merge)
+        // Esto previene que campos añadidos posteriormente al código (ej. attachments)
+        // no aparezcan porque el TenantConfig fue guardado en la BD antes de existir.
+        if (formConfig && (formConfig as any).fields) {
+            const existingFieldIds = new Set((formConfig as any).fields.map((f: any) => f.id));
+            const missingFields = DEFAULT_FORM_CONFIG.fields.filter(f => !existingFieldIds.has(f.id));
+
+            if (missingFields.length > 0) {
+                formConfig = {
+                    ...formConfig as any,
+                    fields: [...(formConfig as any).fields, ...missingFields]
+                };
+            }
+        }
 
         return NextResponse.json(formConfig, {
             status: 200,

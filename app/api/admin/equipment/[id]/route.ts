@@ -19,6 +19,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       where: { id: equipmentId },
       include: {
         images: true,
+        location: true,
+        units: {
+          orderBy: { unitNumber: 'asc' }
+        },
         responsibleUsers: {
           select: {
             id: true,
@@ -69,7 +73,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este equipo.' }, { status: 403 });
     }
 
-    const { name, description, serialNumber, fixedAssetId, images, responsibleUserIds, spaceId, reservationLeadTime, isFixedToSpace, regulationsUrl } = await request.json();
+    const { name, description, serialNumber, fixedAssetId, images, responsibleUserIds, spaceId, reservationLeadTime, isFixedToSpace, regulationsUrl, locationId, units } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del equipo es obligatorio.' }, { status: 400 });
@@ -89,15 +93,76 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         reservationLeadTime: reservationLeadTime || null,
         isFixedToSpace: isFixedToSpace ?? false,
         regulationsUrl: regulationsUrl || null,
+        locationId: locationId || null,
         images: {
           deleteMany: {},
           create: (images || []).map((img: { url: string }) => ({ url: img.url })),
         },
       },
-      include: { images: true, responsibleUsers: true },
     });
 
-    return NextResponse.json(updatedEquipment, { status: 200 });
+    // Handle units if provided
+    if (units && Array.isArray(units)) {
+      // Get current units inside the database
+      const existingUnits = await prisma.equipmentUnit.findMany({ where: { equipmentId } });
+      const newUnitIds = units.map(u => u.id).filter(id => id);
+      const unitsToDelete = existingUnits.filter(u => !newUnitIds.includes(u.id));
+
+      // 1. Delete removed units
+      if (unitsToDelete.length > 0) {
+        await prisma.equipmentUnit.deleteMany({
+          where: { id: { in: unitsToDelete.map(u => u.id) } }
+        });
+      }
+
+      // 2. Upsert existing/new units
+      for (const unit of units) {
+        if (unit.id) {
+          await prisma.equipmentUnit.update({
+            where: { id: unit.id },
+            data: {
+              inventoryCode: unit.inventoryCode,
+              resourceCode: unit.resourceCode,
+              notes: unit.notes,
+              status: unit.status,
+            }
+          });
+        } else {
+          // If a new unit is added entirely, find the next unitNumber
+          const maxUnit = await prisma.equipmentUnit.findFirst({
+            where: { equipmentId },
+            orderBy: { unitNumber: 'desc' }
+          });
+          const nextNumber = maxUnit ? maxUnit.unitNumber + 1 : 1;
+
+          await prisma.equipmentUnit.create({
+            data: {
+              unitNumber: nextNumber,
+              inventoryCode: unit.inventoryCode,
+              resourceCode: unit.resourceCode,
+              notes: unit.notes,
+              status: unit.status,
+              equipmentId: equipmentId,
+            }
+          });
+        }
+      }
+
+      // 3. Update equipment total quantity
+      const finalUnitsCount = await prisma.equipmentUnit.count({ where: { equipmentId } });
+      await prisma.equipment.update({
+        where: { id: equipmentId },
+        data: { quantity: finalUnitsCount }
+      });
+    }
+
+    // Fetch the fully updated entity
+    const finalEquipment = await prisma.equipment.findUnique({
+      where: { id: equipmentId },
+      include: { images: true, responsibleUsers: true, units: { orderBy: { unitNumber: 'asc' } }, location: true },
+    });
+
+    return NextResponse.json(finalEquipment, { status: 200 });
   } catch (error) {
     console.error('Error al actualizar el equipo:', error);
     return NextResponse.json({ error: 'No se pudo actualizar el equipo.' }, { status: 500 });

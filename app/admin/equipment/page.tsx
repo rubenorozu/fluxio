@@ -23,8 +23,10 @@ interface Equipment {
   responsibleUsers?: { id: string; firstName: string; lastName: string; }[];
   reservationLeadTime: number | null;
   maxReservationDuration: number | null; // NEW: Add maxReservationDuration to Equipment interface
-  isFixedToSpace: boolean; // NEW: Add isFixedToSpace to Equipment interface
-  regulationsUrl?: string | null; // NEW: Added regulationsUrl
+  isFixedToSpace: boolean;
+  regulationsUrl?: string | null;
+  location?: { name: string } | null;
+  units?: any[];
   createdAt: string;
   updatedAt: string;
 }
@@ -559,7 +561,9 @@ export default function AdminEquipmentPage() {
           <Col xs={12} className="text-center mt-3">
             <Row className="g-0 mb-2">
               <Col xs={6} className="px-1">
-                <Button variant="primary" onClick={() => handleShowModal()} className="w-100 text-nowrap overflow-hidden text-truncate">Añadir Nuevo Equipo</Button>
+                <Link href="/admin/equipment/new" passHref>
+                  <Button variant="primary" className="w-100 text-nowrap overflow-hidden text-truncate">Añadir Nuevo Equipo</Button>
+                </Link>
               </Col>
               <Col xs={6} className="px-1">
                 <Button
@@ -609,7 +613,9 @@ export default function AdminEquipmentPage() {
         <Col md={9} className="text-end">
           <div className="d-flex justify-content-end gap-2">
             <Form.Control type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: 'auto' }} className="me-2" />
-            <Button variant="primary" onClick={() => handleShowModal()}>Añadir Nuevo Equipo</Button>
+            <Link href="/admin/equipment/new" passHref>
+              <Button variant="primary">Añadir Nuevo Equipo</Button>
+            </Link>
             <Button
               variant="danger"
               onClick={handleBulkDelete}
@@ -647,7 +653,7 @@ export default function AdminEquipmentPage() {
                     disabled={equipment.length === 0}
                   />
                 </th>
-                <th>ID</th><th>Nombre</th><th>Responsable</th><th>Tiempo Antelación Reserva</th><th>Fijo al Espacio</th><th>Estado</th><th>Acciones</th>
+                <th>ID</th><th>Nombre</th><th>Ubicación</th><th>Unidades</th><th>Responsable</th><th>Estado</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -662,9 +668,9 @@ export default function AdminEquipmentPage() {
                   </td>
                   <td>{item.displayId || item.id}</td>
                   <td>{item.name}</td>
+                  <td>{item.location?.name || 'Sin Ubicación'}</td>
+                  <td>{item.units ? item.units.length : 0} ud.</td>
                   <td>{item.responsibleUsers && item.responsibleUsers.length > 0 ? item.responsibleUsers.map(u => `${u.firstName} ${u.lastName}`).join(', ') : 'N/A'}</td>
-                  <td>{item.reservationLeadTime !== null ? `${item.reservationLeadTime} hrs` : 'Global'}</td>
-                  <td>{item.isFixedToSpace ? 'Sí' : 'No'}</td>
                   <td>
                     <Button
                       variant={item.status === 'AVAILABLE' ? 'success' : 'danger'}
@@ -675,8 +681,10 @@ export default function AdminEquipmentPage() {
                     </Button>
                   </td>
                   <td>
-                    <Button variant="warning" size="sm" className="me-2" onClick={() => handleShowModal(item)}>Editar</Button>
-                    <Button variant="danger" size="sm" className="me-2" onClick={() => handleDelete(item.id)} disabled={item.id === user.id}>Eliminar</Button>
+                    <Link href={`/admin/equipment/${item.id}/edit`} passHref>
+                      <Button variant="warning" size="sm" className="me-2">Editar</Button>
+                    </Link>
+                    <Button variant="danger" size="sm" className="me-2" onClick={() => handleDelete(item.id)} disabled={item.id === user?.id}>Eliminar</Button>
                     <Button variant="info" size="sm" className="me-2" onClick={() => handleShowReportModal(item)}>Reportar</Button>
                     <Button variant="secondary" size="sm" onClick={() => handleDuplicate(item)}>Duplicar</Button>
                   </td>

@@ -109,10 +109,11 @@ export default function AvailabilityCalendar({ resourceId, resourceType }: Avail
   const eventStyleGetter = (event: CalendarEvent) => {
     return { 
       style: { 
-        backgroundColor: event.backgroundColor || '#e74c3c', 
+        backgroundColor: '#95a5a6', // Uniform Grey for all public events
         opacity: isLoading ? 0.7 : 1,
         fontSize: '0.8rem',
-        border: 'none'
+        border: 'none',
+        color: '#fff'
       } 
     };
   };
@@ -161,9 +162,10 @@ export default function AvailabilityCalendar({ resourceId, resourceType }: Avail
         tooltipAccessor={() => "Franja Horaria Ocupada"}
       />
       <div className="mt-3 d-flex gap-3 justify-content-center">
-        <div className="d-flex align-items-center"><div style={{width: 15, height: 15, backgroundColor: '#e74c3c', marginRight: 5}}></div> <small>Ocupado</small></div>
-        <div className="d-flex align-items-center"><div style={{width: 15, height: 15, backgroundColor: '#f39c12', marginRight: 5}}></div> <small>Pendiente de Aprobación</small></div>
-        <div className="d-flex align-items-center"><div style={{width: 15, height: 15, backgroundColor: '#95a5a6', marginRight: 5}}></div> <small>Bloqueo Institucional</small></div>
+        <div className="d-flex align-items-center">
+          <div style={{width: 15, height: 15, backgroundColor: '#95a5a6', marginRight: 5}}></div> 
+          <small>Ocupado / No disponible</small>
+        </div>
       </div>
     </div>
   );

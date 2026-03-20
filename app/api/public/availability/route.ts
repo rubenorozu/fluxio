@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
     // 1. Fetch Reservations
     const reservationWhere: any = {
-      status: { in: ['APPROVED', 'PENDING'] },
+      status: { in: ['APPROVED', 'PENDING', 'PARTIALLY_APPROVED'] },
       tenantId: tenant.id
     };
 

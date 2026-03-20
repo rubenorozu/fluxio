@@ -118,7 +118,6 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
       if (reservationsRes && reservationsRes.ok) {
         const reservations = await reservationsRes.json();
         const formattedReservations: CalendarEvent[] = reservations
-          .filter((res: any) => res.status !== 'REJECTED')
           .map((res: any) => ({
             id: res.id,
             title: `${res.justification} (${res.user.firstName} ${res.user.lastName})`,
@@ -285,13 +284,36 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
   };
 
   const eventStyleGetter = (event: CalendarEvent) => {
-    let backgroundColor = '#3174ad'; // Blue for approved
+    let backgroundColor = '#3174ad'; // Default Blue
+    
     if (event.isBlock) {
       backgroundColor = '#d9534f'; // Red for blocks
-    } else if (event.status === 'PENDING') {
-      backgroundColor = '#f0ad4e'; // Orange for pending
+    } else {
+      switch (event.status) {
+        case 'APPROVED':
+          backgroundColor = '#28a745'; // Green
+          break;
+        case 'PARTIALLY_APPROVED':
+          backgroundColor = '#17a2b8'; // Cyan
+          break;
+        case 'PENDING':
+          backgroundColor = '#ffc107'; // Amber/Yellow
+          break;
+        case 'REJECTED':
+          backgroundColor = '#6c757d'; // Grey
+          break;
+        default:
+          backgroundColor = '#3174ad';
+      }
     }
-    return { style: { backgroundColor, opacity: isLoading ? 0.5 : 1 } };
+    
+    return { 
+      style: { 
+        backgroundColor, 
+        opacity: isLoading ? 0.5 : 1,
+        color: (event.status === 'PENDING') ? '#000' : '#fff' // Better contrast for yellow
+      } 
+    };
   };
 
   const { messages } = useMemo(() => ({

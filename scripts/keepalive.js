@@ -11,14 +11,17 @@ async function runKeepAlive() {
 
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 30000, // Wait 30 seconds for connection
+    query_timeout: 30000,           // Wait 30 seconds for queries
     ssl: {
       rejectUnauthorized: false
     }
   });
 
   try {
+    console.log('Attempting to connect to database...');
     await client.connect();
-    console.log('Connected to database.');
+    console.log('Successfully connected to database.');
 
     // 1. Ensure the log table exists
     await client.query(`

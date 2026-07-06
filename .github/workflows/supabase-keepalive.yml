@@ -1,3 +1,6 @@
+# Supabase Keepalive
+# Note: GitHub disables scheduled workflows after 60 days of repo inactivity.
+# If disabled, either re-enable via GitHub Actions UI or push a new commit.
 name: Supabase Keepalive
 
 on:
@@ -11,10 +14,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 

@@ -20,8 +20,9 @@ export async function GET(req: Request, { params }: Params) {
       where: { id },
       include: {
         images: true,
-        responsibleUser: {
+        responsibleUsers: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
             email: true,
@@ -38,15 +39,30 @@ export async function GET(req: Request, { params }: Params) {
       return NextResponse.json({ message: 'Taller no encontrado.' }, { status: 404 });
     }
 
+    const [approvedCount, waitlistCount] = await Promise.all([
+      prisma.inscription.count({
+        where: { workshopId: id, status: 'APPROVED' },
+      }),
+      prisma.inscription.count({
+        where: { workshopId: id, status: 'WAITLIST' },
+      }),
+    ]);
+
     // Add additional fields directly from the workshop object
     const workshopWithDetails = {
       ...workshop,
+      responsibleUser: (workshop as any).responsibleUsers && (workshop as any).responsibleUsers.length > 0 ? (workshop as any).responsibleUsers[0] : null,
       teacher: workshop.teacher,
       startDate: workshop.startDate,
       endDate: workshop.endDate,
       inscriptionsOpen: workshop.inscriptionsOpen,
       inscriptionsStartDate: workshop.inscriptionsStartDate,
       capacity: workshop.capacity,
+      autoApprove: workshop.autoApprove,
+      allowWaitlist: workshop.allowWaitlist,
+      maxWaitlist: workshop.maxWaitlist,
+      approvedCount,
+      waitlistCount,
       inscriptionsCount: (workshop as any)._count?.inscriptions || 0,
     };
 

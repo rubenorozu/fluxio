@@ -13,7 +13,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   const { id } = params;
   const body = await request.json();
-  const { title, description, startDate, endDate, dayOfWeek, startTime, endTime, spaceId, equipmentIds, isVisibleToViewer } = body;
+  const { title, description, startDate, endDate, dayOfWeek, startTime, endTime, spaceId, equipmentIds, isVisibleToViewer, isRental } = body;
 
   if (!title || !startDate || !endDate || !Array.isArray(dayOfWeek) || dayOfWeek.length === 0 || !startTime || !endTime) {
     return NextResponse.json({ error: 'Faltan campos requeridos o formato incorrecto para días de la semana.' }, { status: 400 });
@@ -37,6 +37,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         endTime,
         space: spaceId ? { connect: { id: spaceId } } : { disconnect: true },
         isVisibleToViewer: isVisibleToViewer,
+        isRental: isRental !== undefined ? Boolean(isRental) : undefined,
         equipment: equipmentIds && equipmentIds.length > 0
           ? { create: equipmentIds.map((eqId: string) => ({ equipmentId: eqId })) }
           : undefined,

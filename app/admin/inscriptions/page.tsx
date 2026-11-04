@@ -11,6 +11,8 @@ interface Inscription {
   user: { id: string; firstName: string; lastName: string; email: string };
   workshop: { id: string; name: string; responsibleUserId?: string | null };
   status: InscriptionStatus;
+  checkedIn?: boolean;
+  checkedInAt?: string | null;
   createdAt: string;
 }
 
@@ -21,13 +23,13 @@ export default function AdminInscriptionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [filter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'waitlist' | 'rejected'>('all');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 10; // Define page size
 
-  const fetchInscriptions = useCallback(async (statusFilter: 'pending' | 'approved' | 'rejected' | 'all', searchQuery: string = '', page: number = 1) => {
+  const fetchInscriptions = useCallback(async (statusFilter: 'all' | 'pending' | 'approved' | 'waitlist' | 'rejected', searchQuery: string = '', page: number = 1) => {
     setLoading(true);
     setError(null);
     try {
@@ -91,6 +93,30 @@ export default function AdminInscriptionsPage() {
     }
   };
 
+  const handlePromote = async (inscriptionId: string) => {
+    if (!window.confirm('¿Deseas promover esta solicitud de la lista de espera a APROBADA?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/inscriptions/${inscriptionId}/promote`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al promover inscripción.');
+      }
+
+      alert('¡Inscripción promovida a Aprobada con éxito!');
+      fetchInscriptions(filter, searchTerm, currentPage);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      setError(msg);
+      alert(`Error: ${msg}`);
+    }
+  };
+
   const handleDelete = async (inscriptionId: string) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar esta inscripción? Esta acción es irreversible.')) {
       return;
@@ -128,14 +154,15 @@ export default function AdminInscriptionsPage() {
   }
 
   const getStatusBadge = (status: InscriptionStatus) => {
-
     switch (status) {
       case 'PENDING':
-        return <Badge bg="warning">Pendiente</Badge>;
+        return <Badge bg="warning" text="dark">Pendiente</Badge>;
       case 'APPROVED':
         return <Badge bg="success">Aprobada</Badge>;
       case 'REJECTED':
         return <Badge bg="danger">Rechazada</Badge>;
+      case 'WAITLIST':
+        return <Badge bg="info" text="dark">Lista de Espera</Badge>;
       case 'PENDING_EXTRAORDINARY':
         return <Badge bg="primary">Pendiente (Extraordinaria)</Badge>;
       default:
@@ -159,7 +186,7 @@ export default function AdminInscriptionsPage() {
                 </Button>
               </Col>
               <Col xs={6} className="px-1">
-                <Button variant="secondary" onClick={() => {
+                <Button variant="success" onClick={() => {
                   const link = document.createElement('a');
                   link.href = `/api/admin/inscriptions?status=${filter}&search=${searchTerm}&format=csv`;
                   link.setAttribute('download', 'Inscripciones_Talleres.csv');
@@ -167,7 +194,7 @@ export default function AdminInscriptionsPage() {
                   link.click();
                   document.body.removeChild(link);
                 }} className="w-100 text-nowrap overflow-hidden text-truncate">
-                  Descargar CSV
+                  Descargar Excel
                 </Button>
               </Col>
             </Row>
@@ -209,7 +236,7 @@ export default function AdminInscriptionsPage() {
             <Button variant="outline-primary" onClick={() => fetchInscriptions(filter, searchTerm)}>
               Refrescar
             </Button>
-            <Button variant="secondary" onClick={() => {
+            <Button variant="success" onClick={() => {
               const link = document.createElement('a');
               link.href = `/api/admin/inscriptions?status=${filter}&search=${searchTerm}&format=csv`;
               link.setAttribute('download', 'Inscripciones_Talleres.csv');
@@ -217,12 +244,55 @@ export default function AdminInscriptionsPage() {
               link.click();
               document.body.removeChild(link);
             }}>
-              Descargar CSV
+              Descargar Excel
             </Button>
             <Link href="/admin" passHref>
               <Button variant="outline-secondary">Regresar</Button>
             </Link>
           </div>
+        </Col>
+      </Row>
+
+      {/* Barra de Filtros por Estado */}
+      <Row className="mb-3">
+        <Col>
+          <ButtonGroup className="w-100 flex-wrap">
+            <Button
+              variant={filter === 'all' ? 'primary' : 'outline-primary'}
+              size="sm"
+              onClick={() => { setFilter('all'); fetchInscriptions('all', searchTerm, 1); }}
+            >
+              Todas
+            </Button>
+            <Button
+              variant={filter === 'approved' ? 'primary' : 'outline-primary'}
+              size="sm"
+              onClick={() => { setFilter('approved'); fetchInscriptions('approved', searchTerm, 1); }}
+            >
+              Aprobadas
+            </Button>
+            <Button
+              variant={filter === 'waitlist' ? 'primary' : 'outline-primary'}
+              size="sm"
+              onClick={() => { setFilter('waitlist'); fetchInscriptions('waitlist', searchTerm, 1); }}
+            >
+              Lista de Espera
+            </Button>
+            <Button
+              variant={filter === 'pending' ? 'primary' : 'outline-primary'}
+              size="sm"
+              onClick={() => { setFilter('pending'); fetchInscriptions('pending', searchTerm, 1); }}
+            >
+              Pendientes
+            </Button>
+            <Button
+              variant={filter === 'rejected' ? 'primary' : 'outline-primary'}
+              size="sm"
+              onClick={() => { setFilter('rejected'); fetchInscriptions('rejected', searchTerm, 1); }}
+            >
+              Rechazadas
+            </Button>
+          </ButtonGroup>
         </Col>
       </Row>
 
@@ -244,8 +314,9 @@ export default function AdminInscriptionsPage() {
                 <th>Taller</th>
                 <th>Usuario</th>
                 <th>Email</th>
-                <th>Fecha de Solicitud</th>
+                <th>Fecha Solicitud</th>
                 <th>Estado</th>
+                <th>Asistencia</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -262,6 +333,26 @@ export default function AdminInscriptionsPage() {
                     <td>{new Date(inscription.createdAt).toLocaleString()}</td>
                     <td>{getStatusBadge(inscription.status)}</td>
                     <td>
+                      {inscription.checkedIn ? (
+                        <Badge bg="success" title={inscription.checkedInAt ? new Date(inscription.checkedInAt).toLocaleString() : ''}>
+                          ✓ Asistió ({inscription.checkedInAt ? new Date(inscription.checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''})
+                        </Badge>
+                      ) : (
+                        <Badge bg="secondary">Sin registrar</Badge>
+                      )}
+                    </td>
+                    <td>
+                      {inscription.status === 'WAITLIST' && (
+                        <Button
+                          variant="info"
+                          size="sm"
+                          className="me-2 text-dark fw-semibold"
+                          onClick={() => handlePromote(inscription.id)}
+                          disabled={!canApproveReject}
+                        >
+                          Promover a Aprobado
+                        </Button>
+                      )}
                       {(inscription.status === 'PENDING' || inscription.status === 'PENDING_EXTRAORDINARY') && (
                         <>
                           <Button variant="success" size="sm" className="me-2" onClick={() => handleApproveReject(inscription.id, 'approve')} disabled={!canApproveReject}>Aprobar</Button>

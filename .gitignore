@@ -1,9 +1,18 @@
 node_modules
 .next
+.env
 .env*.local
+.env.production
+.env.development
 .vercel
 .DS_Store
 *.log
 *.tsbuildinfo
 next-env.d.ts
 1 recursos/
+
+# Database dumps and backups
+backups/
+*.dump
+*.sql.bak
+semgrep_report.json

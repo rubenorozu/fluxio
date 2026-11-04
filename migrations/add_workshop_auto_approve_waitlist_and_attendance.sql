@@ -1,0 +1,13 @@
+-- Add WAITLIST to InscriptionStatus enum
+ALTER TYPE "InscriptionStatus" ADD VALUE IF NOT EXISTS 'WAITLIST';
+
+-- Add new columns to Workshop
+ALTER TABLE "Workshop" ADD COLUMN IF NOT EXISTS "autoApprove" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Workshop" ADD COLUMN IF NOT EXISTS "allowWaitlist" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Workshop" ADD COLUMN IF NOT EXISTS "maxWaitlist" INTEGER;
+
+-- Add new columns to Inscription
+ALTER TABLE "Inscription" ADD COLUMN IF NOT EXISTS "checkedIn" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Inscription" ADD COLUMN IF NOT EXISTS "checkedInAt" TIMESTAMP(3);
+ALTER TABLE "Inscription" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+

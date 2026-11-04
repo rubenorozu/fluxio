@@ -56,6 +56,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
     }
 
+    // Verificar si el usuario ha sido desactivado
+    if (user.isActive === false) {
+      return NextResponse.json({
+        message: 'Esta cuenta ha sido desactivada. Por favor contacta al administrador del sistema.'
+      }, { status: 403 });
+    }
+
     // Verificar que el tenant del usuario esté activo
     if (user.tenantId) {
       const tenantActive = await isTenantActive(user.tenantId);

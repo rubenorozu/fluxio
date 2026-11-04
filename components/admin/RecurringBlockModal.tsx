@@ -19,6 +19,7 @@ interface RecurringBlockModalProps {
     spaceId?: string;
     equipmentId?: string;
     isVisibleToViewer?: boolean;
+    isRental?: boolean;
   };
   selectedSlot?: {
     start: Date;
@@ -46,6 +47,7 @@ export default function RecurringBlockModal({ show, handleClose, onSave, initial
     spaceId: '',
     equipmentIds: [] as string[], // Changed to array of strings for multiple equipment
     isVisibleToViewer: true,
+    isRental: false,
   });
   const [spaces, setSpaces] = useState<ResourceOption[]>([]);
   const [allEquipment, setAllEquipment] = useState<ResourceOption[]>([]); // Store all equipment
@@ -122,6 +124,7 @@ export default function RecurringBlockModal({ show, handleClose, onSave, initial
         spaceId: initialData.spaceId || '',
         equipmentIds: initialData.equipmentId ? (Array.isArray(initialData.equipmentId) ? initialData.equipmentId : [initialData.equipmentId]) : [], // Handle as array
         isVisibleToViewer: initialData.isVisibleToViewer ?? true,
+        isRental: initialData.isRental ?? false,
       });
     } else if (selectedSlot) {
       const start = selectedSlot.start;
@@ -137,12 +140,13 @@ export default function RecurringBlockModal({ show, handleClose, onSave, initial
         spaceId: calendarSpaceId || '', // Pre-select from calendar props
         equipmentIds: calendarEquipmentId ? [calendarEquipmentId] : [], // Pre-select from calendar props as array
         isVisibleToViewer: true,
+        isRental: false,
       });
     } else {
       setForm({
         title: '', description: '', startDate: '', endDate: '', dayOfWeek: [],
         startTime: '', endTime: '', spaceId: calendarSpaceId || '', equipmentIds: calendarEquipmentId ? [calendarEquipmentId] : [],
-        isVisibleToViewer: true
+        isVisibleToViewer: true, isRental: false
       });
     }
   }, [initialData, selectedSlot, calendarSpaceId, calendarEquipmentId]);
@@ -305,6 +309,23 @@ export default function RecurringBlockModal({ show, handleClose, onSave, initial
                 label="Visible para el visor de calendarios"
                 checked={form.isVisibleToViewer}
                 onChange={(e) => setForm({ ...form, isVisibleToViewer: e.target.checked })}
+                disabled={isSubmitting}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3 p-3 rounded-3 border bg-light">
+              <Form.Check
+                type="switch"
+                id="isRental"
+                label={
+                  <div>
+                    <span className="fw-semibold text-dark">¿Es Renta de Espacio? (Horas de Renta)</span>
+                    <div className="small text-muted">
+                      Marcar si este bloqueo corresponde a una renta comercial o externa del laboratorio/espacio para el reporte cuatrimestral.
+                    </div>
+                  </div>
+                }
+                checked={form.isRental}
+                onChange={(e) => setForm({ ...form, isRental: e.target.checked })}
                 disabled={isSubmitting}
               />
             </Form.Group>

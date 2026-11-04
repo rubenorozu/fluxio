@@ -26,9 +26,18 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     if (session.user.role !== Role.SUPERUSER && !inscription.workshop.responsibleUsers.some((u: { id: string }) => u.id === session.user.id)) {
       return NextResponse.json({ error: 'No tienes permisos para eliminar esta inscripción.' }, { status: 403 });
     }
+    const wasConfirmed = inscription.status === 'APPROVED' || inscription.status === 'PENDING';
+
     await prisma.inscription.delete({
       where: { id: inscriptionId },
     });
+
+    if (wasConfirmed && inscription.workshopId) {
+      const { promoteNextFromWaitlist } = await import('@/lib/workshops/inscriptions');
+      await promoteNextFromWaitlist(inscription.workshopId, inscription.tenantId).catch(err => {
+        console.error('Error promoting waitlist user on delete:', err);
+      });
+    }
 
     return NextResponse.json({ message: 'Inscripción eliminada correctamente.' }, { status: 200 });
   } catch (error) {

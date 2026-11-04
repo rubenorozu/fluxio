@@ -39,6 +39,18 @@ export async function detectTenant(): Promise<{
             host = host.split(',')[0].trim();
         }
 
+        // 1. Check header x-tenant-slug from middleware first
+        const headerSlug = headersList.get('x-tenant-slug');
+        if (headerSlug && headerSlug !== 'default' && headerSlug !== 'platform') {
+            const tenant = await prisma.tenant.findUnique({
+                where: { slug: headerSlug, isActive: true },
+                include: { config: true },
+            });
+            if (tenant) {
+                return tenant;
+            }
+        }
+
         const subdomain = getSubdomain(host);
         console.log(`[detectTenant] Host: ${host}, Subdomain: ${subdomain}`);
 
@@ -56,22 +68,23 @@ export async function detectTenant(): Promise<{
                 console.log(`[detectTenant] Subdomain '${subdomain}' not found in DB or inactive.`);
             }
         } else {
-            // No subdomain detected - use platform tenant as default
-            console.log('[detectTenant] No subdomain detected, using platform tenant as default');
-            const platformTenant = await prisma.tenant.findUnique({
-                where: { slug: 'platform', isActive: true },
+            // Dedicated single-tenant mode: default directly to UNIVA (tuceproa)
+            const targetSlug = process.env.DEFAULT_TENANT_SLUG || 'tuceproa';
+            console.log(`[detectTenant] Dedicated mode: using default tenant '${targetSlug}'`);
+            const dedicatedTenant = await prisma.tenant.findUnique({
+                where: { slug: targetSlug, isActive: true },
                 include: {
                     config: true
                 }
             });
 
-            if (platformTenant) {
-                console.log(`[detectTenant] Using platform tenant: ${platformTenant.slug} (${platformTenant.id})`);
+            if (dedicatedTenant) {
+                console.log(`[detectTenant] Using dedicated tenant: ${dedicatedTenant.slug} (${dedicatedTenant.id})`);
                 return {
-                    id: platformTenant.id,
-                    slug: platformTenant.slug,
-                    name: platformTenant.name,
-                    config: platformTenant.config
+                    id: dedicatedTenant.id,
+                    slug: dedicatedTenant.slug,
+                    name: dedicatedTenant.name,
+                    config: dedicatedTenant.config
                 };
             }
 

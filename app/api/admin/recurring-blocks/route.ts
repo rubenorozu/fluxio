@@ -70,7 +70,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, description, startDate, endDate, dayOfWeek, startTime, endTime, spaceId, equipmentIds, isVisibleToViewer } = body;
+  const { title, description, startDate, endDate, dayOfWeek, startTime, endTime, spaceId, equipmentIds, isVisibleToViewer, isRental } = body;
 
   if (!title || !startDate || !endDate || !Array.isArray(dayOfWeek) || dayOfWeek.length === 0 || !startTime || !endTime) {
     return NextResponse.json({ error: 'Faltan campos requeridos o formato incorrecto para días de la semana.' }, { status: 400 });
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
         if (spaceId) {
           const conflictingSpaceReservations = await prisma.reservation.findMany({
             where: {
-              spaceId: spaceId,
+              spaceId,
               status: { not: 'REJECTED' },
               AND: [
                 { startTime: { lt: instanceEnd } },
@@ -147,6 +147,7 @@ export async function POST(request: Request) {
         endTime,
         space: spaceId ? { connect: { id: spaceId } } : undefined,
         isVisibleToViewer: isVisibleToViewer,
+        isRental: Boolean(isRental),
         equipment: {
           create: equipmentIds && equipmentIds.length > 0
             ? equipmentIds.map((eqId: string) => ({ equipmentId: eqId }))

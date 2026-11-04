@@ -38,9 +38,9 @@ export async function createSession(userId: string, role: Role, tenantId: string
   const cookieStore = await cookies(); // Obtener el almacén de cookies de forma explícita y AWAIT
   cookieStore.set('session', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: (process.env.NEXT_PUBLIC_SITE_URL?.startsWith('https://') || process.env.COOKIE_SECURE === 'true') ?? false,
     expires: expires,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: (process.env.NEXT_PUBLIC_SITE_URL?.startsWith('https://') || process.env.COOKIE_SECURE === 'true') ? 'none' : 'lax',
     path: '/',
   });
 }
@@ -122,5 +122,6 @@ export async function verifyToken(token: string): Promise<SessionPayload | null>
 export async function deleteSession() {
   // --- CAMBIO CLAVE AQUÍ ---
   const cookieStore = await cookies(); // Obtener el almacén de cookies de forma explícita y AWAIT
-  cookieStore.set('session', '', { expires: new Date(0) });
+  const isHttps = (process.env.NEXT_PUBLIC_SITE_URL?.startsWith('https://') || process.env.COOKIE_SECURE === 'true') ?? false;
+  cookieStore.set('session', '', { expires: new Date(0), path: '/', httpOnly: true, secure: isHttps, sameSite: isHttps ? 'none' : 'lax' });
 }

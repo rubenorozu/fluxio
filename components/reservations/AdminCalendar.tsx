@@ -178,13 +178,13 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
                 if (!isExcepted) {
                   events.push({
                     id: `recurring-${block.id}-${instanceStartDate.toISOString()}`,
-                    title: block.title,
+                    title: block.isRental ? `[RENTA] ${block.title}` : block.title,
                     start: instanceStartDate,
                     end: instanceEndDate,
                     isBlock: true,
                     fullReservation: {
                       ...block,
-                      user: { firstName: 'Bloqueo', lastName: 'Recurrente' },
+                      user: { firstName: block.isRental ? 'Renta' : 'Bloqueo', lastName: block.isRental ? 'de Espacio' : 'Recurrente' },
                       // Flatten equipment names for display if needed
                       equipmentNames: block.equipment.map((eq: any) => eq.name).join(', '),
                     },
@@ -287,7 +287,11 @@ export default function AdminCalendar({ spaceId, equipmentId, role, responsibleU
     let backgroundColor = '#3174ad'; // Default Blue
     
     if (event.isBlock) {
-      backgroundColor = '#d9534f'; // Red for blocks
+      if (event.fullReservation?.isRental) {
+        backgroundColor = '#6f42c1'; // Purple for Rental blocks
+      } else {
+        backgroundColor = '#d9534f'; // Red for blocks
+      }
     } else {
       switch (event.status) {
         case 'APPROVED':

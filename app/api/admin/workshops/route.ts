@@ -143,7 +143,7 @@ export async function POST(request: Request) {
   const prisma = getTenantPrisma(tenant.id);
 
   try {
-    const { name, description, capacity, teacher, startDate, endDate, inscriptionsStartDate, responsibleUserIds, sessions, images } = await request.json();
+    const { name, description, capacity, autoApprove, allowWaitlist, maxWaitlist, teacher, startDate, endDate, inscriptionsStartDate, responsibleUserIds, sessions, images } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre del taller es obligatorio.' }, { status: 400 });
@@ -175,24 +175,26 @@ export async function POST(request: Request) {
             displayId,
             name,
             description,
-            capacity: capacity || 0,
+            capacity: capacity !== undefined ? parseInt(String(capacity)) || 0 : 0,
+            autoApprove: autoApprove !== undefined ? Boolean(autoApprove) : false,
+            allowWaitlist: allowWaitlist !== undefined ? Boolean(allowWaitlist) : true,
+            maxWaitlist: maxWaitlist ? parseInt(String(maxWaitlist)) || null : null,
             teacher,
             startDate: startDate ? new Date(startDate) : null,
             endDate: endDate ? new Date(endDate) : null,
             inscriptionsStartDate: parsedInscriptionsStartDate,
             inscriptionsOpen: calculatedInscriptionsOpen,
-            images: {
+            images: images && images.length > 0 ? {
               create: images,
-            },
-            sessions: {
+            } : undefined,
+            sessions: sessions && sessions.length > 0 ? {
               create: sessions.map((session: { dayOfWeek: number; timeStart: string; timeEnd: string; room?: string }) => ({
                 dayOfWeek: session.dayOfWeek,
                 timeStart: session.timeStart,
                 timeEnd: session.timeEnd,
                 room: session.room,
-                tenantId: tenant.id
               })),
-            },
+            } : undefined,
             responsibleUsers: {
               connect: (finalResponsibleUserIds || []).map((id: string) => ({ id }))
             },

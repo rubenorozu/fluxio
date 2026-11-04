@@ -122,6 +122,7 @@ model User {
   role              Role    @default(USER)
   isVerified        Boolean @default(false)
   verificationToken String? @unique
+  isActive          Boolean @default(true)
 
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
   tenantId String?
@@ -237,6 +238,9 @@ model Workshop {
   name                  String
   description           String?
   capacity              Int       @default(0)
+  autoApprove           Boolean   @default(false)
+  allowWaitlist         Boolean   @default(true)
+  maxWaitlist           Int?
   availableFrom         DateTime?
   inscriptionsOpen      Boolean   @default(true)
   inscriptionsStartDate DateTime?
@@ -324,6 +328,7 @@ enum InscriptionStatus {
   APPROVED
   REJECTED
   PENDING_EXTRAORDINARY
+  WAITLIST
 }
 
 enum ResourceStatus {
@@ -403,7 +408,10 @@ model Inscription {
   user       User              @relation(fields: [userId], references: [id])
   userId     String
   status     InscriptionStatus @default(PENDING)
+  checkedIn  Boolean           @default(false)
+  checkedInAt DateTime?
   createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @default(now()) @updatedAt
 
   @@unique([workshopId, userId])
   @@index([tenantId])
@@ -460,6 +468,7 @@ model RecurringBlock {
   equipment         RecurringBlockOnEquipment[]
   exceptions        RecurringBlockException[]
   isVisibleToViewer Boolean                     @default(true)
+  isRental          Boolean                     @default(false)
   createdAt         DateTime                    @default(now())
   updatedAt         DateTime                    @updatedAt
 

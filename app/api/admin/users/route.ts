@@ -43,6 +43,7 @@ export async function GET(req: Request) {
         role: true,
         identifier: true,
         isVerified: true,
+        isActive: true,
         createdAt: true,
       },
       orderBy: { firstName: 'asc' },
@@ -76,6 +77,7 @@ export async function GET(req: Request) {
       role: user.role,
       identifier: user.identifier,
       isVerified: user.isVerified,
+      isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),
     }));
 

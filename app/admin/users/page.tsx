@@ -15,6 +15,7 @@ interface User {
   email: string;
   role: Role;
   isVerified: boolean;
+  isActive?: boolean;
   createdAt: string;
   identifier: string;
 }
@@ -132,6 +133,41 @@ export default function AdminUsersPage() {
       } else {
         setError('An unknown error occurred');
         alert('An unknown error occurred');
+      }
+    }
+  };
+
+  const handleToggleActive = async (user: User) => {
+    const isDeactivating = user.isActive !== false;
+    const confirmMessage = isDeactivating
+      ? `¿Estás seguro de que deseas desactivar a ${user.name || user.email}?\n\n- El usuario no podrá iniciar sesión.\n- Se conservará todo su historial de reservaciones.\n- Los espacios y equipos a su cargo serán protegidos.`
+      : `¿Deseas reactivar la cuenta de ${user.name || user.email}?`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isActive: !isDeactivating }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudo actualizar el estado del usuario.');
+      }
+
+      setUsers(users.map(u => (u.id === user.id ? { ...u, isActive: data.isActive } : u)));
+      alert(data.message || 'Estado del usuario actualizado correctamente.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert(`Error al actualizar estado: ${err.message}`);
+      } else {
+        alert('Ocurrió un error inesperado.');
       }
     }
   };
@@ -260,6 +296,7 @@ export default function AdminUsersPage() {
                 <th>Email</th>
                 <th>Rol</th>
                 <th>Matrícula / ID</th>
+                <th>Estado</th>
                 <th>Verificado</th>
                 <th>Fecha de Creación</th>
                 <th>Acciones</th>
@@ -267,29 +304,47 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {users.map(user => (
-                <tr key={user.id}>
-                  <td>{user.displayId || user.id}</td>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>
+                <tr key={user.id} className={user.isActive === false ? 'table-secondary opacity-75' : ''}>
+                  <td className="align-middle">{user.displayId || user.id}</td>
+                  <td className="align-middle">
+                    <strong>{user.name}</strong>
+                    {user.isActive === false && <span className="ms-2 text-muted small">(Desactivado)</span>}
+                  </td>
+                  <td className="align-middle">{user.email}</td>
+                  <td className="align-middle">
                     <Form.Select
                       value={user.role}
                       onChange={(e) => handleRoleChange(user.id, e.target.value as Role)}
-                      disabled={user.id === currentUser.id} // Deshabilitar para el usuario actual
+                      disabled={user.id === currentUser.id || user.isActive === false}
                     >
                       {Object.values(Role).map(role => (
                         <option key={role} value={role}>{role}</option>
                       ))}
                     </Form.Select>
                   </td>
-                  <td>{user.identifier}</td>
-                  <td>{user.isVerified ? 'Sí' : 'No'}</td>
-                  <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleResetPassword(user.id, user.email)}>
-                      Restablecer Contraseña
+                  <td className="align-middle">{user.identifier}</td>
+                  <td className="align-middle">
+                    <span className={`badge ${user.isActive !== false ? 'bg-success' : 'bg-secondary'}`}>
+                      {user.isActive !== false ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td className="align-middle">{user.isVerified ? 'Sí' : 'No'}</td>
+                  <td className="align-middle">{new Date(user.createdAt).toLocaleDateString()}</td>
+                  <td className="align-middle">
+                    <Button
+                      variant={user.isActive !== false ? 'outline-warning' : 'outline-success'}
+                      size="sm"
+                      className="me-2"
+                      onClick={() => handleToggleActive(user)}
+                      disabled={user.id === currentUser.id}
+                      title={user.isActive !== false ? 'Desactivar acceso sin borrar historial' : 'Reactivar acceso al usuario'}
+                    >
+                      {user.isActive !== false ? 'Desactivar' : 'Reactivar'}
                     </Button>
-                    <Button variant="danger" size="sm" onClick={() => handleDelete(user.id)} disabled={user.id === currentUser.id}>
+                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleResetPassword(user.id, user.email)}>
+                      Contraseña
+                    </Button>
+                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(user.id)} disabled={user.id === currentUser.id} title="Eliminación definitiva">
                       Eliminar
                     </Button>
                   </td>

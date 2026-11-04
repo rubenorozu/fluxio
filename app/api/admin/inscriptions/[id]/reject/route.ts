@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       },
       include: {
         workshop: {
-          select: { name: true },
+          select: { name: true, id: true },
         },
       },
     });
@@ -49,6 +49,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
         message: `Tu inscripción al taller "${updatedInscription.workshop.name}" ha sido rechazada.`,
       },
     });
+
+    // Si la inscripción estaba aprobada o pendiente, intentar promover de la lista de espera
+    if (inscription.status === InscriptionStatus.APPROVED || inscription.status === InscriptionStatus.PENDING) {
+      const { promoteNextFromWaitlist } = await import('@/lib/workshops/inscriptions');
+      await promoteNextFromWaitlist(inscription.workshopId, inscription.tenantId).catch(err => {
+        console.error('Error promoting waitlist user on reject:', err);
+      });
+    }
 
     return NextResponse.json(updatedInscription, { status: 200 });
   } catch (error) {

@@ -1,51 +1,54 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { detectTenant } from '@/lib/tenant/detection';
-import { getTenantPrisma } from '@/lib/tenant/prisma';
 import { getServerSession } from '@/lib/auth';
-import { InscriptionStatus } from '@prisma/client';
+import { inscribeToWorkshop } from '@/lib/workshops/inscriptions';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const tenant = await detectTenant();
   if (!tenant) {
     return NextResponse.json({ error: 'Unauthorized Tenant' }, { status: 401 });
   }
-  const prisma = getTenantPrisma(tenant.id);
 
   const session = await getServerSession();
-
   if (!session) {
-    return NextResponse.json({ message: 'No autenticado.' }, { status: 401 });
+    return NextResponse.json({ message: 'No autenticado. Inicia sesión para inscribirte.' }, { status: 401 });
   }
 
   const userId = session.user.id;
   const workshopId = params.id;
 
+  let isExtraordinary = false;
   try {
-    // Check if the user is already inscribed in this workshop
-    const existingInscription = await prisma.inscription.findFirst({
-      where: {
-        userId: userId,
-        workshopId: workshopId,
-      },
-    });
-
-    if (existingInscription) {
-      return NextResponse.json({ message: 'Ya estás inscrito en este taller.' }, { status: 409 });
+    const body = await request.json().catch(() => ({}));
+    if (body && body.isExtraordinary) {
+      isExtraordinary = true;
     }
+  } catch {
+    // Body optional
+  }
 
-    // Create the inscription
-    const inscription = await prisma.inscription.create({
-      data: {
-        userId: userId,
-        workshopId: workshopId,
-        status: InscriptionStatus.PENDING, // Default status
-        tenantId: tenant.id,
-      },
+  try {
+    const result = await inscribeToWorkshop({
+      workshopId,
+      userId,
+      tenantId: tenant.id,
+      isExtraordinary,
     });
 
-    return NextResponse.json(inscription, { status: 201 });
-  } catch (error) {
+    return NextResponse.json(result, { status: 201 });
+  } catch (error: any) {
     console.error('Error al inscribirse en el taller:', error);
-    return NextResponse.json({ message: 'Algo salió mal al inscribirse en el taller.' }, { status: 500 });
+    const message = error.message || 'Algo salió mal al inscribirse en el taller.';
+    const isConflict = message.includes('Ya estás');
+    const isFull = message.includes('capacidad máxima') || message.includes('lista de espera se encuentra llena');
+
+    return NextResponse.json(
+      {
+        message,
+        error: message,
+        limitReached: message.includes('inscripciones activas'),
+      },
+      { status: isConflict ? 409 : isFull ? 400 : 403 }
+    );
   }
 }

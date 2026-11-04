@@ -6,6 +6,7 @@ import { Table, Button, Spinner, Alert, Container, Row, Col, Modal, Form, Button
 import { useSession } from '@/context/SessionContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import WorkshopQrModal from '@/components/WorkshopQrModal';
 
 interface Image {
   id: string;
@@ -33,6 +34,9 @@ interface Workshop {
     lastName: string;
   }[];
   capacity: number;
+  autoApprove?: boolean;
+  allowWaitlist?: boolean;
+  maxWaitlist?: number | null;
   availableFrom: string | null;
   inscriptionsOpen: boolean;
   inscriptionsStartDate: string | null;
@@ -75,12 +79,17 @@ export default function AdminWorkshopsPage() {
     description: '',
     responsibleUserIds: [] as string[],
     capacity: 0,
+    autoApprove: false,
+    allowWaitlist: true,
+    maxWaitlist: '' as string | number,
     availableFrom: '',
     teacher: '',
     startDate: '',
     endDate: '',
     inscriptionsStartDate: '',
   });
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [selectedQrWorkshop, setSelectedQrWorkshop] = useState<{ id: string; name: string } | null>(null);
   const [modalWorkshopSessions, setModalWorkshopSessions] = useState<WorkshopSession[]>([{ dayOfWeek: 1, timeStart: '09:00', timeEnd: '10:00', room: '' } as WorkshopSession]);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [existingImages, setExistingImages] = useState<Image[]>([]);
@@ -199,6 +208,9 @@ export default function AdminWorkshopsPage() {
       description: item?.description || '',
       responsibleUserIds: item ? (item.responsibleUsers?.map(u => u.id) || []) : (user && user.role === 'ADMIN_RESOURCE' ? [user.id] : []),
       capacity: item?.capacity || 0,
+      autoApprove: item?.autoApprove ?? false,
+      allowWaitlist: item?.allowWaitlist ?? true,
+      maxWaitlist: item?.maxWaitlist || '',
       availableFrom: item?.availableFrom ? new Date(item.availableFrom).toISOString().slice(0, 16) : '',
       teacher: item?.teacher || '',
       startDate: item?.startDate ? new Date(item.startDate).toISOString().split('T')[0] : '', // NUEVO: Inicializar startDate
@@ -224,6 +236,9 @@ export default function AdminWorkshopsPage() {
       description: item.description || '',
       responsibleUserIds: item.responsibleUsers?.map(u => u.id) || [],
       capacity: item.capacity || 0,
+      autoApprove: item.autoApprove ?? false,
+      allowWaitlist: item.allowWaitlist ?? true,
+      maxWaitlist: item.maxWaitlist || '',
       availableFrom: item.availableFrom ? new Date(item.availableFrom).toISOString().slice(0, 16) : '',
       teacher: item.teacher || '',
       startDate: item.startDate ? new Date(item.startDate).toISOString().split('T')[0] : '',
@@ -250,6 +265,9 @@ export default function AdminWorkshopsPage() {
       description: '',
       responsibleUserIds: [],
       capacity: 0,
+      autoApprove: false,
+      allowWaitlist: true,
+      maxWaitlist: '',
       availableFrom: '',
       teacher: '',
       startDate: '', // NUEVO: Resetear startDate
@@ -266,7 +284,7 @@ export default function AdminWorkshopsPage() {
     const { name, value, type } = e.target as HTMLInputElement;
     setForm(prev => ({
       ...prev,
-      [name]: type === 'number' ? parseInt(value, 10) : value,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : type === 'number' ? (value === '' ? '' : parseInt(value, 10)) : value,
     }));
   };
 
@@ -716,8 +734,41 @@ export default function AdminWorkshopsPage() {
                     <Button variant="warning" size="sm" className="me-2" onClick={() => handleShowModal(item)}>
                       Editar
                     </Button>
-                    <a href={`/api/admin/workshops/${item.id}/inscriptions/pdf?token=${token || ''}`} className="btn btn-success btn-sm me-2" target="_blank">
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      className="me-2 text-nowrap"
+                      onClick={() => {
+                        setSelectedQrWorkshop({ id: item.id, name: item.name });
+                        setShowQrModal(true);
+                      }}
+                      title="Descargar código QR para afiches o difusión"
+                    >
+                      Descargar QR
+                    </Button>
+                    <a
+                      href={`/admin/workshops/${item.id}/proyeccion`}
+                      target="_blank"
+                      className="btn btn-outline-info btn-sm me-2 text-nowrap"
+                      title="Abrir pantalla de proyección para registrar asistencia"
+                    >
+                      Proyectar Asistencia
+                    </a>
+                    <a
+                      href={`/api/admin/workshops/${item.id}/inscriptions/pdf?token=${token || ''}`}
+                      className="btn btn-outline-danger btn-sm me-2 text-nowrap"
+                      target="_blank"
+                      title="Descargar lista de inscritos en PDF oficial"
+                    >
                       Descargar PDF
+                    </a>
+                    <a
+                      href={`/api/admin/inscriptions?workshopId=${item.id}&format=csv&token=${token || ''}`}
+                      download={`Inscritos_${item.name.replace(/[^a-zA-Z0-9]/g, '_')}.csv`}
+                      className="btn btn-success btn-sm me-2 text-nowrap"
+                      title="Descargar lista de alumnos y asistencia en Excel (.csv)"
+                    >
+                      Descargar Excel
                     </a>
                     <Button variant="danger" size="sm" className="me-2" onClick={() => handleDelete(item.id)}>
                       Eliminar
@@ -864,7 +915,7 @@ export default function AdminWorkshopsPage() {
               )}
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Capacidad</Form.Label>
+              <Form.Label>Capacidad Máxima</Form.Label>
               <Form.Control
                 type="number"
                 name="capacity"
@@ -872,7 +923,62 @@ export default function AdminWorkshopsPage() {
                 onChange={handleChange}
                 placeholder="0"
               />
+              <Form.Text className="text-muted">
+                Número de lugares disponibles (0 = sin límite numérico).
+              </Form.Text>
             </Form.Group>
+
+            {/* Configuración de Auto-Aprobación y Lista de Espera */}
+            <div className="p-3 bg-light rounded-3 border mb-3">
+              <h6 className="fw-bold mb-3 text-primary">Modo de Inscripción y Lista de Espera</h6>
+
+              <Form.Group className="mb-3">
+                <Form.Check
+                  type="switch"
+                  id="autoApproveSwitch"
+                  name="autoApprove"
+                  label="Aprobación Automática de Inscripciones"
+                  checked={form.autoApprove}
+                  onChange={handleChange}
+                />
+                <Form.Text className="text-muted">
+                  {form.autoApprove
+                    ? 'Activado: Las inscripciones se aprueban automáticamente hasta llenar el cupo.'
+                    : 'Desactivado: Las solicitudes quedan pendientes para que las apruebes manualmente.'}
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-2">
+                <Form.Check
+                  type="switch"
+                  id="allowWaitlistSwitch"
+                  name="allowWaitlist"
+                  label="Permitir Lista de Espera cuando se llene el cupo"
+                  checked={form.allowWaitlist}
+                  onChange={handleChange}
+                />
+                <Form.Text className="text-muted">
+                  Al completarse el cupo, los siguientes alumnos podrán registrarse en lista de espera.
+                </Form.Text>
+              </Form.Group>
+
+              {form.allowWaitlist && (
+                <Form.Group className="mt-3 ps-3 border-start border-3 border-primary">
+                  <Form.Label className="small fw-semibold">Tope de Lista de Espera (opcional)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="maxWaitlist"
+                    value={form.maxWaitlist}
+                    onChange={handleChange}
+                    placeholder="Dejar en blanco o 0 para ilimitada"
+                    min="0"
+                  />
+                  <Form.Text className="text-muted small">
+                    Déjalo vacío o en 0 para lista ilimitada y medir todo el interés de los alumnos.
+                  </Form.Text>
+                </Form.Group>
+              )}
+            </div>
             <Form.Group className="mb-3">
               <Form.Label>Fecha de Inicio del Taller</Form.Label>
               <Form.Control
@@ -986,6 +1092,19 @@ export default function AdminWorkshopsPage() {
           </Form>
         </Modal.Body>
       </Modal>
+
+      {/* Modal para Generar y Descargar Códigos QR */}
+      {selectedQrWorkshop && (
+        <WorkshopQrModal
+          show={showQrModal}
+          onHide={() => {
+            setShowQrModal(false);
+            setSelectedQrWorkshop(null);
+          }}
+          workshopId={selectedQrWorkshop.id}
+          workshopName={selectedQrWorkshop.name}
+        />
+      )}
     </Container >
   );
 }

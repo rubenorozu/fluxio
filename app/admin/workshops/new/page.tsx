@@ -10,6 +10,10 @@ export default function NewWorkshopPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [teacher, setTeacher] = useState('');
+  const [capacity, setCapacity] = useState(0);
+  const [autoApprove, setAutoApprove] = useState(false);
+  const [allowWaitlist, setAllowWaitlist] = useState(true);
+  const [maxWaitlist, setMaxWaitlist] = useState('');
   const [availableFrom, setAvailableFrom] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -112,6 +116,10 @@ export default function NewWorkshopPage() {
         body: JSON.stringify({
           name,
           description,
+          capacity: capacity || 0,
+          autoApprove,
+          allowWaitlist,
+          maxWaitlist: maxWaitlist ? parseInt(maxWaitlist, 10) : null,
           availableFrom: availableFrom ? new Date(availableFrom).toISOString() : null,
           startDate: startDate ? new Date(startDate).toISOString() : null,
           endDate: endDate ? new Date(endDate).toISOString() : null,
@@ -189,6 +197,71 @@ export default function NewWorkshopPage() {
             value={teacher}
             onChange={(e) => setTeacher(e.target.value)}
           />
+        </div>
+        <div className="mb-3">
+          <label htmlFor="capacity" className="form-label">Capacidad Máxima</label>
+          <input
+            type="number"
+            className="form-control"
+            id="capacity"
+            value={capacity}
+            onChange={(e) => setCapacity(parseInt(e.target.value, 10) || 0)}
+            placeholder="0 = sin límite numérico"
+          />
+        </div>
+        <div className="p-3 bg-light rounded-3 border mb-3">
+          <h6 className="fw-bold mb-3 text-primary">Modo de Inscripción y Lista de Espera</h6>
+          <div className="form-check form-switch mb-3">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="autoApprove"
+              checked={autoApprove}
+              onChange={(e) => setAutoApprove(e.target.checked)}
+            />
+            <label className="form-check-label fw-semibold" htmlFor="autoApprove">
+              Aprobación Automática de Inscripciones
+            </label>
+            <div className="text-muted small">
+              {autoApprove
+                ? 'Las inscripciones se aprobarán de inmediato hasta agotar los lugares.'
+                : 'Las inscripciones quedan pendientes para su revisión manual.'}
+            </div>
+          </div>
+          <div className="form-check form-switch mb-2">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="allowWaitlist"
+              checked={allowWaitlist}
+              onChange={(e) => setAllowWaitlist(e.target.checked)}
+            />
+            <label className="form-check-label fw-semibold" htmlFor="allowWaitlist">
+              Permitir Lista de Espera cuando se llene el cupo
+            </label>
+            <div className="text-muted small">
+              Los alumnos podrán registrarse en lista de espera cuando se agoten los lugares.
+            </div>
+          </div>
+          {allowWaitlist && (
+            <div className="mt-3 ps-3 border-start border-3 border-primary">
+              <label htmlFor="maxWaitlist" className="form-label small fw-semibold">
+                Tope de Lista de Espera (opcional)
+              </label>
+              <input
+                type="number"
+                className="form-control form-control-sm"
+                id="maxWaitlist"
+                value={maxWaitlist}
+                onChange={(e) => setMaxWaitlist(e.target.value)}
+                placeholder="Dejar en blanco o 0 para ilimitada"
+                min="0"
+              />
+              <div className="text-muted small">
+                Déjalo vacío o en 0 para permitir que se registren todas las personas interesadas.
+              </div>
+            </div>
+          )}
         </div>
         <div className="row">
           <div className="col-md-6 mb-3">

@@ -217,8 +217,8 @@ async function getTenantSlug(request: NextRequest): Promise<string | null> {
     return subdomain;
   }
 
-  // 4. Fallback a tenant por defecto
-  return 'default';
+  // 4. Fallback a tenant por defecto (Modo dedicado UNIVA)
+  return process.env.DEFAULT_TENANT_SLUG || 'tuceproa';
 }
 
 /**

@@ -70,7 +70,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Acceso denegado. No eres responsable de este taller.' }, { status: 403 });
     }
 
-    const { name, description, capacity, teacher, startDate, endDate, inscriptionsStartDate, responsibleUserIds, sessions, images } = await request.json();
+    const { name, description, capacity, autoApprove, allowWaitlist, maxWaitlist, teacher, startDate, endDate, inscriptionsStartDate, responsibleUserIds, sessions, images } = await request.json();
 
     const parsedInscriptionsStartDate = inscriptionsStartDate ? new Date(inscriptionsStartDate) : null;
     const now = new Date();
@@ -81,7 +81,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       data: {
         name,
         description,
-        capacity: capacity || 0,
+        capacity: capacity !== undefined ? parseInt(String(capacity)) || 0 : 0,
+        autoApprove: autoApprove !== undefined ? Boolean(autoApprove) : false,
+        allowWaitlist: allowWaitlist !== undefined ? Boolean(allowWaitlist) : true,
+        maxWaitlist: maxWaitlist ? parseInt(String(maxWaitlist)) || null : null,
         teacher,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,

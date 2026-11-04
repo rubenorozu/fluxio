@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth';
 import { Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { PDFDocument, rgb, StandardFonts, PDFPage } from 'pdf-lib';
+import QRCode from 'qrcode';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -140,31 +141,40 @@ export async function GET(request: Request, { params }: { params: { id: string }
               }
             }
           } else {
-            const localPath = path.join(process.cwd(), 'public', url);
-            // Check if file exists before reading to avoid throwing
-            try {
-              await fs.access(localPath);
-              return await fs.readFile(localPath);
-            } catch {
-              console.warn(`Local file not found: ${localPath}`);
+            const publicDir = path.resolve(process.cwd(), 'public');
+            const localPath = path.resolve(publicDir, url.replace(/^(\.\.[\/\\])+/, '').replace(/^\/+/, ''));
+            
+            // Mitigación Path Traversal: asegurar que la ruta resuelta permanezca dentro de public
+            if (!localPath.startsWith(publicDir)) {
+              console.warn('Ruta bloqueada por seguridad (Path traversal):', url);
+            } else {
+              try {
+                await fs.access(localPath);
+                return await fs.readFile(localPath);
+              } catch {
+                console.warn('Archivo local no encontrado:', localPath);
+              }
             }
           }
         } catch (e) {
-          console.error(`Error loading logo from ${url}, trying default.`, e);
+          console.error('Error al cargar logo desde URL, intentando predeterminado:', e);
         }
       }
 
       // 2. Try to load default path
       try {
-        const defaultLocalPath = path.join(process.cwd(), 'public', defaultPath);
-        try {
-          await fs.access(defaultLocalPath);
-          return await fs.readFile(defaultLocalPath);
-        } catch {
-          console.warn(`Default local file not found: ${defaultLocalPath}`);
+        const publicDir = path.resolve(process.cwd(), 'public');
+        const defaultLocalPath = path.resolve(publicDir, defaultPath.replace(/^(\.\.[\/\\])+/, '').replace(/^\/+/, ''));
+        if (defaultLocalPath.startsWith(publicDir)) {
+          try {
+            await fs.access(defaultLocalPath);
+            return await fs.readFile(defaultLocalPath);
+          } catch {
+            console.warn('Archivo predeterminado local no encontrado:', defaultLocalPath);
+          }
         }
       } catch (e) {
-        console.error(`Error loading default logo from ${defaultPath}`, e);
+        console.error('Error al cargar logo predeterminado:', e);
       }
 
       // 3. Fallback to blank PNG to prevent crash
@@ -187,6 +197,33 @@ export async function GET(request: Request, { params }: { params: { id: string }
     } catch (e) {
       console.error('Error embedding bottom logo (likely not PNG), using blank:', e);
       ceproaLogo = await pdfDoc.embedPng(BLANK_PNG_BUFFER);
+    }
+
+    // Determinar URL base dinámica para el código QR de vigilancia
+    const hostHeader = request.headers.get('host') || '';
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const baseUrl = hostHeader 
+      ? `${protocol}://${hostHeader}` 
+      : (process.env.NEXT_PUBLIC_SITE_URL || 'https://tuceproa.onirica.mx');
+
+    const qrTargetUrl = `${baseUrl}/vigilancia/revision/${encodeURIComponent(pdfData.displayId)}`;
+
+    let qrImage;
+    try {
+      const qrPngBuffer = await QRCode.toBuffer(qrTargetUrl, {
+        type: 'png',
+        width: 300,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+        errorCorrectionLevel: 'M',
+      });
+      qrImage = await pdfDoc.embedPng(qrPngBuffer);
+    } catch (e) {
+      console.error('Error generando código QR para hoja de salida:', e);
+      qrImage = await pdfDoc.embedPng(BLANK_PNG_BUFFER);
     }
 
     const drawHalfSheet = (page: PDFPage, data: any, isTopHalf: boolean) => {
@@ -216,9 +253,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
       page.drawImage(univaLogo, { x: margin + 5, y: logoY, width: univaLogo.width * univaScale, height: univaLogo.height * univaScale });
       page.drawImage(ceproaLogo, { x: width - margin - (ceproaLogo.width * ceproaScale) - 5, y: logoY, width: ceproaLogo.width * ceproaScale, height: ceproaLogo.height * ceproaScale });
 
-      const observationsBoxX = margin + 200;
+      // Coordinates for Observations & QR Code Boxes
+      const observationsBoxX = margin + 195;
       const observationsBoxY = currentHalfStartY - 143;
-      const observationsBoxWidth = width - 2 * margin - 200 - 10;
+      const qrBoxWidth = 85;
+      const qrBoxHeight = 100;
+      const qrBoxX = width - margin - qrBoxWidth - 5;
+      const qrBoxY = observationsBoxY;
+
+      const observationsBoxWidth = qrBoxX - observationsBoxX - 8;
       const observationsBoxHeight = 100;
 
       page.drawRectangle({
@@ -236,13 +279,67 @@ export async function GET(request: Request, { params }: { params: { id: string }
         font: boldFont,
         size: 8,
       });
-      page.drawLine({ start: { x: observationsBoxX + 5, y: observationsBoxY + observationsBoxHeight - 20 }, end: { x: observationsBoxX + observationsBoxWidth - 5, y: observationsBoxY + observationsBoxHeight - 20 }, thickness: 0.5 });
+      page.drawLine({
+        start: { x: observationsBoxX + 5, y: observationsBoxY + observationsBoxHeight - 20 },
+        end: { x: observationsBoxX + observationsBoxWidth - 5, y: observationsBoxY + observationsBoxHeight - 20 },
+        thickness: 0.5,
+      });
 
       page.drawText('OBSERVACIONES', {
         x: observationsBoxX + 5,
         y: observationsBoxY + observationsBoxHeight - 35,
         font: boldFont,
         size: 8,
+      });
+
+      // QR Code Box for Vigilancia
+      page.drawRectangle({
+        x: qrBoxX,
+        y: qrBoxY,
+        width: qrBoxWidth,
+        height: qrBoxHeight,
+        borderColor: rgb(0.08, 0.34, 0.46),
+        borderWidth: 0.8,
+      });
+
+      const qrTitle = 'VIGILANCIA';
+      const qrTitleWidth = boldFont.widthOfTextAtSize(qrTitle, 6.5);
+      page.drawText(qrTitle, {
+        x: qrBoxX + (qrBoxWidth - qrTitleWidth) / 2,
+        y: qrBoxY + qrBoxHeight - 11,
+        font: boldFont,
+        size: 6.5,
+        color: rgb(0.08, 0.34, 0.46),
+      });
+
+      const qrSub = 'Escanear para verificar';
+      const qrSubWidth = font.widthOfTextAtSize(qrSub, 5);
+      page.drawText(qrSub, {
+        x: qrBoxX + (qrBoxWidth - qrSubWidth) / 2,
+        y: qrBoxY + qrBoxHeight - 18,
+        font: font,
+        size: 5,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+
+      const qrSize = 64;
+      const qrImgX = qrBoxX + (qrBoxWidth - qrSize) / 2;
+      const qrImgY = qrBoxY + 11;
+      page.drawImage(qrImage, {
+        x: qrImgX,
+        y: qrImgY,
+        width: qrSize,
+        height: qrSize,
+      });
+
+      const qrFoot = 'Control de Salida';
+      const qrFootWidth = boldFont.widthOfTextAtSize(qrFoot, 5.5);
+      page.drawText(qrFoot, {
+        x: qrBoxX + (qrBoxWidth - qrFootWidth) / 2,
+        y: qrBoxY + 4,
+        font: boldFont,
+        size: 5.5,
+        color: rgb(0.2, 0.2, 0.2),
       });
 
       let currentY = currentHalfStartY - 70;

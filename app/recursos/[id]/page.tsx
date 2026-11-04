@@ -88,8 +88,8 @@ export default function ResourceDetailPage() {
         const res = await fetch(apiUrl);
 
         if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message || `Error al cargar ${type} detalles`);
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || errorData.message || `Error al cargar ${type} detalles`);
         }
 
         const data: ResourceDetail = await res.json();
@@ -119,23 +119,25 @@ export default function ResourceDetailPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert('¡Inscripción exitosa!');
-        // TODO: Idealmente, se debería refrescar el estado para actualizar el contador de inscritos.
+        alert(data.message || '¡Inscripción procesada con éxito!');
+        window.location.reload();
       } else {
-        throw new Error(data.error || 'No se pudo realizar la inscripción.');
+        throw new Error(data.message || data.error || 'No se pudo realizar la inscripción.');
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        alert(`Error: ${error.message}`);
+        alert(`Aviso: ${error.message}`);
       } else {
-        alert('An unknown error occurred');
+        alert('Ocurrió un error al procesar tu solicitud.');
       }
     } finally {
       setIsSubscribing(false);
     }
   };
 
-  const isFull = resource?.type === 'workshop' && resource?.capacity && resource?.capacity > 0 && resource?._count?.inscriptions && resource._count.inscriptions >= resource.capacity;
+  const allowWaitlist = (resource as any)?.allowWaitlist ?? true;
+  const isFull = Boolean(resource?.type === 'workshop' && resource?.capacity && resource?.capacity > 0 && resource?._count?.inscriptions && resource._count.inscriptions >= resource.capacity);
+  const canJoinWaitlist = isFull && allowWaitlist;
   const areInscriptionsOpen: boolean = resource?.type === 'workshop' && (resource?.inscriptionsOpen === true || resource?.inscriptionsOpen === false ? resource.inscriptionsOpen : false);
   const inscriptionsNotStarted = resource?.type === 'workshop' && resource?.inscriptionsStartDate && new Date() < new Date(resource.inscriptionsStartDate);
 
@@ -205,7 +207,20 @@ export default function ResourceDetailPage() {
         <p className="card-text"><strong>Apertura de Inscripciones:</strong> {new Date(resource.inscriptionsStartDate).toLocaleDateString()}</p>
       )}
       {resource.type === 'workshop' && resource.capacity && resource.capacity > 0 && (
-        <p className="card-text"><strong>Capacidad:</strong> {resource.capacity} {resource._count?.inscriptions ? `(${resource._count.inscriptions} inscritos)` : ''}</p>
+        <div className="card-text mb-3">
+          <strong>Capacidad:</strong> {resource.capacity} lugares{' '}
+          {resource._count?.inscriptions ? `(${resource._count.inscriptions} inscritos)` : ''}
+          {isFull && (
+            <span className="badge bg-warning text-dark ms-2">
+              Cupo Principal Lleno
+            </span>
+          )}
+          {(resource as any).waitlistCount > 0 && (
+            <span className="badge bg-info text-dark ms-2">
+              {(resource as any).waitlistCount} en lista de espera
+            </span>
+          )}
+        </div>
       )}
       {resource.regulationsUrl && (
         <p className="card-text">
@@ -256,19 +271,43 @@ export default function ResourceDetailPage() {
         {resource.type === 'workshop' ? (
           <>
             <Button
-              variant="primary"
+              variant={canJoinWaitlist ? 'warning' : 'primary'}
               onClick={handleInscribe}
-              className="me-2"
-              disabled={Boolean(isSubscribing || isFull || !areInscriptionsOpen || inscriptionsNotStarted)}
-              style={{ backgroundColor: '#0076A8', borderColor: '#0076A8' }}
+              className={`me-2 ${canJoinWaitlist ? 'text-dark fw-bold' : ''}`}
+              disabled={Boolean(
+                isSubscribing ||
+                (isFull && !canJoinWaitlist) ||
+                !areInscriptionsOpen ||
+                inscriptionsNotStarted
+              )}
+              style={canJoinWaitlist ? {} : { backgroundColor: '#0076A8', borderColor: '#0076A8' }}
               title={
-                isFull ? 'Taller lleno'
-                  : !areInscriptionsOpen ? 'Inscripciones cerradas'
-                    : inscriptionsNotStarted ? `Inscripciones abren el ${resource.inscriptionsStartDate ? new Date(resource.inscriptionsStartDate).toLocaleDateString() : ''}`
-                      : 'Inscribirme al taller'
+                canJoinWaitlist
+                  ? 'El cupo principal está lleno. Anótate a la lista de espera.'
+                  : isFull
+                  ? 'Taller lleno'
+                  : !areInscriptionsOpen
+                  ? 'Inscripciones cerradas'
+                  : inscriptionsNotStarted
+                  ? `Inscripciones abren el ${
+                      resource.inscriptionsStartDate
+                        ? new Date(resource.inscriptionsStartDate).toLocaleDateString()
+                        : ''
+                    }`
+                  : 'Inscribirme al taller'
               }
             >
-              {isSubscribing ? 'Inscribiendo...' : isFull ? 'Taller Lleno' : !areInscriptionsOpen ? 'Cerrado' : inscriptionsNotStarted ? 'Próximamente' : 'Inscribirme'}
+              {isSubscribing
+                ? 'Procesando...'
+                : canJoinWaitlist
+                ? 'Unirse a Lista de Espera'
+                : isFull
+                ? 'Taller Lleno'
+                : !areInscriptionsOpen
+                ? 'Cerrado'
+                : inscriptionsNotStarted
+                ? 'Próximamente'
+                : 'Inscribirme'}
             </Button>
             <Button variant="outline-danger" onClick={() => setShowReportModal(true)}>
               Reportar un problema

@@ -33,6 +33,9 @@ export async function inscribeToWorkshop({
   const transactionPrisma = globalPrisma;
 
   return await transactionPrisma.$transaction(async (tx) => {
+    // 0. Bloqueo pesimista a nivel de fila (Row-level lock) para evitar sobrecupo en alta concurrencia
+    await tx.$queryRaw`SELECT id FROM "Workshop" WHERE id = ${workshopId} FOR UPDATE`;
+
     // 1. Obtener taller
     const workshop = await tx.workshop.findUnique({
       where: { id: workshopId },
@@ -224,6 +227,9 @@ export async function promoteNextFromWaitlist(
   externalTx?: Prisma.TransactionClient
 ): Promise<any | null> {
   const runner = async (tx: Prisma.TransactionClient) => {
+    // Bloquear taller para evitar carreras de promoción simultánea
+    await tx.$queryRaw`SELECT id FROM "Workshop" WHERE id = ${workshopId} FOR UPDATE`;
+
     const workshop = await tx.workshop.findUnique({
       where: { id: workshopId },
     });

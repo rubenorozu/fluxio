@@ -6,7 +6,6 @@ import Carousel from '@/components/Carousel';
 import { Spinner, Form } from 'react-bootstrap';
 import { useCart } from '@/context/CartContext';
 import SpaceConfigModal from '@/components/SpaceConfigModal';
-import { shuffleArray } from '@/lib/utils';
 
 interface Image {
     id: string;
@@ -40,14 +39,7 @@ interface HomeClientProps {
 export default function HomeClient({ initialResources, howItWorks, siteName }: HomeClientProps) {
     const { addToCart } = useCart();
 
-    const prioritizeWithPhotos = (items: Resource[]): Resource[] => {
-        const hasPhoto = (r: Resource) => Array.isArray(r.images) && r.images.length > 0 && Boolean(r.images[0]?.url);
-        const withPhotos = items.filter(hasPhoto);
-        const withoutPhotos = items.filter(r => !hasPhoto(r));
-        return [...shuffleArray(withPhotos), ...shuffleArray(withoutPhotos)];
-    };
-
-    const [allResources, setAllResources] = useState<Resource[]>(() => prioritizeWithPhotos(initialResources));
+    const [allResources, setAllResources] = useState<Resource[]>(initialResources);
     const [filter, setFilter] = useState<'all' | 'space' | 'equipment' | 'workshop'>('all');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false); // Changed initial loading to false as we have data
@@ -68,9 +60,9 @@ export default function HomeClient({ initialResources, howItWorks, siteName }: H
             { title: "Paso 4", description: "Confirma tu solicitud y espera la aprobación." }
         ];
 
-    // Keep resources prioritized with photos first while randomizing within each tier
+    // Sync when initialResources changes
     useEffect(() => {
-        setAllResources(prioritizeWithPhotos(initialResources));
+        setAllResources(initialResources);
     }, [initialResources]);
 
     const handleConfigureSpace = async (spaceId: string) => {

@@ -640,7 +640,13 @@ export default function AdminSpacesPage() {
                         ))}
                       </div>
                     ) : (
-                      'N/A'
+                      <span
+                        className="badge bg-light text-muted border py-1 px-2"
+                        style={{ fontSize: '0.75rem', fontWeight: 500 }}
+                        title="Sin imagen asignada"
+                      >
+                        Sin imagen
+                      </span>
                     )}
                   </td>
                   <td>

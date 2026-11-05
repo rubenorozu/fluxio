@@ -653,7 +653,7 @@ export default function AdminEquipmentPage() {
                     disabled={equipment.length === 0}
                   />
                 </th>
-                <th>ID</th><th>Nombre</th><th>Ubicación</th><th>Unidades</th><th>Responsable</th><th>Estado</th><th>Acciones</th>
+                <th>ID</th><th>Nombre</th><th style={{ width: '80px', textAlign: 'center' }}>Imagen</th><th>Ubicación</th><th>Unidades</th><th>Responsable</th><th>Estado</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -668,6 +668,43 @@ export default function AdminEquipmentPage() {
                   </td>
                   <td>{item.displayId || item.id}</td>
                   <td>{item.name}</td>
+                  <td className="text-center align-middle">
+                    {item.images && item.images.length > 0 ? (
+                      <div className="d-inline-flex position-relative">
+                        <a href={item.images[0].url} target="_blank" rel="noopener noreferrer" title="Clic para ver imagen en tamaño completo">
+                          <img
+                            src={item.images[0].url}
+                            alt={item.name}
+                            width={44}
+                            height={44}
+                            style={{
+                              objectFit: 'cover',
+                              borderRadius: '6px',
+                              border: '1px solid #ced4da',
+                            }}
+                            className="shadow-sm"
+                          />
+                        </a>
+                        {item.images.length > 1 && (
+                          <span
+                            className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark"
+                            style={{ fontSize: '0.65rem' }}
+                            title={`${item.images.length} imágenes`}
+                          >
+                            +{item.images.length - 1}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span
+                        className="badge bg-light text-muted border py-1 px-2"
+                        style={{ fontSize: '0.75rem', fontWeight: 500 }}
+                        title="Sin imagen asignada"
+                      >
+                        Sin imagen
+                      </span>
+                    )}
+                  </td>
                   <td>{item.location?.name || 'Sin Ubicación'}</td>
                   <td>{item.units ? item.units.length : 0} ud.</td>
                   <td>{item.responsibleUsers && item.responsibleUsers.length > 0 ? item.responsibleUsers.map(u => `${u.firstName} ${u.lastName}`).join(', ') : 'N/A'}</td>

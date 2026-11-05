@@ -263,6 +263,26 @@ export default function AdminEquipmentPage() {
     setExistingImages(prevImages => prevImages.filter(img => img.id !== imageId));
   };
 
+  const handleSetCoverImage = (index: number) => {
+    setExistingImages(prevImages => {
+      if (index <= 0 || index >= prevImages.length) return prevImages;
+      const copy = [...prevImages];
+      const [selected] = copy.splice(index, 1);
+      return [selected, ...copy];
+    });
+  };
+
+  const handleMoveImage = (index: number, direction: 'left' | 'right') => {
+    setExistingImages(prevImages => {
+      const targetIndex = direction === 'left' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prevImages.length) return prevImages;
+      const copy = [...prevImages];
+      const [moved] = copy.splice(index, 1);
+      copy.splice(targetIndex, 0, moved);
+      return copy;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isDuplicating) {
@@ -765,27 +785,130 @@ export default function AdminEquipmentPage() {
               )}
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Imágenes</Form.Label>
+              <div className="d-flex justify-content-between align-items-center mb-1">
+                <Form.Label className="fw-bold mb-0">Imágenes del Equipo</Form.Label>
+                {existingImages.length > 0 && (
+                  <span className="badge bg-warning text-dark" style={{ fontSize: '0.7rem' }}>
+                    La 1ª imagen es la Portada
+                  </span>
+                )}
+              </div>
+
               {existingImages.length > 0 && (
-                <div className="mb-2 d-flex flex-wrap">
-                  {existingImages.map(img => (
-                    <div key={img.id} className="position-relative me-2 mb-2">
-                      <img src={img.url} alt="Existing Image" width={50} height={50} style={{ objectFit: 'cover', margin: '2px' }} className="img-thumbnail" />
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        className="position-absolute top-0 start-100 translate-middle rounded-circle p-0"
-                        style={{ width: '20px', height: '20px', fontSize: '0.7rem', lineHeight: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        onClick={() => handleRemoveExistingImage(img.id)}
-                      >
-                        &times;
-                      </Button>
-                    </div>
-                  ))}
+                <div className="p-2 border rounded bg-light mb-2">
+                  <div className="d-flex flex-wrap gap-2">
+                    {existingImages.map((img, index) => {
+                      const isCover = index === 0;
+                      return (
+                        <div
+                          key={img.id}
+                          className={`position-relative p-1 rounded bg-white shadow-sm border ${
+                            isCover ? 'border-warning border-2' : 'border-secondary-subtle'
+                          }`}
+                          style={{ width: '100px' }}
+                        >
+                          {/* Botón eliminar */}
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            className="position-absolute top-0 end-0 translate-middle rounded-circle p-0 shadow-sm"
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              fontSize: '0.75rem',
+                              lineHeight: '1',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 10,
+                            }}
+                            onClick={() => handleRemoveExistingImage(img.id)}
+                            title="Eliminar esta imagen"
+                          >
+                            &times;
+                          </Button>
+
+                          {/* Imagen con miniatura */}
+                          <a
+                            href={img.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Clic para ver en tamaño completo"
+                            style={{ display: 'block', width: '100%', height: '65px', overflow: 'hidden', borderRadius: '4px' }}
+                          >
+                            <img
+                              src={img.url}
+                              alt={`Imagen ${index + 1}`}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          </a>
+
+                          {/* Estado de Portada y Acciones */}
+                          <div className="mt-1 d-flex flex-column gap-1">
+                            {isCover ? (
+                              <span
+                                className="badge bg-warning text-dark text-center py-1 fw-bold"
+                                style={{ fontSize: '0.68rem' }}
+                              >
+                                ★ Portada
+                              </span>
+                            ) : (
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                className="w-100 py-0 px-1 text-nowrap"
+                                style={{ fontSize: '0.65rem', height: '22px', lineHeight: '20px' }}
+                                onClick={() => handleSetCoverImage(index)}
+                                title="Establecer como imagen de portada"
+                              >
+                                Hacer Portada
+                              </Button>
+                            )}
+
+                            {/* Controles de orden izquierda/derecha */}
+                            <div className="d-flex justify-content-between align-items-center">
+                              <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                className="py-0 px-1"
+                                style={{ fontSize: '0.65rem', height: '18px', lineHeight: '14px' }}
+                                disabled={index === 0}
+                                onClick={() => handleMoveImage(index, 'left')}
+                                title="Mover hacia la izquierda"
+                              >
+                                ◀
+                              </Button>
+                              <span className="text-muted" style={{ fontSize: '0.62rem' }}>#{index + 1}</span>
+                              <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                className="py-0 px-1"
+                                style={{ fontSize: '0.65rem', height: '18px', lineHeight: '14px' }}
+                                disabled={index === existingImages.length - 1}
+                                onClick={() => handleMoveImage(index, 'right')}
+                                title="Mover hacia la derecha"
+                              >
+                                ▶
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
-              <Form.Control type="file" name="files" multiple onChange={handleFileChange} />
-              <Form.Text className="text-muted">Selecciona una o varias imágenes.</Form.Text>
+
+              <Form.Control
+                type="file"
+                name="files"
+                multiple
+                accept="image/png, image/jpeg, image/webp, image/gif"
+                onChange={handleFileChange}
+              />
+              <Form.Text className="text-muted d-block mt-1">
+                Selecciona imágenes para añadir. Puedes usar el botón <strong>&quot;Hacer Portada&quot;</strong> o las flechas ◀ ▶ para elegir cuál imagen aparece en el catálogo.
+              </Form.Text>
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Tiempo de Antelación para Reservas (horas)</Form.Label>

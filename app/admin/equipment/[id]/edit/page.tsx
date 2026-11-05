@@ -33,7 +33,7 @@ export default function EditEquipmentPage() {
   const [description, setDescription] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [fixedAssetId, setFixedAssetId] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [existingImages, setExistingImages] = useState<{ url: string }[]>([]);
   const [regulationsUrl, setRegulationsUrl] = useState('');
   const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
   const [locations, setLocations] = useState<{ id: string; name: string; zone: string | null }[]>([]);
@@ -87,7 +87,7 @@ export default function EditEquipmentPage() {
         setDescription(data.description || '');
         setSerialNumber(data.serialNumber || '');
         setFixedAssetId(data.fixedAssetId || '');
-        setImageUrl(data.images?.[0]?.url || '');
+        setExistingImages(data.images || []);
         setRegulationsUrl(data.regulationsUrl || '');
         setLocationId(data.locationId || '');
         setResponsibleUserIds(data.responsibleUsers?.map(u => u.id) || []);
@@ -140,6 +140,30 @@ export default function EditEquipmentPage() {
     setUnits(updatedUnits);
   };
 
+  const handleSetCoverImage = (index: number) => {
+    setExistingImages(prevImages => {
+      if (index <= 0 || index >= prevImages.length) return prevImages;
+      const copy = [...prevImages];
+      const [selected] = copy.splice(index, 1);
+      return [selected, ...copy];
+    });
+  };
+
+  const handleMoveImage = (index: number, direction: 'left' | 'right') => {
+    setExistingImages(prevImages => {
+      const targetIndex = direction === 'left' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prevImages.length) return prevImages;
+      const copy = [...prevImages];
+      const [moved] = copy.splice(index, 1);
+      copy.splice(targetIndex, 0, moved);
+      return copy;
+    });
+  };
+
+  const handleRemoveExistingImage = (index: number) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -150,7 +174,7 @@ export default function EditEquipmentPage() {
       return;
     }
 
-    let currentImageUrl = imageUrl;
+    let finalImages = [...existingImages];
     let currentRegulationsUrl = regulationsUrl;
 
     try {
@@ -160,7 +184,9 @@ export default function EditEquipmentPage() {
         const uploadRes = await fetch('/api/upload', { method: 'POST', body: imageFormData });
         if (!uploadRes.ok) throw new Error('Error al subir la imagen.');
         const uploadData = await uploadRes.json();
-        currentImageUrl = uploadData.urls[0];
+        if (uploadData.urls && uploadData.urls.length > 0) {
+          finalImages.push({ url: uploadData.urls[0] });
+        }
       }
 
       if (regulationsFile) {
@@ -184,7 +210,7 @@ export default function EditEquipmentPage() {
           fixedAssetId,
           responsibleUserIds,
           locationId: locationId || undefined,
-          images: currentImageUrl ? [{ url: currentImageUrl }] : [],
+          images: finalImages,
           regulationsUrl: currentRegulationsUrl || null,
           units: units,
         }),
@@ -289,17 +315,118 @@ export default function EditEquipmentPage() {
                 </div>
 
                 <div className="mb-3">
-                  <label htmlFor="imageFile" className="form-label d-flex justify-content-between align-items-center">
-                    <span>Imagen del Equipo (para cartas y catálogo)</span>
-                    {imageUrl && !imageFile && (
-                      <button
-                        type="button"
-                        className="btn btn-link btn-sm text-danger p-0 text-decoration-none"
-                        onClick={() => setImageUrl('')}
-                      >
-                        Quitar imagen actual
-                      </button>
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <label className="form-label fw-bold mb-0">Imágenes del Equipo</label>
+                    {existingImages.length > 0 && (
+                      <span className="badge bg-warning text-dark" style={{ fontSize: '0.7rem' }}>
+                        La 1ª imagen es la Portada
+                      </span>
                     )}
+                  </div>
+
+                  {existingImages.length > 0 && (
+                    <div className="p-2 border rounded bg-light mb-2">
+                      <div className="d-flex flex-wrap gap-2">
+                        {existingImages.map((img, index) => {
+                          const isCover = index === 0;
+                          return (
+                            <div
+                              key={img.url + index}
+                              className={`position-relative p-1 rounded bg-white shadow-sm border ${
+                                isCover ? 'border-warning border-2' : 'border-secondary-subtle'
+                              }`}
+                              style={{ width: '100px' }}
+                            >
+                              {/* Botón eliminar */}
+                              <button
+                                type="button"
+                                className="btn btn-danger btn-sm position-absolute top-0 end-0 translate-middle rounded-circle p-0 shadow-sm"
+                                style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  fontSize: '0.75rem',
+                                  lineHeight: '1',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  zIndex: 10,
+                                }}
+                                onClick={() => handleRemoveExistingImage(index)}
+                                title="Eliminar esta imagen"
+                              >
+                                &times;
+                              </button>
+
+                              {/* Miniatura */}
+                              <a
+                                href={img.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Clic para ver en tamaño completo"
+                                style={{ display: 'block', width: '100%', height: '65px', overflow: 'hidden', borderRadius: '4px' }}
+                              >
+                                <img
+                                  src={img.url}
+                                  alt={`Imagen ${index + 1}`}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              </a>
+
+                              {/* Estado de Portada y Acciones */}
+                              <div className="mt-1 d-flex flex-column gap-1">
+                                {isCover ? (
+                                  <span
+                                    className="badge bg-warning text-dark text-center py-1 fw-bold"
+                                    style={{ fontSize: '0.68rem' }}
+                                  >
+                                    ★ Portada
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-primary btn-sm w-100 py-0 px-1 text-nowrap"
+                                    style={{ fontSize: '0.65rem', height: '22px', lineHeight: '20px' }}
+                                    onClick={() => handleSetCoverImage(index)}
+                                    title="Establecer como imagen de portada"
+                                  >
+                                    Hacer Portada
+                                  </button>
+                                )}
+
+                                {/* Controles de orden */}
+                                <div className="d-flex justify-content-between align-items-center">
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-secondary btn-sm py-0 px-1"
+                                    style={{ fontSize: '0.65rem', height: '18px', lineHeight: '14px' }}
+                                    disabled={index === 0}
+                                    onClick={() => handleMoveImage(index, 'left')}
+                                    title="Mover hacia la izquierda"
+                                  >
+                                    ◀
+                                  </button>
+                                  <span className="text-muted" style={{ fontSize: '0.62rem' }}>#{index + 1}</span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-secondary btn-sm py-0 px-1"
+                                    style={{ fontSize: '0.65rem', height: '18px', lineHeight: '14px' }}
+                                    disabled={index === existingImages.length - 1}
+                                    onClick={() => handleMoveImage(index, 'right')}
+                                    title="Mover hacia la derecha"
+                                  >
+                                    ▶
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <label htmlFor="imageFile" className="form-label small text-muted mb-1">
+                    Añadir nueva imagen:
                   </label>
                   <input
                     type="file"
@@ -308,8 +435,10 @@ export default function EditEquipmentPage() {
                     accept="image/png, image/jpeg, image/webp, image/gif"
                     onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
                   />
-                  <small className="text-muted d-block mt-1">Formatos: JPG, PNG, WebP o GIF (se mostrará en la carta del recurso).</small>
-                  {imageFile ? (
+                  <small className="text-muted d-block mt-1">
+                    Puedes seleccionar una imagen para agregar a la galería y usar <strong>&quot;Hacer Portada&quot;</strong> para elegir cuál aparece en el catálogo.
+                  </small>
+                  {imageFile && (
                     <div className="mt-2 p-2 border rounded bg-light d-flex align-items-center gap-3">
                       <img
                         src={URL.createObjectURL(imageFile)}
@@ -317,7 +446,7 @@ export default function EditEquipmentPage() {
                         style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
                       />
                       <div className="flex-grow-1">
-                        <small className="d-block fw-bold text-success">Nueva imagen seleccionada:</small>
+                        <small className="d-block fw-bold text-success">Nueva imagen lista para subir:</small>
                         <small className="text-muted d-block text-truncate" style={{ maxWidth: '200px' }}>{imageFile.name}</small>
                       </div>
                       <button
@@ -328,19 +457,7 @@ export default function EditEquipmentPage() {
                         Cancelar
                       </button>
                     </div>
-                  ) : imageUrl ? (
-                    <div className="mt-2 p-2 border rounded bg-light d-flex align-items-center gap-3">
-                      <img
-                        src={imageUrl}
-                        alt="Imagen actual del equipo"
-                        style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
-                      />
-                      <div className="flex-grow-1">
-                        <small className="d-block text-muted">Imagen actual guardada</small>
-                        <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="small">Ver tamaño completo</a>
-                      </div>
-                    </div>
-                  ) : null}
+                  )}
                 </div>
 
                 <div className="mb-3">

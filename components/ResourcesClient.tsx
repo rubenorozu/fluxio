@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ResourceCard from '@/components/ResourceCard';
 import { Form, Spinner } from 'react-bootstrap';
 import { useCart } from '@/context/CartContext';
@@ -32,11 +33,30 @@ interface Resource {
 
 interface ResourcesClientProps {
     initialResources: Resource[];
+    initialFilter?: 'all' | 'space' | 'equipment' | 'workshop';
 }
 
-export default function ResourcesClient({ initialResources }: ResourcesClientProps) {
+export default function ResourcesClient({ initialResources, initialFilter = 'all' }: ResourcesClientProps) {
     const { addToCart } = useCart();
-    const [filter, setFilter] = useState<'all' | 'space' | 'equipment' | 'workshop'>('all');
+    const searchParams = useSearchParams();
+
+    const [filter, setFilter] = useState<'all' | 'space' | 'equipment' | 'workshop'>(() => {
+        const typeParam = searchParams?.get('type');
+        if (typeParam === 'space' || typeParam === 'equipment' || typeParam === 'workshop' || typeParam === 'all') {
+            return typeParam;
+        }
+        return initialFilter;
+    });
+
+    useEffect(() => {
+        const typeParam = searchParams?.get('type');
+        if (typeParam === 'space' || typeParam === 'equipment' || typeParam === 'workshop' || typeParam === 'all') {
+            setFilter(typeParam);
+        } else if (initialFilter) {
+            setFilter(initialFilter);
+        }
+    }, [searchParams, initialFilter]);
+
     const [searchTerm, setSearchTerm] = useState('');
 
     // Modal state

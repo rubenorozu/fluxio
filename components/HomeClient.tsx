@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import Hero from '@/components/Hero';
 import Carousel from '@/components/Carousel';
 import { Spinner, Form } from 'react-bootstrap';
 import { useCart } from '@/context/CartContext';
 import SpaceConfigModal from '@/components/SpaceConfigModal';
+import bannerStyles from './HomeBanner.module.css';
 
-interface Image {
+interface ResourceImage {
     id: string;
     url: string;
 }
@@ -16,7 +19,7 @@ interface Resource {
     id: string;
     name: string;
     description?: string | null;
-    images: Image[];
+    images: ResourceImage[];
     type: 'space' | 'equipment' | 'workshop';
     reservationLeadTime?: number | null;
     isFixedToSpace?: boolean;
@@ -162,6 +165,55 @@ export default function HomeClient({ initialResources, howItWorks, siteName }: H
                     </div>
 
                     <Carousel resources={filteredResources} onConfigureSpace={handleConfigureSpace} />
+                </div>
+
+                {/* Banner Oficial: Tu espacio, tus ideas */}
+                <div className={bannerStyles.bannerSection}>
+                    <div className={bannerStyles.bannerCard}>
+                        <Image
+                            src="/assets/banner-tu-espacio.jpg"
+                            alt="Tu espacio, tus ideas - Recursos para crear, producir y compartir en un solo lugar"
+                            width={1024}
+                            height={341}
+                            sizes="(max-width: 1200px) 100vw, 1140px"
+                            priority
+                            className={bannerStyles.bannerImage}
+                        />
+
+                        {/* Botón interactivo "Explorar recursos →" que navega a /recursos */}
+                        <Link
+                            href="/recursos"
+                            className={bannerStyles.btnExplorar}
+                            title="Explorar recursos"
+                            aria-label="Explorar recursos"
+                        />
+
+                        {/* Accesos directos interactivos inferiores con filtros automáticos */}
+                        <Link
+                            href="/recursos?type=equipment"
+                            className={bannerStyles.linkEquipos}
+                            title="Equipos de última generación"
+                            aria-label="Ver equipos de última generación"
+                        />
+                        <Link
+                            href="/recursos?type=space"
+                            className={bannerStyles.linkEspacios}
+                            title="Espacios para tus proyectos"
+                            aria-label="Ver espacios para tus proyectos"
+                        />
+                        <Link
+                            href="/workshops"
+                            className={bannerStyles.linkTutoriales}
+                            title="Cursos y Talleres"
+                            aria-label="Ver cursos y talleres"
+                        />
+                        <Link
+                            href="mailto:ceproa@univa.mx"
+                            className={bannerStyles.linkAyuda}
+                            title="Ayuda y soporte"
+                            aria-label="Ayuda y soporte"
+                        />
+                    </div>
                 </div>
 
                 <SpaceConfigModal

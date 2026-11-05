@@ -1,6 +1,8 @@
 import { detectTenant } from '@/lib/tenant/detection';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
 import ResourcesClient from '@/components/ResourcesClient';
+import { Suspense } from 'react';
+import { Spinner } from 'react-bootstrap';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,12 +29,24 @@ interface Resource {
   };
 }
 
-export default async function ResourcesPage() {
+interface PageProps {
+  searchParams?: {
+    type?: string;
+  };
+}
+
+export default async function ResourcesPage({ searchParams }: PageProps) {
   const tenant = await detectTenant();
 
   if (!tenant) {
     return <div>Organización no encontrada</div>;
   }
+
+  const validFilters = ['all', 'space', 'equipment', 'workshop'];
+  const initialFilter =
+    searchParams?.type && validFilters.includes(searchParams.type)
+      ? (searchParams.type as 'all' | 'space' | 'equipment' | 'workshop')
+      : 'all';
 
   const prisma = getTenantPrisma(tenant.id);
 
@@ -91,5 +105,9 @@ export default async function ResourcesPage() {
     })),
   ];
 
-  return <ResourcesClient initialResources={resources} />;
+  return (
+    <Suspense fallback={<div className="container py-5 text-center"><Spinner animation="border" /></div>}>
+      <ResourcesClient initialResources={resources} initialFilter={initialFilter} />
+    </Suspense>
+  );
 }

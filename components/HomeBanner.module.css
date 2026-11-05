@@ -1,0 +1,120 @@
+/* ==========================================================================
+   Banner Oficial "Tu espacio, tus ideas" - Home Page
+   ========================================================================== */
+
+.bannerSection {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.bannerCard {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0, 43, 73, 0.1);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  line-height: 0;
+}
+
+.bannerImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+/* Botón interactivo "Explorar recursos →" superpuesto */
+.btnExplorar {
+  position: absolute;
+  top: 62.4%;
+  left: 4.2%;
+  width: 19.4%;
+  height: 12.2%;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: 2px solid transparent;
+}
+
+.btnExplorar:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 16px rgba(4, 75, 113, 0.4);
+  transform: translateY(-1px);
+}
+
+.btnExplorar:active {
+  transform: scale(0.98);
+}
+
+/* Links interactivos inferiores */
+.linkEquipos {
+  position: absolute;
+  bottom: 5.5%;
+  left: 4.2%;
+  width: 15%;
+  height: 14%;
+  cursor: pointer;
+  z-index: 10;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.linkEquipos:hover {
+  background: rgba(4, 75, 113, 0.08);
+}
+
+.linkEspacios {
+  position: absolute;
+  bottom: 5.5%;
+  left: 22.8%;
+  width: 15%;
+  height: 14%;
+  cursor: pointer;
+  z-index: 10;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.linkEspacios:hover {
+  background: rgba(4, 75, 113, 0.08);
+}
+
+.linkTutoriales {
+  position: absolute;
+  bottom: 5.5%;
+  left: 40.5%;
+  width: 11.5%;
+  height: 14%;
+  cursor: pointer;
+  z-index: 10;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.linkTutoriales:hover {
+  background: rgba(4, 75, 113, 0.08);
+}
+
+.linkAyuda {
+  position: absolute;
+  bottom: 5.5%;
+  left: 53.2%;
+  width: 12%;
+  height: 14%;
+  cursor: pointer;
+  z-index: 10;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.linkAyuda:hover {
+  background: rgba(4, 75, 113, 0.08);
+}

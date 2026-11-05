@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { detectTenant } from '@/lib/tenant/detection';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
-import { normalizeText } from '@/lib/search-utils';
+import { normalizeText, matchesSearchTokens } from '@/lib/search-utils';
 import { getServerSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -54,7 +54,6 @@ export async function GET(req: Request) {
     // Filter in memory for accent-insensitive search
     let filteredUsers = users;
     if (search) {
-      const normalizedSearch = normalizeText(search);
       filteredUsers = users.filter(user => {
         const searchableText = [
           user.firstName || '',
@@ -63,7 +62,7 @@ export async function GET(req: Request) {
           user.identifier || '',
           user.displayId || '',
         ].join(' ');
-        return normalizeText(searchableText).includes(normalizedSearch);
+        return matchesSearchTokens(searchableText, search);
       });
     }
 

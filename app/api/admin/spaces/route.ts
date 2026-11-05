@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
 import { detectTenant } from '@/lib/tenant/detection';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
-import { normalizeText } from '@/lib/search-utils';
+import { normalizeText, matchesSearchTokens } from '@/lib/search-utils';
 
 // Helper function to generate a random alphanumeric string
 function generateRandomString(length: number): string {
@@ -72,7 +72,6 @@ export async function GET(request: Request) {
     // Filter in memory for accent-insensitive search
     let filteredSpaces = spaces;
     if (search) {
-      const normalizedSearch = normalizeText(search);
       filteredSpaces = spaces.filter(space => {
         const responsibleNames = (space as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join(', ');
         const searchableText = [
@@ -81,7 +80,7 @@ export async function GET(request: Request) {
           space.displayId || '',
           responsibleNames,
         ].join(' ');
-        return normalizeText(searchableText).includes(normalizedSearch);
+        return matchesSearchTokens(searchableText, search);
       });
     }
 

@@ -5,6 +5,7 @@ import ResourceCard from '@/components/ResourceCard';
 import { Form, Spinner } from 'react-bootstrap';
 import { useCart } from '@/context/CartContext';
 import SpaceConfigModal from '@/components/SpaceConfigModal';
+import { matchesSearchTokens } from '@/lib/search-utils';
 
 interface Image {
     id: string;
@@ -51,12 +52,10 @@ export default function ResourcesClient({ initialResources }: ResourcesClientPro
     const filteredResources = useMemo(() => {
         return initialResources.filter(resource => {
             const matchesType = filter === 'all' || resource.type === filter;
-            const matchesSearch = searchTerm === '' ||
-                resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (resource.description && resource.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                resource.id.toLowerCase().includes(searchTerm.toLowerCase());
+            if (!matchesType) return false;
 
-            return matchesType && matchesSearch;
+            const searchable = `${resource.name || ''} ${resource.description || ''} ${resource.id || ''}`;
+            return matchesSearchTokens(searchable, searchTerm);
         });
     }, [initialResources, filter, searchTerm]);
 

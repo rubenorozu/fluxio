@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession, verifyToken } from '@/lib/auth';
 import { Role, Prisma, InscriptionStatus } from '@prisma/client';
-import { normalizeText } from '@/lib/search-utils';
+import { normalizeText, matchesSearchTokens } from '@/lib/search-utils';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -46,26 +46,6 @@ export async function GET(request: Request) {
       }
     }
 
-    if (search) {
-      whereClause.OR = [
-        {
-          user: {
-            OR: [
-              { firstName: { contains: search } },
-              { lastName: { contains: search } },
-              { email: { contains: search } },
-              { identifier: { contains: search } },
-            ],
-          },
-        },
-        {
-          workshop: {
-            name: { contains: search },
-          },
-        },
-      ];
-    }
-
     const skip = (page - 1) * pageSize;
 
     // When searching, fetch more results and filter in memory for accent-insensitive search
@@ -97,7 +77,6 @@ export async function GET(request: Request) {
     // Filter in memory for accent-insensitive search
     let filteredInscriptions = inscriptions;
     if (search) {
-      const normalizedSearch = normalizeText(search);
       filteredInscriptions = inscriptions.filter(inscription => {
         const searchableText = [
           inscription.user.firstName || '',
@@ -106,7 +85,7 @@ export async function GET(request: Request) {
           inscription.user.identifier || '',
           inscription.workshop.name || '',
         ].join(' ');
-        return normalizeText(searchableText).includes(normalizedSearch);
+        return matchesSearchTokens(searchableText, search);
       });
     }
 

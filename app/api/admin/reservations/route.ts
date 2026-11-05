@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma, Role, ReservationStatus } from '@prisma/client';
 import { getServerSession } from '@/lib/auth';
-import { normalizeText } from '@/lib/search-utils';
+import { normalizeText, matchesSearchTokens } from '@/lib/search-utils';
 
 import { prisma } from '@/lib/prisma';
 
@@ -28,18 +28,6 @@ export async function GET(request: Request) {
       if (Object.values(ReservationStatus).includes(filterValue as ReservationStatus)) {
         whereClause.status = filterValue as ReservationStatus;
       }
-    }
-
-    if (search) {
-      whereClause.OR = [
-        { user: { firstName: { contains: search } } },
-        { user: { lastName: { contains: search } } },
-        { user: { email: { contains: search } } },
-        { subject: { contains: search } },
-        { justification: { contains: search } },
-        { space: { name: { contains: search } } },
-        { equipment: { name: { contains: search } } },
-      ];
     }
 
     const isPartialFilter = statusFilter?.toUpperCase() === 'PARTIALLY_APPROVED';
@@ -78,7 +66,6 @@ export async function GET(request: Request) {
     // Filter in memory for accent-insensitive search
     let filteredReservations = reservations;
     if (search) {
-      const normalizedSearch = normalizeText(search);
       filteredReservations = reservations.filter(reservation => {
         const userName = `${reservation.user.firstName || ''} ${reservation.user.lastName || ''}`.trim();
         const searchableText = [
@@ -89,7 +76,7 @@ export async function GET(request: Request) {
           reservation.space?.name || '',
           reservation.equipment?.name || '',
         ].join(' ');
-        return normalizeText(searchableText).includes(normalizedSearch);
+        return matchesSearchTokens(searchableText, search);
       });
     }
 

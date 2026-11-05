@@ -3,7 +3,7 @@ import { Role, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
 import { detectTenant } from '@/lib/tenant/detection';
-import { normalizeText } from '@/lib/search-utils';
+import { normalizeText, matchesSearchTokens } from '@/lib/search-utils';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
 
 
@@ -83,7 +83,6 @@ export async function GET(request: Request) {
     // Filter in memory for accent-insensitive search
     let filteredEquipment = equipment;
     if (search) {
-      const normalizedSearch = normalizeText(search);
       filteredEquipment = equipment.filter(item => {
         const responsibleNames = (item as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join(', ');
         const searchableText = [
@@ -94,7 +93,7 @@ export async function GET(request: Request) {
           item.displayId || '',
           responsibleNames,
         ].join(' ');
-        return normalizeText(searchableText).includes(normalizedSearch);
+        return matchesSearchTokens(searchableText, search);
       });
     }
 

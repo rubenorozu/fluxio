@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from '@/lib/auth';
-import { normalizeText } from '@/lib/search-utils';
+import { normalizeText, matchesSearchTokens } from '@/lib/search-utils';
 
 export async function GET(request: Request) {
   const session = await getServerSession();
@@ -22,16 +22,6 @@ export async function GET(request: Request) {
     const effectiveSkip = searchTerm ? 0 : skip;
 
     const whereClause: any = {};
-    if (searchTerm) {
-      whereClause.OR = [
-        { description: { contains: searchTerm } },
-        { space: { name: { contains: searchTerm } } },
-        { equipment: { name: { contains: searchTerm } } },
-        { workshop: { name: { contains: searchTerm } } },
-        { user: { firstName: { contains: searchTerm } } },
-        { user: { lastName: { contains: searchTerm } } },
-      ];
-    }
 
     const [reports, totalReports] = await prisma.$transaction([
       prisma.report.findMany({
@@ -76,7 +66,6 @@ export async function GET(request: Request) {
     // Filter in memory for accent-insensitive search
     let filteredReports = reports;
     if (searchTerm) {
-      const normalizedSearch = normalizeText(searchTerm);
       filteredReports = reports.filter(report => {
         const userName = report.user ? `${report.user.firstName} ${report.user.lastName}` : '';
         const searchableText = [
@@ -86,7 +75,7 @@ export async function GET(request: Request) {
           report.workshop?.name || '',
           userName,
         ].join(' ');
-        return normalizeText(searchableText).includes(normalizedSearch);
+        return matchesSearchTokens(searchableText, searchTerm);
       });
     }
 

@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
 import { detectTenant } from '@/lib/tenant/detection';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
-import { normalizeText } from '@/lib/search-utils';
+import { normalizeText, matchesSearchTokens } from '@/lib/search-utils';
 
 // Helper function to generate a random alphanumeric string
 function generateRandomString(length: number): string {
@@ -71,7 +71,6 @@ export async function GET(request: Request) {
     // Filter in memory for accent-insensitive search
     let filteredWorkshops = workshops;
     if (search) {
-      const normalizedSearch = normalizeText(search);
       filteredWorkshops = workshops.filter(workshop => {
         const responsibleNames = (workshop as any).responsibleUsers.map((u: any) => `${u.firstName} ${u.lastName}`).join(', ');
         const searchableText = [
@@ -81,7 +80,7 @@ export async function GET(request: Request) {
           workshop.displayId || '',
           responsibleNames,
         ].join(' ');
-        return normalizeText(searchableText).includes(normalizedSearch);
+        return matchesSearchTokens(searchableText, search);
       });
     }
 

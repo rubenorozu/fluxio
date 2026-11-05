@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { detectTenant } from '@/lib/tenant/detection';
 import { getTenantPrisma } from '@/lib/tenant/prisma';
+import { matchesSearchTokens } from '@/lib/search-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,15 +21,7 @@ export async function GET(request: Request) {
 
     const whereClause: Prisma.WorkshopWhereInput = {};
 
-    if (search) {
-      whereClause.OR = [
-        { name: { contains: search } },
-        { description: { contains: search } },
-        { teacher: { contains: search } },
-      ];
-    }
-
-    const workshops = await prisma.workshop.findMany({
+    let workshops = await prisma.workshop.findMany({
       where: whereClause,
       include: {
         images: true, // Incluir las imágenes relacionadas
@@ -40,6 +33,14 @@ export async function GET(request: Request) {
         createdAt: 'desc',
       },
     });
+
+    if (search) {
+      workshops = workshops.filter(workshop => {
+        const searchable = `${workshop.name || ''} ${workshop.description || ''} ${workshop.teacher || ''} ${workshop.room || ''}`;
+        return matchesSearchTokens(searchable, search);
+      });
+    }
+
     workshops.sort((a, b) => {
       const aIsAvailable = a.inscriptionsOpen && (!a.inscriptionsStartDate || new Date(a.inscriptionsStartDate) <= new Date());
       const bIsAvailable = b.inscriptionsOpen && (!b.inscriptionsStartDate || new Date(b.inscriptionsStartDate) <= new Date());

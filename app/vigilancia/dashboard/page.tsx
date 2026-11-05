@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
+import { matchesSearchTokens } from '@/lib/search-utils';
 
 // Type for individual reservation items from the API
 type ReservationItem = {
@@ -106,12 +107,10 @@ export default function VigilanciaDashboard() {
   }, [reservations]);
 
   const filteredReservations = useMemo(() => {
-    return groupedReservations.filter(group =>
-      group.displayId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${group.user.firstName} ${group.user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      group.items.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      getStatusText(group).toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return groupedReservations.filter(group => {
+      const searchable = `${group.displayId} ${group.user.firstName} ${group.user.lastName} ${group.items.map(item => item.name).join(' ')} ${getStatusText(group)}`;
+      return matchesSearchTokens(searchable, searchTerm);
+    });
   }, [groupedReservations, searchTerm]);
 
   const paginatedReservations = useMemo(() => {

@@ -39,7 +39,15 @@ interface HomeClientProps {
 
 export default function HomeClient({ initialResources, howItWorks, siteName }: HomeClientProps) {
     const { addToCart } = useCart();
-    const [allResources, setAllResources] = useState<Resource[]>(initialResources);
+
+    const prioritizeWithPhotos = (items: Resource[]): Resource[] => {
+        const hasPhoto = (r: Resource) => Array.isArray(r.images) && r.images.length > 0 && Boolean(r.images[0]?.url);
+        const withPhotos = items.filter(hasPhoto);
+        const withoutPhotos = items.filter(r => !hasPhoto(r));
+        return [...shuffleArray(withPhotos), ...shuffleArray(withoutPhotos)];
+    };
+
+    const [allResources, setAllResources] = useState<Resource[]>(() => prioritizeWithPhotos(initialResources));
     const [filter, setFilter] = useState<'all' | 'space' | 'equipment' | 'workshop'>('all');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false); // Changed initial loading to false as we have data
@@ -60,12 +68,9 @@ export default function HomeClient({ initialResources, howItWorks, siteName }: H
             { title: "Paso 4", description: "Confirma tu solicitud y espera la aprobación." }
         ];
 
-    // Effect to shuffle resources on mount only if needed, or we can rely on server shuffle
+    // Keep resources prioritized with photos first while randomizing within each tier
     useEffect(() => {
-        // Optional: Shuffle on client mount if we want random order every refresh
-        // setAllResources(shuffleArray(initialResources));
-        // For now, let's trust the server order or shuffle here once
-        setAllResources(shuffleArray(initialResources));
+        setAllResources(prioritizeWithPhotos(initialResources));
     }, [initialResources]);
 
     const handleConfigureSpace = async (spaceId: string) => {

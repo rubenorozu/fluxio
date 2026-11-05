@@ -93,29 +93,39 @@ export default async function HomePage() {
     ]);
 
     // Combine and format resources
+    const parseImages = (imgs: any) => {
+        if (Array.isArray(imgs)) return imgs;
+        if (typeof imgs === 'string') {
+            try { return JSON.parse(imgs); } catch { return []; }
+        }
+        return [];
+    };
+
     const allResources: Resource[] = [
         ...spaces.map((s: any) => ({
             ...s,
             type: 'space' as const,
-            images: s.images ? JSON.parse(s.images as string) : [],
+            images: parseImages(s.images),
         })),
         ...equipment.map((e: any) => ({
             ...e,
             type: 'equipment' as const,
-            images: e.images ? JSON.parse(e.images as string) : [],
+            images: parseImages(e.images),
         })),
     ];
 
-    // Shuffle resources randomly
-    const shuffled = allResources.sort(() => Math.random() - 0.5);
+    // Prioritize resources with photos over those without
+    const hasPhoto = (r: Resource) => Array.isArray(r.images) && r.images.length > 0 && Boolean(r.images[0]?.url);
+    const withPhotos = allResources.filter(hasPhoto).sort(() => Math.random() - 0.5);
+    const withoutPhotos = allResources.filter((r) => !hasPhoto(r)).sort(() => Math.random() - 0.5);
 
-    // Take only the limit amount
-    const initialResources = shuffled.slice(0, carouselLimit);
+    // Take resources with photos first, fill remainder up to limit with withoutPhotos
+    const initialResources = [...withPhotos, ...withoutPhotos].slice(0, carouselLimit);
 
     // Debug logging
     console.log(`[HOME] Total spaces: ${spaces.length}`);
     console.log(`[HOME] Total equipment: ${equipment.length}`);
-    console.log(`[HOME] Total resources before limit: ${allResources.length}`);
+    console.log(`[HOME] Total resources before limit: ${allResources.length} (${withPhotos.length} with photos)`);
     console.log(`[HOME] Resources shown in carousel: ${initialResources.length}`);
 
     return (

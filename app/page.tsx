@@ -125,15 +125,18 @@ export default async function Home() {
     ...(equipment as any[]).map((e) => ({ ...e, images: e.images as Image[], type: 'equipment' as const })),
   ];
 
-  // Shuffle resources randomly
-  const shuffled = allResources.sort(() => Math.random() - 0.5);
+  // Prioritize resources with photos over those without
+  const hasPhoto = (r: Resource) => Array.isArray(r.images) && r.images.length > 0 && Boolean(r.images[0]?.url);
+  const withPhotos = allResources.filter(hasPhoto).sort(() => Math.random() - 0.5);
+  const withoutPhotos = allResources.filter((r) => !hasPhoto(r)).sort(() => Math.random() - 0.5);
 
-  // Take only the limit amount
-  const resources = shuffled.slice(0, resourceLimit);
+  // Take resources with photos first, fill remainder up to limit with withoutPhotos
+  const prioritized = [...withPhotos, ...withoutPhotos];
+  const resources = prioritized.slice(0, resourceLimit);
 
   console.log(`[HOME /] Total spaces: ${spaces.length}`);
   console.log(`[HOME /] Total equipment: ${equipment.length}`);
-  console.log(`[HOME /] Total resources before limit: ${allResources.length}`);
+  console.log(`[HOME /] Total resources before limit: ${allResources.length} (${withPhotos.length} with photos)`);
   console.log(`[HOME /] Resources shown in carousel: ${resources.length}`);
 
   return <HomeClient initialResources={resources} howItWorks={tenant.config?.howItWorks} siteName={tenant.config?.siteName || 'Fluxio RSV'} />;

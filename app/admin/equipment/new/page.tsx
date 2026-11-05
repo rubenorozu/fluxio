@@ -220,6 +220,39 @@ export default function NewEquipmentPage() {
           <small className="text-muted">Mantén presionado Ctrl (Windows) o Cmd (Mac) para seleccionar múltiples encargados.</small>
         </div>
         <div className="mb-3">
+          <label htmlFor="imageFile" className="form-label">Imagen del Equipo (para cartas y catálogo)</label>
+          <input
+            type="file"
+            className="form-control"
+            id="imageFile"
+            accept="image/png, image/jpeg, image/webp, image/gif"
+            onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+          />
+          <small className="text-muted d-block mt-1">
+            Formatos: JPG, PNG, WebP o GIF (máx 5MB). Esta imagen se mostrará en las cartas y el carrusel de recursos.
+          </small>
+          {imageFile && (
+            <div className="mt-2 p-2 border rounded bg-light d-flex align-items-center gap-3">
+              <img
+                src={URL.createObjectURL(imageFile)}
+                alt="Previsualización"
+                style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+              />
+              <div className="flex-grow-1">
+                <small className="d-block fw-bold text-success">Imagen seleccionada:</small>
+                <small className="text-muted d-block text-truncate" style={{ maxWidth: '240px' }}>{imageFile.name}</small>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => setImageFile(null)}
+              >
+                Quitar
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="mb-3">
           <label htmlFor="regulationsFile" className="form-label">Reglamento (PDF opcional)</label>
           <input
             type="file"

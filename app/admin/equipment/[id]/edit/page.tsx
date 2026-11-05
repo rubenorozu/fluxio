@@ -289,6 +289,61 @@ export default function EditEquipmentPage() {
                 </div>
 
                 <div className="mb-3">
+                  <label htmlFor="imageFile" className="form-label d-flex justify-content-between align-items-center">
+                    <span>Imagen del Equipo (para cartas y catálogo)</span>
+                    {imageUrl && !imageFile && (
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm text-danger p-0 text-decoration-none"
+                        onClick={() => setImageUrl('')}
+                      >
+                        Quitar imagen actual
+                      </button>
+                    )}
+                  </label>
+                  <input
+                    type="file"
+                    className="form-control"
+                    id="imageFile"
+                    accept="image/png, image/jpeg, image/webp, image/gif"
+                    onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+                  />
+                  <small className="text-muted d-block mt-1">Formatos: JPG, PNG, WebP o GIF (se mostrará en la carta del recurso).</small>
+                  {imageFile ? (
+                    <div className="mt-2 p-2 border rounded bg-light d-flex align-items-center gap-3">
+                      <img
+                        src={URL.createObjectURL(imageFile)}
+                        alt="Previsualización nueva imagen"
+                        style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+                      />
+                      <div className="flex-grow-1">
+                        <small className="d-block fw-bold text-success">Nueva imagen seleccionada:</small>
+                        <small className="text-muted d-block text-truncate" style={{ maxWidth: '200px' }}>{imageFile.name}</small>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => setImageFile(null)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : imageUrl ? (
+                    <div className="mt-2 p-2 border rounded bg-light d-flex align-items-center gap-3">
+                      <img
+                        src={imageUrl}
+                        alt="Imagen actual del equipo"
+                        style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+                      />
+                      <div className="flex-grow-1">
+                        <small className="d-block text-muted">Imagen actual guardada</small>
+                        <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="small">Ver tamaño completo</a>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mb-3">
                   <label htmlFor="regulationsFile" className="form-label">Reglamento (PDF)</label>
                   <input
                     type="file"
